@@ -1,0 +1,907 @@
+/* Importar fonte Inter do Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5; /* Cor de fundo mais clara e moderna */
+    color: #333;
+    transition: background-color 0.5s ease-in-out; 
+}
+
+/* Estilos para o cabeçalho */
+.app-header {
+    background-size: cover;
+    background-position: center;
+    padding: 15px 0;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 120px; /* Aumenta a altura mínima do cabeçalho */
+}
+
+.app-header.day-mode {
+    background-image: url('../static/img/dia.jpeg');
+}
+
+.app-header.night-mode {
+    background-image: url('../static/img/noite.jpeg');
+}
+
+.header-content {
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    justify-content: space-between; /* Alinha o conteúdo à esquerda e direita */
+    width: 100%;
+    max-width: 1600px;
+    padding: 0 40px; /* Aumenta o padding lateral */
+    gap: 30px; 
+    position: relative; 
+}
+
+.app-logo {
+    max-width: 150px; /* Tamanho do logo ajustado */
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.8em; 
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    white-space: nowrap; 
+}
+
+.logout-button {
+    background-color: #d32f2f;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-weight: 600;
+}
+
+.logout-button:hover {
+    background-color: #c62828;
+    transform: translateY(-2px);
+}
+
+/* Estilos para as abas de navegação */
+.navigation-tabs {
+    display: flex;
+    flex-wrap: wrap; 
+    justify-content: center;
+    background-color: #ffffff;
+    padding: 10px;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.tab-button {
+    background-color: #ffffff;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 1em;
+    margin: 3px;
+    border-radius: 8px; 
+    transition: all 0.3s ease;
+    flex-grow: 1; 
+    max-width: 250px; 
+    color: #555;
+    font-weight: 500;
+}
+
+.tab-button:hover {
+    background-color: #e9e9e9;
+    transform: translateY(-2px);
+}
+
+.tab-button.active {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Estilos para o botão "Links Importantes" */
+.tab-button[data-section-id="links-importantes"] {
+    background-color: #bbdefb; /* Um azul bem claro */
+    color: #1a237e; /* Cor do texto para contraste */
+    font-weight: bold;
+}
+.tab-button[data-section-id="links-importantes"]:hover {
+    background-color: #90caf9; /* Um tom um pouco mais escuro ao passar o mouse */
+}
+
+
+/* Estilos para as seções de conteúdo (formulários e resultados) */
+.section {
+    background-color: #ffffff;
+    margin: 20px auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: calc(100% - 40px);
+    max-width: 1600px;
+    box-sizing: border-box; 
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.result-header h2 {
+    margin: 0;
+    border-bottom: none;
+}
+
+.toggle-form-result {
+    background-color: #2196f3;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-form-result:hover {
+    background-color: #1e88e5;
+}
+
+
+h2 {
+    color: #4CAF50;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2em;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.form-section {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-section h3 {
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    border-bottom: 1px dashed #ddd;
+    padding-bottom: 8px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="url"],
+input[type="week"],
+select,
+textarea {
+    width: calc(100% - 22px); 
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.filters input[type="text"],
+.filters input[type="number"],
+.filters input[type="date"],
+.filters input[type="url"],
+.filters input[type="week"],
+.filters select {
+    padding-left: 12px;
+    padding-right: 12px;
+    text-indent: 12px;
+}
+.filters input::placeholder {
+    color: #aaa;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="url"]:focus,
+input[type="week"]:focus,
+select:focus,
+textarea:focus {
+    border-color: #4CAF50;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+    outline: none;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+button[type="submit"],
+button[type="button"] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-top: 10px;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button[type="submit"]:hover,
+button[type="button"]:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+button[type="submit"]:active,
+button[type="button"]:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.red-button {
+    background-color: #d32f2f;
+}
+
+.red-button:hover {
+    background-color: #c62828;
+}
+
+.radio-group, .checkbox-container {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    background-color: #fefefe;
+}
+
+.radio-group label, .checkbox-container label {
+    display: inline-block;
+    margin-right: 20px;
+    font-weight: normal;
+    cursor: pointer;
+    margin-bottom: 5px;
+}
+
+.radio-group input[type="radio"], .checkbox-container input[type="checkbox"] {
+    margin-right: 5px;
+    width: auto;
+    vertical-align: middle;
+}
+
+.participante-item {
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.95em;
+}
+
+.participante-item .participante-nome {
+    font-weight: bold;
+    color: #2e7d32;
+    flex-basis: 100%; 
+    margin-bottom: 5px;
+}
+
+.participante-item .participante-info {
+    color: #555;
+    font-size: 0.85em;
+    flex-basis: 100%;
+    margin-bottom: 10px;
+}
+
+.participante-item .radio-group {
+    border: none;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.participante-item .radio-group label {
+    margin-right: 0;
+}
+
+/* Estilos para tabelas de resultados */
+.filters {
+    background-color: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.filters h3 {
+    color: #2196f3;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    border-bottom: 1px dashed #90caf9;
+    padding-bottom: 8px;
+}
+
+.filters form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+    gap: 20px; 
+    align-items: start; 
+}
+/* Estilo para que o texto dos filtros fique dentro do campo */
+.filters label:not(.radio-group label, .checkbox-container label) {
+    display: none;
+}
+.filters input[type="text"],
+.filters input[type="number"],
+.filters input[type="date"],
+.filters input[type="url"],
+.filters input[type="week"],
+.filters select {
+    width: 100%;
+    margin-bottom: 0;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.filters input::placeholder {
+    color: #888;
+}
+
+.filters .button-group {
+    grid-column: 1 / -1; 
+    display: flex;
+    justify-content: flex-end; 
+    gap: 10px; 
+    margin-top: 15px;
+}
+.filters button {
+    margin-top: 0; 
+}
+
+.metrics {
+    background-color: #fff3e0;
+    border: 1px solid #ffe0b2;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: grid; /* Novo: Layout em grade para métricas */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.metrics h3 {
+    color: #ff9800;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    border-bottom: 1px dashed #ffcc80;
+    padding-bottom: 8px;
+    grid-column: 1 / -1;
+}
+
+.metrics p {
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.metrics p span {
+    font-weight: bold;
+    color: #d35400;
+}
+
+.table-container {
+    overflow-x: auto; 
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+    background-color: #ffffff;
+}
+
+table th, table td {
+    border: 1px solid #ddd;
+    padding: 12px 15px;
+    text-align: left;
+    white-space: nowrap; 
+}
+
+table th {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9em;
+    position: sticky; 
+    top: 0;
+    z-index: 1;
+}
+
+table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+table tbody tr:hover {
+    background-color: #e0e0e0;
+    transition: background-color 0.2s ease;
+}
+
+/* Estilos para Paginação */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    gap: 10px;
+    font-size: 1em;
+}
+
+.pagination-container .pagination-button {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.pagination-container .pagination-button:hover:not([disabled]) {
+    background-color: #1e88e5;
+}
+
+.pagination-container .pagination-button[disabled] {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* NOVOS ESTILOS PARA LAYOUT EM GRADE */
+.engajamento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.engajamento-grid label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 0;
+}
+
+.engajamento-grid input[type="checkbox"] {
+    margin-right: 5px;
+    width: auto;
+}
+
+/* Estilos para a lista de escolas (checkboxes) */
+#escolas-checkbox-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #fefefe;
+}
+
+#escolas-checkbox-container label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    font-weight: normal;
+}
+
+#escolas-checkbox-container label:hover {
+    background-color: #e8f5e9;
+}
+
+/* Estilos para o Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 15cm;
+    max-height: 15cm;
+    position: relative;
+    animation: fadeIn 0.3s;
+    overflow: auto; /* Adicionado para permitir scroll se o conteúdo for maior que 15cm */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content h3 {
+    color: #4CAF50;
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.modal-content .close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-content .close-button:hover,
+.modal-content .close-button:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.modal-content .button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-content .modal-save-button {
+    background-color: #4CAF50;
+}
+
+.modal-content .modal-close-button {
+    background-color: #9e9e9e;
+}
+
+
+/* Estilos para o botão de edição na tabela */
+.edit-button {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.2s ease;
+}
+
+.edit-button:hover {
+    background-color: #1e88e5;
+}
+
+
+/* Estilos para a página de Links Importantes */
+.link-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+    background-color: #f9f9f9;
+}
+
+.link-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.link-info {
+    flex-grow: 1;
+    padding-right: 20px;
+}
+
+.link-info h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    border-bottom: none;
+}
+
+.link-info h3 a {
+    color: #4CAF50;
+    text-decoration: none;
+    font-size: 1.5em;
+    transition: color 0.3s ease;
+}
+
+.link-info h3 a:hover {
+    color: #45a049;
+    text-decoration: underline;
+}
+
+.link-info p {
+    margin: 0;
+    color: #555;
+    line-height: 1.4;
+}
+
+.link-image-container {
+    flex-shrink: 0;
+    width: 25%;
+    max-width: 200px;
+    height: auto;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.link-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Estilos para o Modal de Aviso */
+#aviso-modal .modal-content {
+    max-width: 15cm; /* Define a largura máxima do modal */
+    max-height: 15cm; /* Define a altura máxima do modal */
+    padding: 20px;
+    text-align: center;
+}
+
+.aviso-content {
+    display: flex;
+    flex-direction: column; 
+    align-items: center; 
+    gap: 15px;
+}
+
+.aviso-content img {
+    max-width: 100%; 
+    max-height: 100%;
+    height: auto; 
+    border-radius: 8px;
+    flex-shrink: 0;
+    margin: 0 auto;
+}
+
+.aviso-texto {
+    padding-right: 0; 
+    width: 100%;
+}
+
+.aviso-texto h3 {
+    margin-top: 0;
+    color: #4CAF50;
+    font-size: 1.5em;
+    border-bottom: none;
+    padding-bottom: 0;
+    text-align: center;
+}
+
+.aviso-texto p {
+    margin: 0;
+    color: #555;
+    line-height: 1.4;
+    text-align: center; 
+}
+
+/* Estilos para a lista de administração (links e cards) */
+.admin-list-item {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.admin-list-item p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #555;
+    flex-basis: 100%;
+}
+
+.admin-list-item p strong {
+    color: #333;
+}
+
+.admin-list-item button {
+    margin-top: 10px;
+}
+
+
+/* Responsividade */
+@media (max-width: 1200px) {
+    .section {
+        width: calc(100% - 30px);
+        padding: 25px;
+    }
+    .filters form {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    }
+    .app-header h1 {
+        font-size: 2em; 
+    }
+    .app-logo {
+        max-width: 120px;
+    }
+}
+
+@media (max-width: 768px) {
+    .navigation-tabs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tab-button {
+        margin: 5px 0;
+        max-width: none;
+    }
+
+    .section {
+        margin: 15px;
+        padding: 20px;
+        width: calc(100% - 30px); 
+    }
+    
+    .result-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .app-header .header-content {
+        flex-direction: column; 
+        gap: 10px;
+    }
+
+    .app-header h1 {
+        font-size: 1.8em;
+        white-space: normal;
+    }
+
+    .app-logo {
+        max-width: 100px;
+    }
+
+    .filters form {
+        grid-template-columns: 1fr;
+    }
+
+    .filters .button-group {
+        flex-direction: column; 
+        align-items: stretch;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px; 
+    }
+
+    .logout-button {
+        position: static; 
+        transform: none;
+        margin-top: 10px; 
+    }
+
+    .link-card, .aviso-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    .link-info, .aviso-texto {
+        padding-right: 0;
+    }
+    .link-image-container, .aviso-content img {
+        width: 100%;
+        max-width: 100%;
+        margin-top: 15px;
+    }
+    .link-card a.link-button {
+        align-self: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header h1 {
+        font-size: 1.5em;
+    }
+
+    .app-logo {
+        max-width: 80px;
+    }
+
+    .section {
+        padding: 15px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="url"],
+    input[type="week"],
+    select,
+    textarea {
+        padding: 10px;
+    }
+
+    button[type="submit"],
+    button[type="button"] {
+        padding: 10px 15px;
+        font-size: 1em;
+    }
+
+    .radio-group, .checkbox-container {
+        padding: 8px;
+    }
+
+    .radio-group label, .checkbox-container label {
+        margin-right: 10px;
+    }
+
+    .participante-item .radio-group {
+        flex-direction: column;
+        gap: 5px;
+    }
+}
