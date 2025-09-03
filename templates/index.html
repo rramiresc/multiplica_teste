@@ -176,7 +176,7 @@
                 <option value="17:00hs até 18:30hs">17:00hs até 18:30hs</option>
             </select>
 
-            <label for="esperado_participantes">Número de pessoas esperadas no encontro:</label>
+            <label for="esperado_participantes">Número de cursistas esperados no encontro (sem contar o formador).</label>
             <input type="number" id="esperado_participantes" name="esperado_participantes" readonly>
 
             <label for="real_participantes">Número real de pessoas presentes no encontro:</label>
@@ -709,6 +709,16 @@
 
 <div id="admin-tools" class="section" style="display:none;">
     <h2>Ferramentas de Administração</h2>
+
+    <div class="form-section">
+        <h3>Importar Planilha de Participantes</h3>
+        <p><b>AVISO:</b> Esta ação irá apagar e substituir completamente a base de dados de participantes por uma nova planilha.</p>
+        <form id="importParticipantsForm">
+            <label for="participants_file">Selecione o arquivo participantes_base_editavel.xlsx:</label>
+            <input type="file" id="participants_file" name="file" accept=".xlsx" required>
+            <button type="submit" class="red-button">Importar e Atualizar Base</button>
+        </form>
+    </div>
 
     <div class="form-section">
         <h3>Gerenciar Usuário e Participante</h3>

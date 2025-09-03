@@ -2086,4 +2086,264 @@ document.addEventListener('DOMContentLoaded', function() {
     handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
     handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
     handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
+    handleImportParticipants();
+
+    // Funções para gerenciar Avisos (Admin)
+    async function fetchAvisoDataForAdmin() {
+        const form = document.getElementById('avisoForm');
+        if (!form) return;
+        try {
+            const response = await fetch('/get_aviso');
+            if (!response.ok) throw new Error('Falha ao buscar aviso.');
+            const data = await response.json();
+            if (data.titulo) {
+                form.querySelector('#aviso-titulo').value = data.titulo;
+                form.querySelector('#aviso-conteudo').value = data.conteudo;
+                form.querySelector('#aviso-imagem-url').value = data.imagem_url || '';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar aviso para edição:', error);
+        }
+    }
+
+    async function handleAvisoFormSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        try {
+            const response = await fetch('/admin/avisos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            alert(result.message);
+        } catch (error) {
+            console.error('Erro ao salvar aviso:', error);
+            alert('Erro ao salvar aviso.');
+        }
+    }
+
+    const avisoForm = document.getElementById('avisoForm');
+    if (avisoForm) {
+        avisoForm.addEventListener('submit', handleAvisoFormSubmit);
+    }
+    
+    // Funções para gerenciar Links (Admin)
+    async function loadLinksAdmin() {
+        const listContainer = document.getElementById('links-admin-list').querySelector('tbody');
+        if (!listContainer) return;
+        try {
+            const response = await fetch('/admin/links');
+            if (!response.ok) throw new Error('Falha ao carregar links.');
+            const links = await response.json();
+            listContainer.innerHTML = '';
+            links.forEach(link => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${link.titulo}</td>
+                    <td><a href="${link.url}" target="_blank">${link.url}</a></td>
+                    <td>
+                        <button class="edit-button" data-id="${link.id}">Editar</button>
+                        <button class="delete-button red-button" data-id="${link.id}">Excluir</button>
+                    </td>
+                `;
+                listContainer.appendChild(tr);
+            });
+            listContainer.querySelectorAll('.edit-button').forEach(button => {
+                button.addEventListener('click', (e) => editLink(e.target.dataset.id));
+            });
+            listContainer.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', (e) => deleteLink(e.target.dataset.id));
+            });
+        } catch (error) {
+            console.error('Erro ao carregar links:', error);
+            listContainer.innerHTML = '<tr><td colspan="3">Erro ao carregar links.</td></tr>';
+        }
+    }
+
+    async function editLink(linkId) {
+        const form = document.getElementById('linkForm');
+        try {
+            const response = await fetch(`/admin/links?id=${linkId}`);
+            if (!response.ok) throw new Error('Link não encontrado.');
+            const [link] = await response.json();
+            form.querySelector('#link-id').value = link.id;
+            form.querySelector('#link-titulo').value = link.titulo;
+            form.querySelector('#link-descricao').value = link.descricao;
+            form.querySelector('#link-url').value = link.url;
+            form.querySelector('#link-imagem-url').value = link.imagem_url || '';
+            document.getElementById('cancelEditLinkButton').style.display = 'inline-block';
+            document.getElementById('linkForm').scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+    
+    async function deleteLink(linkId) {
+        if (!confirm('Tem certeza que deseja excluir este link?')) return;
+        try {
+            const response = await fetch('/admin/links', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: linkId })
+            });
+            const result = await response.json();
+            alert(result.message);
+            if (result.success) {
+                loadLinksAdmin();
+            }
+        } catch (error) {
+            console.error('Erro ao excluir link:', error);
+            alert('Erro ao excluir link.');
+        }
+    }
+
+    const linkForm = document.getElementById('linkForm');
+    if (linkForm) {
+        linkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(linkForm);
+            const data = Object.fromEntries(formData.entries());
+            const method = data.id ? 'POST' : 'POST';
+            try {
+                const response = await fetch('/admin/links', {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.success) {
+                    linkForm.reset();
+                    document.getElementById('link-id').value = '';
+                    document.getElementById('cancelEditLinkButton').style.display = 'none';
+                    loadLinksAdmin();
+                }
+            } catch (error) {
+                console.error('Erro ao salvar link:', error);
+                alert('Erro ao salvar link.');
+            }
+        });
+
+        document.getElementById('cancelEditLinkButton').addEventListener('click', () => {
+            linkForm.reset();
+            document.getElementById('link-id').value = '';
+            document.getElementById('cancelEditLinkButton').style.display = 'none';
+        });
+    }
+
+    async function loadLinksPage() {
+        const container = document.getElementById('links-container');
+        if (!container) return;
+        try {
+            const response = await fetch('/get_links');
+            if (!response.ok) throw new Error('Falha ao carregar links.');
+            const links = await response.json();
+            container.innerHTML = '';
+            links.forEach(link => {
+                const card = document.createElement('div');
+                card.classList.add('link-card');
+                card.innerHTML = `
+                    <div class="link-info">
+                        <h3><a href="${link.url}" target="_blank">${link.titulo}</a></h3>
+                        <p>${link.descricao}</p>
+                    </div>
+                    ${link.imagem_url ? `<div class="link-image-container"><img src="${link.imagem_url}" alt="${link.titulo}" class="link-image"></div>` : ''}
+                `;
+                container.appendChild(card);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar links:', error);
+            container.innerHTML = '<p>Erro ao carregar links. Tente novamente.</p>';
+        }
+    }
+
+    async function fetchAviso() {
+        const avisoModal = document.getElementById('aviso-modal');
+        if (!avisoModal) return;
+        const closeButton = document.getElementById('aviso-close-button');
+        if (closeButton) {
+            closeButton.onclick = function() {
+                avisoModal.style.display = "none";
+                document.body.style.overflow = 'auto';
+            };
+        }
+        try {
+            const response = await fetch('/get_aviso');
+            const data = await response.json();
+            if (data && data.titulo && data.conteudo) {
+                document.getElementById('aviso-modal-titulo').textContent = data.titulo;
+                document.getElementById('aviso-modal-conteudo').textContent = data.conteudo;
+                const imagem = document.getElementById('aviso-modal-imagem');
+                if (data.imagem_url) {
+                    imagem.src = data.imagem_url;
+                    imagem.style.display = 'block';
+                } else {
+                    imagem.style.display = 'none';
+                }
+                avisoModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+        } catch (error) {
+            console.error('Erro ao buscar aviso:', error);
+        }
+    }
+
+    const importParticipantsForm = document.getElementById('importParticipantsForm');
+    if (importParticipantsForm) {
+        importParticipantsForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('participants_file');
+            const file = fileInput.files[0];
+    
+            if (!file) {
+                alert('Por favor, selecione um arquivo.');
+                return;
+            }
+            if (!file.name.endsWith('.xlsx')) {
+                alert('Por favor, selecione um arquivo no formato .xlsx.');
+                return;
+            }
+    
+            if (!confirm('Esta ação irá APAGAR e SUBSTITUIR todos os dados da base de participantes. Tem certeza que deseja continuar?')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+    
+            try {
+                const response = await fetch('/admin/import_participants', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.success) {
+                    // Recarrega as datalists e a página de administração
+                    loadAllDatalists();
+                    // Limpar o formulário
+                    importParticipantsForm.reset();
+                    // Opcional: recarregar a tabela de participantes se estiver aberta
+                    const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
+                    if (currentTableId === 'participantes_base_editavel') {
+                        fetchResults('participantes_base_editavel', 1);
+                    }
+                }
+            } catch (error) {
+                console.error('ERRO JS:', error);
+                alert('Ocorreu um erro ao importar o arquivo.');
+            }
+        });
+    }
+
+
+    checkAccessAndInitializeUI();
+
+    handleFormSubmit('formPresenca', '/submit_presenca', 'Registro de presença enviado com sucesso!');
+    handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
+    handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
+    handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
 });

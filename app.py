@@ -64,6 +64,9 @@ ACCESS_HIERARCHY = {
 ADMIN_CPF = "32302739825"
 PASSWORD_FOR_ADMIN = "123"
 
+# Variável global para armazenar os dados da planilha
+global_participantes_data = pd.DataFrame()
+
 # Funções de conversão e formatação de data e hora
 def now_sp():
     return datetime.now(SAO_PAULO_TIMEZONE)
@@ -85,14 +88,14 @@ def format_time(t):
 
 # Criptografar senha
 def hash_password(password):
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    return hashlib.sha256(password.encode('utf-8')).heixdigest()
 
 # Modelo do Banco de Dados
 class ParticipantesBaseEditavel(db.Model):
     __tablename__ = 'participantes_base_editavel'
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(255))
-    cpf = db.Column(db.String(14), nullable=False)
+    cpf = db.Column(db.String(14), nullable=False, unique=True)
     escola = db.Column(db.String(255))
     diretoria_de_ensino = db.Column(db.String(255))
     tema = db.Column(db.String(255))
@@ -295,7 +298,7 @@ def login_required(access_level_required):
             
             return fn(*args, **kwargs)
         return decorated_view
-    return wrapper
+    return login_required
     
 # Criar as tabelas no banco de dados se não existirem
 with app.app_context():
@@ -317,6 +320,66 @@ def get_prioritized_access_level(cpf):
             
     return current_highest_level
 
+def load_data_from_excel_to_memory(file_path):
+    global global_participantes_data
+    try:
+        # A planilha pode ter cabeçalhos em maiúsculo ou minúsculo, e com espaços
+        df = pd.read_excel(file_path)
+        df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('ã', 'a').str.replace('ç', 'c')
+        
+        # Mapeamento para garantir consistência dos nomes das colunas
+        column_mapping = {
+            'nome_completo': 'nome',
+            'cpf': 'cpf',
+            'escola_de_atuacao': 'escola',
+            'diretoria_de_ensino': 'diretoria_de_ensino',
+            'tema': 'tema',
+            'responsavel': 'responsavel',
+            'turma': 'turma',
+            'etapa': 'etapa',
+            'di': 'di',
+            'pei': 'pei',
+            'declinou': 'declinou',
+        }
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Garantir que a coluna 'cpf' esteja como string para evitar problemas de formatação
+        df['cpf'] = df['cpf'].astype(str).str.strip()
+
+        # Armazenar o DataFrame na variável global
+        global_participantes_data = df
+        
+        # Limpar a tabela antes de carregar os novos dados
+        db.session.query(ParticipantesBaseEditavel).delete()
+        db.session.commit()
+        
+        # Carregar o DataFrame no banco de dados
+        for index, row in df.iterrows():
+            new_record = ParticipantesBaseEditavel(
+                nome=row.get('nome'),
+                cpf=row.get('cpf'),
+                escola=row.get('escola'),
+                diretoria_de_ensino=row.get('diretoria_de_ensino'),
+                tema=row.get('tema'),
+                responsavel=row.get('responsavel'),
+                turma=row.get('turma'),
+                etapa=row.get('etapa'),
+                di=row.get('di'),
+                pei=row.get('pei'),
+                declinou=row.get('declinou')
+            )
+            try:
+                db.session.add(new_record)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                print(f"Erro de integridade ao adicionar CPF duplicado: {row.get('cpf')}. Ignorando.")
+    except FileNotFoundError:
+        print("Arquivo participantes_base_editavel.xlsx não encontrado. A base de dados não foi atualizada.")
+    except Exception as e:
+        print(f"Erro ao carregar a planilha: {e}")
+        db.session.rollback()
+
 # Rotas de Autenticação
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -331,7 +394,7 @@ def login():
 
         # Lógica especial para o Super Admin inicial
         if cpf == ADMIN_CPF and not Usuario.query.filter_by(cpf=cpf).first():
-            hashed_password = hash_password(password)
+            hashed_password = hash_password(PASSWORD_FOR_ADMIN)
             
             new_user = Usuario(
                 cpf=cpf,
@@ -372,8 +435,9 @@ def forgot_password():
     error = None
     if request.method == 'POST':
         cpf = request.form.get('cpf').strip()
+        nome = request.form.get('nome').strip().upper()
         
-        user_in_data = ParticipantesBaseEditavel.query.filter_by(cpf=cpf).first()
+        user_in_data = ParticipantesBaseEditavel.query.filter_by(cpf=cpf, nome=nome).first()
         
         if user_in_data:
             user_in_db = Usuario.query.filter_by(cpf=cpf).first()
@@ -382,7 +446,7 @@ def forgot_password():
             else:
                 error = "Usuário não encontrado em nossa base de usuários. Por favor, registre-se primeiro."
         else:
-            error = "CPF não encontrado."
+            error = "CPF e/ou nome não encontrados."
     
     return render_template('forgot_password.html', error=error)
 
@@ -424,6 +488,11 @@ def register():
 
     if request.method == 'POST':
         password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if password != confirm_password:
+            return render_template('register.html', cpf=cpf, error="As senhas não coincidem.")
+        
         if not password:
             return render_template('register.html', cpf=cpf, error="A senha é obrigatória.")
 
@@ -590,7 +659,7 @@ def get_counts_by_schools():
 def get_info_by_nome():
     nome = request.args.get('nome')
     if nome:
-        user_data = ParticipantesBaseEditavel.query.filter(or_(ParticipantesBaseEditavel.nome.ilike(nome), ParticipantesBaseEditavel.responsavel.ilike(nome))).first()
+        user_data = ParticipantesBaseEditavel.query.filter(or_(ParticipantesBaseEditavel.responsavel.ilike(nome), ParticipantesBaseEditavel.nome.ilike(nome))).first()
         if user_data:
             temas = sorted([p.tema for p in ParticipantesBaseEditavel.query.filter(or_(ParticipantesBaseEditavel.responsavel.ilike(nome), ParticipantesBaseEditavel.nome.ilike(nome))).distinct(ParticipantesBaseEditavel.tema).all() if p.tema])
             turmas = sorted([p.turma for p in ParticipantesBaseEditavel.query.filter(or_(ParticipantesBaseEditavel.responsavel.ilike(nome), ParticipantesBaseEditavel.nome.ilike(nome))).distinct(ParticipantesBaseEditavel.turma).all() if p.turma])
@@ -1719,7 +1788,41 @@ def get_links():
         'imagem_url': link.imagem_url
     } for link in links])
 
+@app.route('/admin/import_participants', methods=['POST'])
+@login_required('super_admin')
+def import_participants():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo enviado.'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado.'}), 400
+    if file and file.filename.endswith('.xlsx'):
+        try:
+            # Salvar o arquivo temporariamente ou lê-lo diretamente do objeto de arquivo
+            temp_path = os.path.join(app.root_path, 'temp_participants.xlsx')
+            file.save(temp_path)
+            
+            # Chamar a função de carregamento
+            load_data_from_excel_to_memory(temp_path)
+            
+            # Remover o arquivo temporário
+            os.remove(temp_path)
+
+            return jsonify({'success': True, 'message': 'Planilha de participantes importada e a base de dados foi atualizada com sucesso!'})
+        except Exception as e:
+            app.logger.error(f"Erro ao importar a planilha: {e}")
+            return jsonify({'success': False, 'message': f'Erro ao importar a planilha: {e}'}), 500
+    return jsonify({'success': False, 'message': 'Formato de arquivo inválido. Por favor, envie um arquivo .xlsx.'}), 400
+
+@app.before_request
+def load_data_on_startup():
+    if global_participantes_data.empty:
+        # Tenta carregar a planilha na inicialização
+        load_data_from_excel_to_memory('participantes_base_editavel.xlsx')
+
+
 if __name__ == '__main__':
     with app.app_context():
+        # Cria as tabelas se não existirem
         db.create_all()
     app.run(debug=True)
