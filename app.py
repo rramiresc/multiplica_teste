@@ -88,7 +88,7 @@ def format_time(t):
 
 # Criptografar senha
 def hash_password(password):
-    return hashlib.sha256(password.encode('utf-8')).heixdigest()
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 # Modelo do Banco de Dados
 class ParticipantesBaseEditavel(db.Model):
@@ -1814,11 +1814,11 @@ def import_participants():
             return jsonify({'success': False, 'message': f'Erro ao importar a planilha: {e}'}), 500
     return jsonify({'success': False, 'message': 'Formato de arquivo inválido. Por favor, envie um arquivo .xlsx.'}), 400
 
-@app.before_request
-def load_data_on_startup():
-    if global_participantes_data.empty:
-        # Tenta carregar a planilha na inicialização
-        load_data_from_excel_to_memory('participantes_base_editavel.xlsx')
+# Removida a chamada na inicialização para evitar o erro.
+# @app.before_request
+# def load_data_on_startup():
+#     if global_participantes_data.empty:
+#         load_data_from_excel_to_memory('participantes_base_editavel.xlsx')
 
 
 if __name__ == '__main__':
