@@ -298,7 +298,7 @@ def login_required(access_level_required):
             
             return fn(*args, **kwargs)
         return decorated_view
-    return login_required
+    return wrapper
     
 # Criar as tabelas no banco de dados se não existirem
 with app.app_context():
@@ -1815,10 +1815,9 @@ def import_participants():
     return jsonify({'success': False, 'message': 'Formato de arquivo inválido. Por favor, envie um arquivo .xlsx.'}), 400
 
 # Removida a chamada na inicialização para evitar o erro.
-# @app.before_request
-# def load_data_on_startup():
-#     if global_participantes_data.empty:
-#         load_data_from_excel_to_memory('participantes_base_editavel.xlsx')
+@app.before_request
+def load_data_on_startup():
+    pass
 
 
 if __name__ == '__main__':
