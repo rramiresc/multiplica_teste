@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Dimensão 4': { questions: ['q4_1', 'q4_2', 'q4_3'], weight: 2 },
             'Dimensão 5': { questions: ['q5_1', 'q5_2', 'q5_3'], weight: 2 }
         };
-        const scoreMap = { 'Atende Plenamente': 1, 'Não Atende': 0 }; // Lógica atualizada
+        const scoreMap = { 'Atende Plenamente': 1, 'Atende Parcialmente': 0.5, 'Não Atende': 0 }; // Lógica corrigida
         for (const dimName in dimensionsConfig) {
             const { questions, weight } = dimensionsConfig[dimName];
             let dimensionCurrentRawScore = 0;
@@ -542,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cursistasOrientadosEsperadoInput = document.getElementById('cursistas_orientados_esperado_demandas');
     const formacoesRealizadasInput = document.getElementById('formacoes_realizadas_demandas');
     const substituicoesRealizadasInput = document.getElementById('substituicoes_realizadas_demandas');
+    const semanaDemandaDateInput = document.getElementById('semana_demanda_date');
 
     if (pecDemandasInput) {
         pecDemandasInput.addEventListener('change', async function() {
@@ -571,27 +572,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Adicionando um listener para a mudança na data para calcular a semana
-    document.getElementById('semana_demanda_date').addEventListener('change', async function() {
-        const dataSelecionada = this.value;
-        if (dataSelecionada) {
-            try {
-                const response = await fetch(`/get_formacoes_substituicoes_by_date?date=${dataSelecionada}`);
-                if (!response.ok) {
-                    throw new Error('Falha ao buscar contagens de formações e substituições.');
+    if (semanaDemandaDateInput) {
+        semanaDemandaDateInput.addEventListener('change', async function() {
+            const dataSelecionada = this.value;
+            if (dataSelecionada) {
+                try {
+                    const response = await fetch(`/get_formacoes_substituicoes_by_date?date=${dataSelecionada}`);
+                    if (!response.ok) {
+                        throw new Error('Falha ao buscar contagens de formações e substituições.');
+                    }
+                    const data = await response.json();
+                    formacoesRealizadasInput.value = data.total_formacoes;
+                    substituicoesRealizadasInput.value = data.total_substituicoes;
+                } catch (error) {
+                    console.error('ERRO JS:', error);
+                    formacoesRealizadasInput.value = 0;
+                    substituicoesRealizadasInput.value = 0;
                 }
-                const data = await response.json();
-                formacoesRealizadasInput.value = data.total_formacoes;
-                substituicoesRealizadasInput.value = data.total_substituicoes;
-            } catch (error) {
-                console.error('ERRO JS:', error);
+            } else {
                 formacoesRealizadasInput.value = 0;
                 substituicoesRealizadasInput.value = 0;
             }
-        } else {
-            formacoesRealizadasInput.value = 0;
-            substituicoesRealizadasInput.value = 0;
-        }
-    });
+        });
+    }
 
     window.toggleSchoolSelection = function(radioGroup) {
         const selectedValue = radioGroup.querySelector('input:checked')?.value;
@@ -623,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadSchoolsByDiretoria() {
         const diretoria = diretoriaDemandasInput.value;
         console.log(`DEBUG JS: Carregando escolas para a diretoria: ${diretoria}`);
-        if (diretoria && escolasCheckboxContainer) { // Usando o novo container
+        if (diretoria && escolasCheckboxContainer) {
             try {
                 const response = await fetch(`/get_schools_by_de?diretoria=${encodeURIComponent(diretoria)}`);
                 if (!response.ok) {
@@ -668,7 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = data.pm_count;
                 if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = data.pc_count;
-                console.log(`DEBUG JS: PMs orientados: ${data.pm_count}, Cursistas orientados: ${data.pc_count}.`);
+                console.log(`DEBUG JS: PMs esperados: ${data.pm_count}, Cursistas esperados: ${data.pc_count}.`);
             } catch (error) {
                 console.error('ERRO JS: Erro ao contar participantes:', error);
                 if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
@@ -838,6 +841,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>Data:</strong> ${record.data_formacao}</p>
                 <label for="valor_formacao">Valor da Formação:</label>
                 <input type="number" name="valor_formacao" value="${record.valor_formacao || 0}" step="0.01">
+                <div class="button-group">
+                    <button type="submit" class="modal-save-button">Salvar</button>
+                    <button type="button" class="modal-close-button close-button">Cancelar</button>
+                </div>
+            </form>
+        `,
+        'participantes_base_editavel': (record) => `
+            <h3>Editar Dados do Participante</h3>
+            <form id="editForm">
+                <input type="hidden" name="id" value="${record.id}">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" value="${record.nome || ''}">
+                <label for="cpf">CPF:</label>
+                <input type="text" id="cpf" name="cpf" value="${record.cpf || ''}" readonly>
+                <label for="escola">Escola:</label>
+                <input type="text" id="escola" name="escola" value="${record.escola || ''}">
+                <label for="diretoria_de_ensino">Diretoria de Ensino:</label>
+                <input type="text" id="diretoria_de_ensino" name="diretoria_de_ensino" value="${record.diretoria_de_ensino || ''}">
+                <label for="tema">Tema:</label>
+                <input type="text" id="tema" name="tema" value="${record.tema || ''}">
+                <label for="responsavel">Responsável:</label>
+                <input type="text" id="responsavel" name="responsavel" value="${record.responsavel || ''}">
+                <label for="turma">Turma:</label>
+                <input type="text" id="turma" name="turma" value="${record.turma || ''}">
+                <label for="etapa">Etapa:</label>
+                <input type="text" id="etapa" name="etapa" value="${record.etapa || ''}">
+                <label for="di">DI:</label>
+                <input type="text" id="di" name="di" value="${record.di || ''}">
+                <label for="pei">PEI:</label>
+                <input type="text" id="pei" name="pei" value="${record.pei || ''}">
+                <label for="declinou">Declinou:</label>
+                <input type="text" id="declinou" name="declinou" value="${record.declinou || ''}">
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button">Cancelar</button>
@@ -1235,7 +1270,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if(totalFormacoes) totalFormacoes.textContent = data.metrics.total_formacoes || 0;
                     const totalSubstituicoes = metricsContainer.querySelector(`#demandas-total_substituicoes`);
                     if(totalSubstituicoes) totalSubstituicoes.textContent = data.metrics.total_substituicoes || 0;
-
                 } else if (tableId === 'ateste') {
                     const numFormacoesUnicas = metricsContainer.querySelector(`#ateste-num_formacoes_unicas`);
                     if (numFormacoesUnicas) numFormacoesUnicas.textContent = data.metrics.num_formacoes_unicas || 0;
@@ -1549,6 +1583,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 }
+                 else if (currentAdminAction === 'delete_entry') {
+                    const { table, id } = currentAdminActionDetails;
+                    handleDeleteRecord(id, table, null, null, null, password);
+                }
             } else {
                 alert(verificationResult.message);
             }
@@ -1559,9 +1597,33 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // NOVO: Função para exclusão de registros
-    window.handleDeleteRecord = async function(recordId, table, turma = null, data_formacao = null, pauta = null) {
+    window.handleDeleteRecord = async function(recordId, table, turma = null, data_formacao = null, pauta = null, password = null) {
         let confirmed = false;
         let deleteRelated = false;
+
+        const performDeletion = async (pw) => {
+            try {
+                const response = await fetch('/admin/delete_entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: recordId,
+                        table: table,
+                        delete_related: deleteRelated,
+                        password: pw
+                    })
+                });
+    
+                const result = await response.json();
+                alert(result.message);
+                if (result.success) {
+                    fetchResults(table, currentPage[table] || 1);
+                }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao excluir registro:', error);
+                alert('Ocorreu um erro ao tentar excluir o registro.');
+            }
+        }
     
         if (table === 'presenca' && turma && data_formacao && pauta) {
             const options = ['Excluir apenas este registro.', 'Excluir todos os registros da mesma formação (turma, data e pauta).'];
@@ -1579,42 +1641,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     
         if (confirmed) {
-             const password = prompt(`Por favor, digite sua senha para confirmar a exclusão do registro ID ${recordId}:`);
             if (password) {
-                try {
-                    const response = await fetch('/admin/verify_password', {
+                await performDeletion(password);
+            } else {
+                 const passwordPrompt = prompt(`Por favor, digite sua senha para confirmar a exclusão do registro ID ${recordId}:`);
+                if (passwordPrompt) {
+                     // Verificar a senha antes de enviar a requisição de exclusão
+                     const verificationResponse = await fetch('/admin/verify_password', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password: password })
-                    });
-                    const verificationResult = await response.json();
-                    
-                    if (verificationResult.success) {
-                        const deletionResponse = await fetch('/admin/delete_entry', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                id: recordId,
-                                table: table,
-                                delete_related: deleteRelated
-                            })
-                        });
-                        const deletionResult = await deletionResponse.json();
-                        alert(deletionResult.message);
-                        if (deletionResult.success) {
-                            fetchResults(table, currentPage[table] || 1);
-                        }
-                    } else {
+                        body: JSON.stringify({ password: passwordPrompt })
+                     });
+                     const verificationResult = await verificationResponse.json();
+
+                     if (verificationResult.success) {
+                        await performDeletion(passwordPrompt);
+                     } else {
                         alert(verificationResult.message);
-                    }
-                } catch (error) {
-                    console.error('ERRO JS: Erro ao excluir registro:', error);
-                    alert('Ocorreu um erro ao tentar excluir o registro.');
+                     }
+                } else {
+                    alert('Exclusão cancelada.');
                 }
             }
         }
     };
-
+    
     // ====================================================================
     // Lógica para os novos botões de ferramentas administrativas (ATUALIZADO)
     // ====================================================================
@@ -1769,17 +1820,60 @@ document.addEventListener('DOMContentLoaded', function() {
             const table = document.getElementById('clear-table-select').value;
             
             if (table) {
-                openPasswordModal('clear_table', { table: table });
+                const password = prompt(`Por favor, digite sua senha para confirmar a exclusão de todos os dados da tabela "${table}":`);
+                if (password) {
+                    try {
+                        const response = await fetch('/admin/delete_table_data', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ table: table, password: password })
+                        });
+                        const result = await response.json();
+                        alert(result.message);
+                        if (result.success) {
+                            const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
+                            if (currentTableId === table) {
+                                fetchResults(table, 1);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('ERRO JS:', error);
+                        alert('Ocorreu um erro ao tentar limpar a tabela.');
+                    }
+                } else {
+                    alert('Ação cancelada.');
+                }
             } else {
                 alert('Por favor, selecione uma tabela para limpar.');
             }
         });
     }
-
+    
     const clearAllDataButton = document.getElementById('clearAllDataButton');
     if (clearAllDataButton) {
         clearAllDataButton.addEventListener('click', async () => {
-            openPasswordModal('clear_all', null);
+            const password = prompt('ATENÇÃO: Esta ação é irreversível. Para apagar TODOS os dados dos formulários, digite sua senha para confirmar:');
+            if (password) {
+                try {
+                    const response = await fetch('/admin_tools', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'clear_all', password: password })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message);
+                        window.location.reload();
+                    } else {
+                        alert('Erro ao limpar os dados: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('ERRO JS: Erro ao limpar os dados:', error);
+                    alert('Ocorreu um erro ao tentar limpar os dados.');
+                }
+            } else {
+                alert('Ação cancelada.');
+            }
         });
     }
     
@@ -1792,7 +1886,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = document.getElementById('delete-id').value;
             
             if (table && id) {
-                 openPasswordModal('delete_entry', { table: table, id: id });
+                 const password = prompt(`Para sua segurança, digite sua senha para confirmar a exclusão do registro ID ${id} da tabela "${table}":`);
+                 if (password) {
+                     try {
+                         const response = await fetch('/admin/delete_entry', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ table, id, password })
+                         });
+                         const result = await response.json();
+                         if (result.success) {
+                             alert(result.message);
+                             deleteEntryForm.reset();
+                             const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
+                             if (currentTableId === table) {
+                                 fetchResults(table, currentPage[table] || 1);
+                             }
+                         } else {
+                             alert('Erro: ' + result.message);
+                         }
+                     } catch (error) {
+                         console.error('ERRO JS: Erro ao excluir registro individual:', error);
+                         alert('Ocorreu um erro ao tentar excluir o registro.');
+                     }
+                 } else {
+                     alert('Ação cancelada.');
+                 }
             } else {
                 alert('Por favor, selecione uma tabela e informe um ID.');
             }

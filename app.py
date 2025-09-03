@@ -17,9 +17,13 @@ from sqlalchemy import func, cast, String
 from collections import defaultdict
 import glob
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Inicializar o Flask
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+)
 
 # Configuração do SQLAlchemy com a string de conexão do Render
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -842,30 +846,20 @@ def submit_avaliacao():
 def submit_demandas():
     try:
         data = request.json
-        # Convert week date to week number string
-        data_demanda_str = data.get('semana_demanda_date')
-        data_demanda_dt = datetime.strptime(data_demanda_str, '%Y-%m-%d').date()
+        
+        # Validar se a semana de referência está presente
+        semana_date_str = data.get('semana_demanda_date')
+        if not semana_date_str:
+            return jsonify({'success': False, 'message': 'A data da semana de referência é obrigatória.'}), 400
+        
+        data_demanda_dt = datetime.strptime(semana_date_str, '%Y-%m-%d').date()
         semana_iso = data_demanda_dt.isocalendar()
         semana_str = f"{semana_iso[0]}-W{semana_iso[1]:02}"
 
-        # Count total formations and substitutions for the week
-        start_of_week = get_sunday_of_week(semana_iso[0], semana_iso[1])
-        end_of_week = start_of_week + timedelta(days=6)
-        
-        # Total de formações únicas na semana
-        total_formacoes_na_semana = db.session.query(
-            func.count(func.distinct(Presenca.turma, Presenca.tema, Presenca.data_formacao))
-        ).filter(
-            Presenca.data_formacao.between(start_of_week, end_of_week)
-        ).scalar()
-        
-        # Total de substituições únicas na semana (contagem por nome do substituto e data)
-        total_substituicoes_na_semana = db.session.query(
-            func.count(func.distinct(Presenca.nome_substituto, Presenca.data_formacao))
-        ).filter(
-            Presenca.substituicao_ocorreu == 'Sim',
-            Presenca.data_formacao.between(start_of_week, end_of_week)
-        ).scalar()
+        # Verificar se já existe um registro para este PEC e esta semana
+        existing_demanda = Demanda.query.filter_by(pec=data.get('pec_demandas'), semana=semana_str).first()
+        if existing_demanda:
+            return jsonify({'success': False, 'message': f'Já existe um registro de demanda para o PEC {data.get("pec_demandas")} na semana {semana_str}.'}), 409
 
         new_demanda = Demanda(
             pec=data.get('pec_demandas'),
@@ -873,7 +867,7 @@ def submit_demandas():
             semana=semana_str,
             caff=data.get('caff_demandas'),
             diretoria_de_ensino=data.get('diretoria_demandas'),
-            formacoes_realizadas=total_formacoes_na_semana or 0,
+            formacoes_realizadas=int(data.get('formacoes_realizadas_demandas') or 0),
             alinhamento_semanal=data.get('alinhamento_semanal_demandas'),
             alinhamento_geral=data.get('alinhamento_geral_demandas'),
             visitas_escolas=data.get('visitas_escolas_demandas'),
@@ -884,7 +878,7 @@ def submit_demandas():
             cursistas_orientados_esperado=int(data.get('cursistas_orientados_esperado_demandas') or 0),
             rubricas_preenchidas=int(data.get('rubricas_preenchidas_demandas') or 0),
             feedbacks_realizados=int(data.get('feedbacks_realizados_demandas') or 0),
-            substituicoes_realizadas=total_substituicoes_na_semana or 0,
+            substituicoes_realizadas=int(data.get('substituicoes_realizadas_demandas') or 0),
             engajamento=', '.join(data.get('engajamento', [])),
             observacao=data.get('observacao_demandas')
         )
@@ -1172,6 +1166,8 @@ def update_record(table_name):
         Model = MODEL_MAP[table_name]
         data = request.json
         record_id = data.pop('id', None)
+        user_access_level = session.get('access_level', 'none')
+        user_cpf = session.get('user_cpf')
 
         if not record_id:
             return jsonify({'success': False, 'message': 'ID do registro não fornecido.'}), 400
@@ -1179,6 +1175,40 @@ def update_record(table_name):
         record = Model.query.get(record_id)
         if not record:
             return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
+            
+        # Validação de permissão no back-end
+        can_edit = False
+        if user_access_level == 'super_admin':
+            can_edit = True
+        elif user_access_level == 'intermediate_access':
+            user_info = ParticipantesBaseEditavel.query.filter_by(cpf=user_cpf).first()
+            if not user_info:
+                return jsonify({'success': False, 'message': 'Dados do usuário não encontrados.'}), 404
+            if table_name == 'presenca' and record.diretoria_de_ensino_resp == user_info.diretoria_de_ensino:
+                can_edit = True
+            elif table_name == 'acompanhamento' and record.responsavel_acompanhamento == user_info.nome:
+                can_edit = True
+            elif table_name == 'avaliacao' and record.observador == user_info.nome:
+                can_edit = True
+            elif table_name == 'demandas' and record.pec == user_info.nome:
+                can_edit = True
+            elif table_name == 'ateste' and record.responsavel_base == user_info.nome:
+                can_edit = True
+        elif user_access_level == 'efape_access':
+            user_info = ParticipantesBaseEditavel.query.filter_by(cpf=user_cpf).first()
+            if not user_info:
+                return jsonify({'success': False, 'message': 'Dados do usuário não encontrados.'}), 404
+            if table_name == 'acompanhamento' and record.responsavel_acompanhamento == user_info.nome:
+                can_edit = True
+        elif user_access_level == 'basic_access':
+            user_info = ParticipantesBaseEditavel.query.filter_by(cpf=user_cpf).first()
+            if not user_info:
+                return jsonify({'success': False, 'message': 'Dados do usuário não encontrados.'}), 404
+            if table_name == 'presenca' and (record.responsavel == user_info.nome or record.nome_participante == user_info.nome):
+                can_edit = True
+        
+        if not can_edit:
+            return jsonify({'success': False, 'message': 'Acesso negado. Você não tem permissão para editar este registro.'}), 403
 
         for key, value in data.items():
             if hasattr(record, key):
@@ -1273,6 +1303,12 @@ def delete_entry():
         table_name = data.get('table')
         entry_id = data.get('id')
         delete_related = data.get('delete_related', False)
+        password = data.get('password')
+        user_cpf = session.get('user_cpf')
+
+        user = Usuario.query.filter_by(cpf=user_cpf).first()
+        if not user or hash_password(password) != user.password_hash:
+            return jsonify({'success': False, 'message': 'Senha incorreta.'}), 401
 
         if not table_name or not entry_id:
             return jsonify({'success': False, 'message': 'Tabela e ID são obrigatórios.'}), 400

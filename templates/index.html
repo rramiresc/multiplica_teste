@@ -297,6 +297,7 @@
             <p>{{ pergunta }}</p>
             <div class="radio-group" onchange="calculateScore()">
                 <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Plenamente" required> Atende Plenamente</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Parcialmente"> Atende Parcialmente</label>
                 <label><input type="radio" name="{{ nome_pergunta }}" value="Não Atende"> Não Atende</label>
             </div>
             {% endfor %}
@@ -397,11 +398,44 @@
         </div>
 
         <div class="form-section">
-            <h3>Observação</h3>
+            <label>Selecione as Ações de Engajamento realizadas na semana indicada:</label>
+            <div class="checkbox-container engajamento-grid">
+                <label><input type="checkbox" name="engajamento_demandas" value="Atendimento via WhatsApp"> Atendimento via WhatsApp</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Atendimento via Teams"> Atendimento via Teams</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Articulação com o NPE com foco nas demandas do Programa"> Articulação com o NPE com foco nas demandas do Programa</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Articulação com o Supervisor Embaixador"> Articulação com o Supervisor Embaixador</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Ações de Mediação"> Ações de Mediação</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Busca Ativa PM"> Busca Ativa PM</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Busca Ativa PC"> Busca Ativa PC</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Convocação do PM/PC/Trio Gestor na DE"> Convocação do PM/PC/Trio Gestor na DE</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Contribuição nas OT da Diretoria de Ensino"> Contribuição nas OT da Diretoria de Ensino</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Comunicados no Informativo e/ou Mural da DE"> Comunicados no Informativo e/ou Mural da DE</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Criação de conteúdo digital para divulgação do programa"> Criação de conteúdo digital para divulgação do programa</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Criação e Atualização das Redes Sociais da DE"> Criação e Atualização das Redes Sociais da DE</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Divulgação e Orientações via WhatsApp"> Divulgação e Orientações via WhatsApp</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Divulgação de Boas práticas"> Divulgação de Boas práticas</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Divulgação dos Indicadores do programa"> Divulgação dos Indicadores do programa</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Divulgação sobre o impacto do programa na Diretoria de Ensino"> Divulgação sobre o impacto do programa na Diretoria de Ensino</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Divulgação sobre o impacto do programa na Escola"> Divulgação sobre o impacto do programa na Escola</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Divulgação e análise integrada com plataformas digitais"> Divulgação e análise integrada com plataformas digitais</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Engajamento do Programa na Reunião de Alinhamento na Diretoria de Ensino"> Engajamento do Programa na Reunião de Alinhamento na Diretoria de Ensino</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Escuta ativa de gestores e estudantes sobre as práticas dos PM/PC em sala de aula"> Escuta ativa de gestores e estudantes sobre as práticas dos PM/PC em sala de aula</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Estudo e Divulgação sobre os resultado do BI - Multiplica"> Estudo e Divulgação sobre os resultado do BI - Multiplica</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Estudo e Divulgação sobre os resultados do SUPER BI"> Estudo e Divulgação sobre os resultados do SUPER BI</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Orientação Remota aos PM/PC da Diretoria de Ensino"> Orientação Remota aos PM/PC da Diretoria de Ensino</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Orientações nas ATPC / ATPCA"> Orientações nas ATPC / ATPCA</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Plantões de Apoio ao PM/PC"> Plantões de Apoio ao PM/PC</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Rodas de Conversa com PM/PC para escuta, troca de experiências e fortalecimento a metodologia da troca entre pares"> Rodas de Conversa com PM/PC para escuta, troca de experiências e fortalecimento a metodologia da troca entre pares</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Replicabilidade das Boas Práticas do Programa"> Replicabilidade das Boas Práticas do Programa</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Recomposição de conteúdo para novos PM"> Recomposição de conteúdo para novos PM</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Nenhuma"> Nenhuma</label>
+                <label><input type="checkbox" name="engajamento_demandas" value="Outra"> Outra: <input type="text" name="outra_acao_demandas" style="width: auto;"></label>
+            </div>
+        </div>
+        <div class="form-section">
             <label for="observacao_demandas">Observação (opcional):</label>
             <textarea id="observacao_demandas" name="observacao_demandas" rows="3"></textarea>
         </div>
-
         <button type="submit">Enviar</button>
     </form>
 </div>
@@ -869,7 +903,7 @@
     <div class="modal-content">
         <span class="close-button">&times;</span>
         <h3>Confirmação de Senha</h3>
-        <p>Para sua segurança, por favor, digite sua senha para confirmar a exclusão.</p>
+        <p>Para sua segurança, por favor, digite sua senha para confirmar a ação.</p>
         <form id="confirmPasswordForm">
             <label for="confirm-password">Senha:</label>
             <input type="password" id="confirm-password" required>
