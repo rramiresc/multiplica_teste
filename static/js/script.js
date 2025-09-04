@@ -1133,49 +1133,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     let canEdit = false;
                     let canDelete = userAccessLevel === 'super_admin';
 
-                    if (isEditableTable) {
-                        if (userAccessLevel === 'super_admin') {
-                            canEdit = true;
-                        } else if (tableId === 'presenca' && (userAccessLevel === 'basic_access' || userAccessLevel === 'intermediate_access')) {
-                             // Acesso para editar apenas os registros criados pelo próprio usuário.
-                            canEdit = (docData.responsavel === userInfo.nome || docData.nome_participante === userInfo.nome);
-                        } else if (tableId === 'acompanhamento' && (userAccessLevel === 'efape_access' || userAccessLevel === 'intermediate_access')) {
-                            // Acesso para editar apenas os registros criados pelo próprio usuário.
-                            canEdit = (docData.responsavel_acompanhamento === userInfo.nome);
-                        } else if (tableId === 'avaliacao' && (userAccessLevel === 'intermediate_access')) {
-                             // Acesso para editar apenas os registros criados pelo próprio usuário.
-                            canEdit = (docData.observador === userInfo.nome);
-                        } else if (tableId === 'demandas' && (userAccessLevel === 'intermediate_access')) {
-                            // Acesso para editar apenas os registros criados pelo próprio usuário.
-                            canEdit = (docData.pec === userInfo.nome);
-                        } else if (tableId === 'ateste' && (userAccessLevel === 'intermediate_access' || userAccessLevel === 'efape_access')) {
-                            // Acesso para editar apenas os registros criados pelo próprio usuário.
-                            canEdit = (docData.nome_quem_preencheu === userInfo.nome);
-                        }
-                    }
-                     if (tableId === 'participantes_base_editavel' && userAccessLevel === 'super_admin') {
+                    if (userAccessLevel === 'super_admin') {
                         canEdit = true;
+                    } else if (tableId === 'presenca' && (userAccessLevel === 'basic_access' || userAccessLevel === 'intermediate_access')) {
+                        canEdit = (docData.responsavel === userInfo.nome || docData.nome_participante === userInfo.nome);
+                    } else if (tableId === 'acompanhamento' && (userAccessLevel === 'efape_access' || userAccessLevel === 'intermediate_access')) {
+                        canEdit = (docData.responsavel_acompanhamento === userInfo.nome);
+                    } else if (tableId === 'avaliacao' && (userAccessLevel === 'intermediate_access')) {
+                        canEdit = (docData.observador === userInfo.nome);
+                    } else if (tableId === 'demandas' && (userAccessLevel === 'intermediate_access')) {
+                        canEdit = (docData.pec === userInfo.nome);
+                    } else if (tableId === 'ateste' && (userAccessLevel === 'intermediate_access' || userAccessLevel === 'efape_access')) {
+                        canEdit = (docData.nome_quem_preencheu === userInfo.nome);
                     }
-
-
-                    if (canEdit) {
-                        const editButton = document.createElement('button');
-                        editButton.textContent = 'Editar';
-                        editButton.classList.add('edit-button');
-                        editButton.onclick = () => openEditModal(docData.id, tableId);
-                        tdActions.appendChild(editButton);
-                    } else if (isEditableTable || tableId === 'participantes_base_editavel' && tableHeadRow.children.length > orderedColumns.length) {
-                        tdActions.innerHTML = '<span>-</span>';
-                    }
-
-                    if (canDelete) {
-                        const deleteButton = document.createElement('button');
-                        deleteButton.textContent = 'Excluir';
-                        deleteButton.classList.add('delete-button', 'red-button');
-                        deleteButton.onclick = () => handleDeleteRecord(docData.id, tableId, docData.turma, docData.data_formacao, docData.pauta);
-                        tdActions.appendChild(deleteButton);
-                    }
-                    if (isEditableTable || tableId === 'participantes_base_editavel' && tableHeadRow.children.length > orderedColumns.length) {
+                    
+                    if (isEditableTable || tableId === 'participantes_base_editavel') {
+                        if (canEdit) {
+                            const editButton = document.createElement('button');
+                            editButton.textContent = 'Editar';
+                            editButton.classList.add('edit-button');
+                            editButton.onclick = () => openEditModal(docData.id, tableId);
+                            tdActions.appendChild(editButton);
+                        }
+                        if (canDelete) {
+                            const deleteButton = document.createElement('button');
+                            deleteButton.textContent = 'Excluir';
+                            deleteButton.classList.add('delete-button', 'red-button');
+                            deleteButton.onclick = () => handleDeleteRecord(docData.id, tableId, docData.turma, docData.data_formacao, docData.pauta);
+                            tdActions.appendChild(deleteButton);
+                        }
                         tr.appendChild(tdActions);
                     }
 

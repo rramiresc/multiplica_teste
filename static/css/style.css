@@ -366,9 +366,9 @@ button[type="button"]:active {
 
 .filters form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
     gap: 20px; 
-    align-items: start; 
+    align-items: end; 
 }
 /* Estilo para que o texto dos filtros fique dentro do campo */
 .filters label:not(.radio-group label, .checkbox-container label) {
