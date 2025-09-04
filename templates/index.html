@@ -296,8 +296,7 @@
             {% for pergunta, nome_pergunta in perguntas %}
             <p>{{ pergunta }}</p>
             <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Plenamente" required> Atende Plenamente</label>
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Parcialmente"> Atende Parcialmente</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende" required> Atende</label>
                 <label><input type="radio" name="{{ nome_pergunta }}" value="Não Atende"> Não Atende</label>
             </div>
             {% endfor %}

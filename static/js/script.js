@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação. Usando base_de_dados.xlsx via Flask e JSON para submissões.");
+    console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação. Usando base de dados via Flask e JSON para submissões.");
 
     // Mapeamento das perguntas da avaliação para seus textos completos
     const avaliacaoQuestionsMap = {
@@ -27,10 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentPage = {};
     const totalItems = {};
     const currentFilters = {};
-    let allParticipantsCache = [];
+    // Removida a variável `allParticipantsCache` para evitar o carregamento massivo de dados na inicialização.
 
     // ====================================================================
-    // Funções para buscar dados do Flask (que lê base_de_dados.xlsx e JSONs)
+    // Funções para buscar dados do Flask
     // ====================================================================
 
     // Função genérica para popular datalists
@@ -74,12 +74,8 @@ document.addEventListener('DOMContentLoaded', function() {
             populateDatalist(data.responsaveis, 'responsaveis-list-ateste');
             populateDatalist(data.nomes, 'nomes-list-ateste');
 
-            // Adicionar uma chamada para pré-carregar todos os participantes
-            const allParticipantsResponse = await fetch('/get_participantes_all');
-            if (allParticipantsResponse.ok) {
-                allParticipantsCache = await allParticipantsResponse.json();
-                console.log(`DEBUG JS: Pré-carregado ${allParticipantsCache.length} participantes para cache local.`);
-            }
+            // Removida a chamada para pré-carregar todos os participantes
+            // pois estava causando sobrecarga e lentidão.
 
             // Otimização: preencher campos de observador e acompanhante com a lista de responsáveis
             if (data.responsaveis && data.responsaveis.length > 0) {
@@ -144,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nomeSubstitutoPresencaInput) {
                 nomeSubstitutoPresencaInput.required = true;
                 // Opcional: recarrega a datalist de responsáveis para o campo de substituto
-                populateDatalist(datalistCache.responsaveis, 'responsaveis-list');
+                // (removido para evitar carga desnecessária, a datalist já está carregada)
             }
         } else {
             substitutoPresencaContainer.style.display = 'none';
@@ -504,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Dimensão 4': { questions: ['q4_1', 'q4_2', 'q4_3'], weight: 2 },
             'Dimensão 5': { questions: ['q5_1', 'q5_2', 'q5_3'], weight: 2 }
         };
-        const scoreMap = { 'Atende Plenamente': 1, 'Atende Parcialmente': 0.5, 'Não Atende': 0 }; // Lógica corrigida
+        const scoreMap = { 'Atende': 1, 'Não Atende': 0 };
         for (const dimName in dimensionsConfig) {
             const { questions, weight } = dimensionsConfig[dimName];
             let dimensionCurrentRawScore = 0;
@@ -1586,6 +1582,33 @@ document.addEventListener('DOMContentLoaded', function() {
                  else if (currentAdminAction === 'delete_entry') {
                     const { table, id } = currentAdminActionDetails;
                     handleDeleteRecord(id, table, null, null, null, password);
+                } else if (currentAdminAction === 'import_participants') {
+                    // Lógica para importar a planilha de participantes
+                    const fileInput = document.getElementById('participants_file');
+                    const file = fileInput.files[0];
+                    if (!file) {
+                        alert('Nenhum arquivo selecionado.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    try {
+                        const response = await fetch('/admin/import_participants', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const result = await response.json();
+                        alert(result.message);
+                        if (result.success) {
+                            loadAllDatalists();
+                            if (document.querySelector('.tab-button.active')?.dataset.tableId === 'participantes_base_editavel') {
+                                fetchResults('participantes_base_editavel', 1);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('ERRO JS:', error);
+                        alert('Erro ao importar o arquivo.');
+                    }
                 }
             } else {
                 alert(verificationResult.message);
@@ -2086,7 +2109,6 @@ document.addEventListener('DOMContentLoaded', function() {
     handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
     handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
     handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
-    handleImportParticipants();
 
     // Funções para gerenciar Avisos (Admin)
     async function fetchAvisoDataForAdmin() {
@@ -2295,50 +2317,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (importParticipantsForm) {
         importParticipantsForm.addEventListener('submit', async function(event) {
             event.preventDefault();
-            const fileInput = document.getElementById('participants_file');
-            const file = fileInput.files[0];
-    
-            if (!file) {
-                alert('Por favor, selecione um arquivo.');
-                return;
-            }
-            if (!file.name.endsWith('.xlsx')) {
-                alert('Por favor, selecione um arquivo no formato .xlsx.');
-                return;
-            }
-    
-            if (!confirm('Esta ação irá APAGAR e SUBSTITUIR todos os dados da base de participantes. Tem certeza que deseja continuar?')) {
-                return;
-            }
             
-            const formData = new FormData();
-            formData.append('file', file);
-    
-            try {
-                const response = await fetch('/admin/import_participants', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                alert(result.message);
-                if (result.success) {
-                    // Recarrega as datalists e a página de administração
-                    loadAllDatalists();
-                    // Limpar o formulário
-                    importParticipantsForm.reset();
-                    // Opcional: recarregar a tabela de participantes se estiver aberta
-                    const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
-                    if (currentTableId === 'participantes_base_editavel') {
-                        fetchResults('participantes_base_editavel', 1);
-                    }
-                }
-            } catch (error) {
-                console.error('ERRO JS:', error);
-                alert('Ocorreu um erro ao importar o arquivo.');
+            const password = prompt('Para sua segurança, por favor, digite sua senha para importar a planilha:');
+            if (!password) {
+                alert('Importação cancelada.');
+                return;
             }
+
+            // Usar o modal de confirmação de senha para processar o upload
+            openPasswordModal('import_participants', { password: password });
         });
     }
-
 
     checkAccessAndInitializeUI();
 
