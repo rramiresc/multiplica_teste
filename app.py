@@ -1010,31 +1010,40 @@ def get_results(table_name):
         if user_access_level == 'basic_access':
             if table_name == 'presenca':
                 if not user_info:
-                    return jsonify({'error': 'Usuário não encontrado na base de dados.'}), 404
+                    # Se o usuário logado não está na base, mas tem basic_access por outro motivo
+                    return jsonify({'error': 'Usuário não encontrado na base de dados para filtrar resultados.'}), 404
                 query = query.filter(or_(Model.responsavel == user_info.nome, Model.nome_participante == user_info.nome))
             else:
                  return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
 
         elif user_access_level == 'intermediate_access':
             if not user_info:
-                return jsonify({'error': 'Usuário não encontrado na base de dados.'}), 404
+                # Se o usuário logado não está na base, mas tem intermediate_access por outro motivo
+                return jsonify({'error': 'Usuário não encontrado na base de dados para filtrar resultados.'}), 404
             
             if table_name in ['presenca', 'avaliacao', 'demandas']:
                 query = query.filter_by(diretoria_de_ensino=user_info.diretoria_de_ensino)
             elif table_name == 'ateste':
                 # PECs veem os atestes dos PMs que são seus "responsáveis" na base.
                 query = query.filter_by(responsavel_base=user_info.nome)
-            elif table_name not in ['acompanhamento']:
+            elif table_name != 'acompanhamento':
                  return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        
+            
         elif user_access_level == 'efape_access':
             if not user_info:
-                return jsonify({'error': 'Usuário não encontrado na base de dados.'}), 404
+                # Se o usuário logado não está na base, mas tem efape_access por outro motivo
+                return jsonify({'error': 'Usuário não encontrado na base de dados para filtrar resultados.'}), 404
 
             if table_name in ['acompanhamento', 'ateste']:
                 query = query.filter_by(responsavel_acompanhamento=user_info.nome)
             elif table_name not in ['presenca', 'avaliacao', 'demandas']:
                  return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        
+        elif user_access_level == 'full_access':
+            pass
+        
+        elif user_access_level == 'super_admin':
+            pass
         
         # Clonar a consulta original antes de aplicar os filtros
         filtered_query = query
