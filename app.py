@@ -321,7 +321,6 @@ def get_prioritized_access_level(cpf):
     return current_highest_level
 
 def load_data_from_excel_to_memory(file_path):
-    global global_participantes_data
     try:
         # A planilha pode ter cabeçalhos em maiúsculo ou minúsculo, e com espaços
         df = pd.read_excel(file_path)
@@ -346,9 +345,6 @@ def load_data_from_excel_to_memory(file_path):
         # Garantir que a coluna 'cpf' esteja como string para evitar problemas de formatação
         df['cpf'] = df['cpf'].astype(str).str.strip()
 
-        # Armazenar o DataFrame na variável global
-        global_participantes_data = df
-        
         # Limpar a tabela antes de carregar os novos dados
         db.session.query(ParticipantesBaseEditavel).delete()
         db.session.commit()
@@ -376,9 +372,11 @@ def load_data_from_excel_to_memory(file_path):
                 print(f"Erro de integridade ao adicionar CPF duplicado: {row.get('cpf')}. Ignorando.")
     except FileNotFoundError:
         print("Arquivo participantes_base_editavel.xlsx não encontrado. A base de dados não foi atualizada.")
+        raise
     except Exception as e:
         print(f"Erro ao carregar a planilha: {e}")
         db.session.rollback()
+        raise
 
 # Rotas de Autenticação
 @app.route('/login', methods=['GET', 'POST'])
