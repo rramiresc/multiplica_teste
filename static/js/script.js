@@ -1607,7 +1607,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (error) {
                         console.error('ERRO JS:', error);
-                        alert('Erro ao importar o arquivo.');
+                        alert('Ocorreu um erro ao importar o arquivo.');
                     }
                 }
             } else {
