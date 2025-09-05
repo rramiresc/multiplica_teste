@@ -1,5 +1,5 @@
 /* Importar fonte Inter do Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+@import url('https://fonts.com/css2?family=Inter:wght@400;500;700&display=swap');
 
 body {
     font-family: 'Inter', sans-serif;
@@ -216,19 +216,6 @@ textarea {
     font-size: 1em;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-.filters input[type="text"],
-.filters input[type="number"],
-.filters input[type="date"],
-.filters input[type="url"],
-.filters input[type="week"],
-.filters select {
-    padding-left: 12px;
-    padding-right: 12px;
-    text-indent: 12px;
-}
-.filters input::placeholder {
-    color: #aaa;
-}
 
 input[type="text"]:focus,
 input[type="number"]:focus,
@@ -366,31 +353,18 @@ button[type="button"]:active {
 
 .filters form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
     gap: 20px; 
-    align-items: end; 
+    align-items: start; 
 }
-/* Estilo para que o texto dos filtros fique dentro do campo */
-.filters label:not(.radio-group label, .checkbox-container label) {
-    display: none;
+
+.filters label {
+    display: none; /* Esconde a label e usa o placeholder */
 }
-.filters input[type="text"],
-.filters input[type="number"],
-.filters input[type="date"],
-.filters input[type="url"],
-.filters input[type="week"],
-.filters select {
+
+.filters input, .filters select {
     width: 100%;
-    margin-bottom: 0;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-sizing: border-box;
-    font-size: 1em;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.filters input::placeholder {
-    color: #888;
+    margin-bottom: 0; 
 }
 
 .filters .button-group {
@@ -411,9 +385,6 @@ button[type="button"]:active {
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    display: grid; /* Novo: Layout em grade para métricas */
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
 }
 
 .metrics h3 {
@@ -423,7 +394,12 @@ button[type="button"]:active {
     font-size: 1.3em;
     border-bottom: 1px dashed #ffcc80;
     padding-bottom: 8px;
-    grid-column: 1 / -1;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
 }
 
 .metrics p {
@@ -829,6 +805,10 @@ table tbody tr:hover {
     }
 
     .filters form {
+        grid-template-columns: 1fr;
+    }
+    
+    .metrics-grid {
         grid-template-columns: 1fr;
     }
 

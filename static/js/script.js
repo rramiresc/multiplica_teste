@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação. Usando base de dados via Flask e JSON para submissões.");
+    console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação. Usando base_de_dados.xlsx via Flask e JSON para submissões.");
 
     // Mapeamento das perguntas da avaliação para seus textos completos
     const avaliacaoQuestionsMap = {
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'q1_3': '1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.',
         'q2_1': '2.1 - Inicia a formação no horário determinado.',
         'q2_2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
-        'q2_3': '2.3 - Encerra a formação no horário estipulado.',
+        '2.3': '2.3 - Encerra a formação no horário estipulado.',
         'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
         'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
         'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
@@ -19,18 +19,18 @@ document.addEventListener('DOMContentLoaded', function() {
         'q4_2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
         'q4_3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
         'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
-        'q5_2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
-        'q5_3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
+        '5.2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
+        '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
     };
 
     // Variáveis de estado para paginação
     const currentPage = {};
     const totalItems = {};
     const currentFilters = {};
-    // Removida a variável `allParticipantsCache` para evitar o carregamento massivo de dados na inicialização.
+    let allParticipantsCache = [];
 
     // ====================================================================
-    // Funções para buscar dados do Flask
+    // Funções para buscar dados do Flask (que lê base_de_dados.xlsx e JSONs)
     // ====================================================================
 
     // Função genérica para popular datalists
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`DEBUG JS: Datalist '${datalistId}' populada com ${data.length} itens.`);
         }
     }
-    
+
     // Função para carregar todas as datalists relevantes de uma vez
     async function loadAllDatalists() {
         console.log("DEBUG JS: Carregando todas as datalists...");
@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/get_all_datalists');
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error(`ERRO JS: Falha na resposta da API: ${response.status} - ${errorText}`);
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
             }
             const data = await response.json();
@@ -74,16 +75,37 @@ document.addEventListener('DOMContentLoaded', function() {
             populateDatalist(data.responsaveis, 'responsaveis-list-ateste');
             populateDatalist(data.nomes, 'nomes-list-ateste');
 
-            // Removida a chamada para pré-carregar todos os participantes
-            // pois estava causando sobrecarga e lentidão.
+        } catch (error) {
+            console.error(`ERRO JS: Erro ao carregar os dados para datalists:`, error);
+        }
+    }
 
-            // Otimização: preencher campos de observador e acompanhante com a lista de responsáveis
-            if (data.responsaveis && data.responsaveis.length > 0) {
-                populateDatalist(data.responsaveis, 'observadores-list');
+    async function loadSpecificDatalists() {
+        console.log("DEBUG JS: Carregando datalists específicas para formulários...");
+        try {
+            // Carrega a lista para o campo de Responsável pelo Acompanhamento
+            const acompanhamentoRes = await fetch('/get_pecs_and_formadores');
+            if(acompanhamentoRes.ok) {
+                const data = await acompanhamentoRes.json();
+                populateDatalist(data, 'observadores-list');
+            }
+            
+            // Carrega a lista para o campo de Responsável pelo Preenchimento
+            const presencaRes = await fetch('/get_responsaveis_for_presenca');
+            if(presencaRes.ok) {
+                const data = await acompanhamentoRes.json();
+                populateDatalist(data, 'responsaveis-list');
+            }
+            
+            // Carrega a lista de todos os nomes para o campo de Observado
+            const nomesRes = await fetch('/get_all_datalists');
+            if (nomesRes.ok) {
+                const data = await nomesRes.json();
+                populateDatalist(data.nomes, 'nomes-list-avaliacao');
             }
 
         } catch (error) {
-            console.error(`ERRO JS: Erro ao carregar os dados para datalists:`, error);
+            console.error('ERRO JS: Erro ao carregar datalists específicas:', error);
         }
     }
     
@@ -139,8 +161,6 @@ document.addEventListener('DOMContentLoaded', function() {
             substitutoPresencaContainer.style.display = 'block';
             if (nomeSubstitutoPresencaInput) {
                 nomeSubstitutoPresencaInput.required = true;
-                // Opcional: recarrega a datalist de responsáveis para o campo de substituto
-                // (removido para evitar carga desnecessária, a datalist já está carregada)
             }
         } else {
             substitutoPresencaContainer.style.display = 'none';
@@ -306,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const formadorSubstituicaoGroup = document.querySelector('input[name="formador_substituicao"]');
     const substitutoContainer = document.getElementById('substituto-container');
     const nomeSubstitutoInput = document.getElementById('nome_substituto');
-    const responsavelAcompanhamentoInput = document.getElementById('responsavel_acompanhamento'); // Adicionado
 
     // Ação em cascata: quando a turma muda, preenche o tema e o formador
     if (turmaAcompanhamentoInput) {
@@ -409,7 +428,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const cpfObservadoAvaliacaoInput = document.getElementById('cpf_observado_avaliacao');
     const diretoriaAvaliacaoInput = document.getElementById('diretoria_de_ensino_avaliacao');
     const escolaAvaliacaoInput = document.getElementById('escola_avaliacao');
-    const nomeObservadorAvaliacaoInput = document.getElementById('nome_observador_avaliacao'); // Adicionado
 
     const temasObservadoDatalist = document.getElementById('temas-observado-list');
     const turmasObservadoDatalist = document.getElementById('turmas-observado-list');
@@ -500,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Dimensão 4': { questions: ['q4_1', 'q4_2', 'q4_3'], weight: 2 },
             'Dimensão 5': { questions: ['q5_1', 'q5_2', 'q5_3'], weight: 2 }
         };
-        const scoreMap = { 'Atende': 1, 'Não Atende': 0 };
+        const scoreMap = { 'Atende Plenamente': 1, 'Atende Parcialmente': 0.5, 'Não Atende': 0 };
         for (const dimName in dimensionsConfig) {
             const { questions, weight } = dimensionsConfig[dimName];
             let dimensionCurrentRawScore = 0;
@@ -531,14 +549,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const cpfPecDemandasInput = document.getElementById('cpf_pec_demandas');
     const diretoriaDemandasInput = document.getElementById('diretoria_demandas');
     const escolasContainer = document.getElementById('escolas-container');
-    const escolasCheckboxContainer = document.getElementById('escolas-checkbox-container');
-    const pmOrientadosRealInput = document.getElementById('pm_orientados_demandas');
-    const pmOrientadosEsperadoInput = document.getElementById('pm_orientados_esperado_demandas');
-    const cursistasOrientadosRealInput = document.getElementById('cursistas_orientados_demandas');
-    const cursistasOrientadosEsperadoInput = document.getElementById('cursistas_orientados_esperado_demandas');
-    const formacoesRealizadasInput = document.getElementById('formacoes_realizadas_demandas');
-    const substituicoesRealizadasInput = document.getElementById('substituicoes_realizadas_demandas');
-    const semanaDemandaDateInput = document.getElementById('semana_demanda_date');
+    const escolasCheckboxContainer = document.getElementById('escolas-checkbox-container'); // NOVO CONTAINER
+    const pmOrientadosInput = document.getElementById('pm_orientados_demandas');
+    const cursistasOrientadosInput = document.getElementById('cursistas_orientados_demandas');
 
     if (pecDemandasInput) {
         pecDemandasInput.addEventListener('change', async function() {
@@ -566,31 +579,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Adicionando um listener para a mudança na data para calcular a semana
-    if (semanaDemandaDateInput) {
-        semanaDemandaDateInput.addEventListener('change', async function() {
-            const dataSelecionada = this.value;
-            if (dataSelecionada) {
-                try {
-                    const response = await fetch(`/get_formacoes_substituicoes_by_date?date=${dataSelecionada}`);
-                    if (!response.ok) {
-                        throw new Error('Falha ao buscar contagens de formações e substituições.');
-                    }
-                    const data = await response.json();
-                    formacoesRealizadasInput.value = data.total_formacoes;
-                    substituicoesRealizadasInput.value = data.total_substituicoes;
-                } catch (error) {
-                    console.error('ERRO JS:', error);
-                    formacoesRealizadasInput.value = 0;
-                    substituicoesRealizadasInput.value = 0;
-                }
-            } else {
-                formacoesRealizadasInput.value = 0;
-                substituicoesRealizadasInput.value = 0;
-            }
-        });
-    }
 
     window.toggleSchoolSelection = function(radioGroup) {
         const selectedValue = radioGroup.querySelector('input:checked')?.value;
@@ -602,10 +590,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 escolasContainer.style.display = 'none';
                 if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
-                if (pmOrientadosRealInput) pmOrientadosRealInput.value = 0;
-                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
-                if (cursistasOrientadosRealInput) cursistasOrientadosRealInput.value = 0;
-                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
+                if (pmOrientadosInput) pmOrientadosInput.value = 0;
+                if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
             }
         }
     };
@@ -622,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadSchoolsByDiretoria() {
         const diretoria = diretoriaDemandasInput.value;
         console.log(`DEBUG JS: Carregando escolas para a diretoria: ${diretoria}`);
-        if (diretoria && escolasCheckboxContainer) {
+        if (diretoria && escolasCheckboxContainer) { // Usando o novo container
             try {
                 const response = await fetch(`/get_schools_by_de?diretoria=${encodeURIComponent(diretoria)}`);
                 if (!response.ok) {
@@ -661,21 +647,21 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`/get_counts_by_schools?escolas=${encodeURIComponent(selectedSchools.join(','))}`);
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
+                        const errorText = await response.text();
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                    }
                 const data = await response.json();
-                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = data.pm_count;
-                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = data.pc_count;
-                console.log(`DEBUG JS: PMs esperados: ${data.pm_count}, Cursistas esperados: ${data.pc_count}.`);
+                if (pmOrientadosInput) pmOrientadosInput.value = data.pm_count;
+                if (cursistasOrientadosInput) cursistasOrientadosInput.value = data.pc_count;
+                console.log(`DEBUG JS: PMs orientados: ${data.pm_count}, Cursistas orientados: ${data.pc_count}.`);
             } catch (error) {
                 console.error('ERRO JS: Erro ao contar participantes:', error);
-                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
-                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
+                if (pmOrientadosInput) pmOrientadosInput.value = 0;
+                if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
             }
         } else {
-            if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
-            if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
+            if (pmOrientadosInput) pmOrientadosInput.value = 0;
+            if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
         }
     };
     
@@ -687,18 +673,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeButtons = document.querySelectorAll('.close-button');
     let currentRecordId = null;
     let currentTableId = null;
+
+    // NOVO: Função para fechar o modal
+    window.closeModal = function() {
+        editModal.style.display = "none";
+        document.body.style.overflow = 'auto'; // Reabilita o scroll
+    }
     
+    // Anexa a função de fechar o modal aos botões de fechar e ao clique no backdrop
     closeButtons.forEach(button => {
-        button.onclick = function() {
-            editModal.style.display = "none";
-            document.body.style.overflow = 'auto'; // Reabilita o scroll
-        };
+        button.onclick = window.closeModal;
     });
 
     window.onclick = function(event) {
         if (event.target == editModal) {
-            editModal.style.display = "none";
-            document.body.style.overflow = 'auto'; // Reabilita o scroll
+            window.closeModal();
         }
     };
 
@@ -725,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button">Cancelar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                 </div>
             </form>
         `,
@@ -778,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button">Cancelar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                 </div>
             </form>
         `,
@@ -797,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <textarea name="observacoes_gerais" rows="4">${record.observacoes_gerais || ''}</textarea>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button">Cancelar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                 </div>
             </form>
         `,
@@ -810,21 +799,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>Diretoria:</strong> ${record.diretoria_de_ensino}</p>
                 <label for="formacoes_realizadas">Formações realizadas:</label>
                 <input type="number" name="formacoes_realizadas" value="${record.formacoes_realizadas || 0}">
-                <label for="pm_orientados">PMs Orientados (Real):</label>
+                <label for="pm_orientados">PMs Orientados:</label>
                 <input type="number" name="pm_orientados" value="${record.pm_orientados || 0}">
-                <label for="cursistas_orientados">Cursistas Orientados (Real):</label>
+                <label for="cursistas_orientados">Cursistas Orientados:</label>
                 <input type="number" name="cursistas_orientados" value="${record.cursistas_orientados || 0}">
-                <label for="rubricas_preenchidas">Rubricas preenchidas:</label>
-                <input type="number" name="rubricas_preenchidas" value="${record.rubricas_preenchidas || 0}">
-                <label for="feedbacks_realizados">Feedbacks realizados:</label>
-                <input type="number" name="feedbacks_realizados" value="${record.feedbacks_realizados || 0}">
-                <label for="substituicoes_realizadas">Substituições realizadas:</label>
-                <input type="number" name="substituicoes_realizadas" value="${record.substituicoes_realizadas || 0}">
-                <label for="observacao">Observação:</label>
-                <textarea name="observacao" rows="4">${record.observacao || ''}</textarea>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button">Cancelar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                 </div>
             </form>
         `,
@@ -839,39 +820,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="number" name="valor_formacao" value="${record.valor_formacao || 0}" step="0.01">
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button">Cancelar</button>
-                </div>
-            </form>
-        `,
-        'participantes_base_editavel': (record) => `
-            <h3>Editar Dados do Participante</h3>
-            <form id="editForm">
-                <input type="hidden" name="id" value="${record.id}">
-                <label for="nome">Nome:</label>
-                <input type="text" id="nome" name="nome" value="${record.nome || ''}">
-                <label for="cpf">CPF:</label>
-                <input type="text" id="cpf" name="cpf" value="${record.cpf || ''}" readonly>
-                <label for="escola">Escola:</label>
-                <input type="text" id="escola" name="escola" value="${record.escola || ''}">
-                <label for="diretoria_de_ensino">Diretoria de Ensino:</label>
-                <input type="text" id="diretoria_de_ensino" name="diretoria_de_ensino" value="${record.diretoria_de_ensino || ''}">
-                <label for="tema">Tema:</label>
-                <input type="text" id="tema" name="tema" value="${record.tema || ''}">
-                <label for="responsavel">Responsável:</label>
-                <input type="text" id="responsavel" name="responsavel" value="${record.responsavel || ''}">
-                <label for="turma">Turma:</label>
-                <input type="text" id="turma" name="turma" value="${record.turma || ''}">
-                <label for="etapa">Etapa:</label>
-                <input type="text" id="etapa" name="etapa" value="${record.etapa || ''}">
-                <label for="di">DI:</label>
-                <input type="text" id="di" name="di" value="${record.di || ''}">
-                <label for="pei">PEI:</label>
-                <input type="text" id="pei" name="pei" value="${record.pei || ''}">
-                <label for="declinou">Declinou:</label>
-                <input type="text" id="declinou" name="declinou" value="${record.declinou || ''}">
-                <div class="button-group">
-                    <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button">Cancelar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                 </div>
             </form>
         `
@@ -919,8 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const result = await res.json();
                         alert(result.message);
                         if (result.success) {
-                            editModal.style.display = "none";
-                            document.body.style.overflow = 'auto';
+                            window.closeModal();
                             fetchResults(tableId, currentPage[tableId] || 1);
                         }
                     } catch (error) {
@@ -1039,10 +987,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 'alinhamento_geral': 'Alinhamento Geral Síncrono',
                 'visitas_escolas': 'Visitas às Escolas',
                 'escolas_visitadas': 'Escolas Visitadas',
-                'pm_orientados': 'PMs Orientados (Real)',
-                'pm_orientados_esperado': 'PMs Orientados (Esperado)',
-                'cursistas_orientados': 'Cursistas Orientados (Real)',
-                'cursistas_orientados_esperado': 'Cursistas Orientados (Esperado)',
+                'pm_orientados': 'PMs Orientados',
+                'cursistas_orientados': 'Cursistas Orientados',
                 'rubricas_preenchidas': 'Rubricas Preenchidas',
                 'feedbacks_realizados': 'Feedbacks Realizados',
                 'substituicoes_realizadas': 'Substituições Realizadas',
@@ -1083,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'q5_1', 'q5_2', 'q5_3',
                     'feedback_estruturado', 'observacoes_gerais'
                 ],
-                'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'alinhamento_geral', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'pm_orientados_esperado', 'cursistas_orientados', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento', 'observacao'],
+                'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'alinhamento_geral', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento'],
                 'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao']
             };
 
@@ -1133,35 +1079,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     let canEdit = false;
                     let canDelete = userAccessLevel === 'super_admin';
 
-                    if (userAccessLevel === 'super_admin') {
-                        canEdit = true;
-                    } else if (tableId === 'presenca' && (userAccessLevel === 'basic_access' || userAccessLevel === 'intermediate_access')) {
-                        canEdit = (docData.responsavel === userInfo.nome || docData.nome_participante === userInfo.nome);
-                    } else if (tableId === 'acompanhamento' && (userAccessLevel === 'efape_access' || userAccessLevel === 'intermediate_access')) {
-                        canEdit = (docData.responsavel_acompanhamento === userInfo.nome);
-                    } else if (tableId === 'avaliacao' && (userAccessLevel === 'intermediate_access')) {
-                        canEdit = (docData.observador === userInfo.nome);
-                    } else if (tableId === 'demandas' && (userAccessLevel === 'intermediate_access')) {
-                        canEdit = (docData.pec === userInfo.nome);
-                    } else if (tableId === 'ateste' && (userAccessLevel === 'intermediate_access' || userAccessLevel === 'efape_access')) {
-                        canEdit = (docData.nome_quem_preencheu === userInfo.nome);
+                    if (isEditableTable) {
+                        if (userAccessLevel === 'super_admin') {
+                            canEdit = true;
+                        } else if (tableId === 'presenca' && (userAccessLevel === 'basic_access' || userAccessLevel === 'intermediate_access')) {
+                            canEdit = (userAccessLevel === 'intermediate_access' && docData.de_participante === userInfo.diretoria_de_ensino) ||
+                                      (userAccessLevel === 'basic_access' && docData.responsavel === userInfo.nome);
+                        } else if (tableId === 'acompanhamento' && (userAccessLevel === 'efape_access' || userAccessLevel === 'intermediate_access')) {
+                            canEdit = (userAccessLevel === 'efape_access' && docData.responsavel_acompanhamento === userInfo.nome) ||
+                                      (userAccessLevel === 'intermediate_access' && docData.responsavel_acompanhamento === userInfo.nome);
+                        }
                     }
-                    
-                    if (isEditableTable || tableId === 'participantes_base_editavel') {
-                        if (canEdit) {
-                            const editButton = document.createElement('button');
-                            editButton.textContent = 'Editar';
-                            editButton.classList.add('edit-button');
-                            editButton.onclick = () => openEditModal(docData.id, tableId);
-                            tdActions.appendChild(editButton);
-                        }
-                        if (canDelete) {
-                            const deleteButton = document.createElement('button');
-                            deleteButton.textContent = 'Excluir';
-                            deleteButton.classList.add('delete-button', 'red-button');
-                            deleteButton.onclick = () => handleDeleteRecord(docData.id, tableId, docData.turma, docData.data_formacao, docData.pauta);
-                            tdActions.appendChild(deleteButton);
-                        }
+                     if (tableId === 'participantes_base_editavel' && userAccessLevel === 'super_admin') {
+                        canEdit = true;
+                    }
+
+
+                    if (canEdit) {
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Editar';
+                        editButton.classList.add('edit-button');
+                        editButton.onclick = () => openEditModal(docData.id, tableId);
+                        tdActions.appendChild(editButton);
+                    } else if (isEditableTable || tableId === 'participantes_base_editavel' && tableHeadRow.children.length > orderedColumns.length) {
+                        tdActions.innerHTML = '<span>-</span>';
+                    }
+
+                    if (canDelete) {
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Excluir';
+                        deleteButton.classList.add('delete-button', 'red-button');
+                        deleteButton.onclick = () => handleDeleteRecord(docData.id, tableId, docData.turma, docData.data_formacao, docData.pauta);
+                        tdActions.appendChild(deleteButton);
+                    }
+                    if (isEditableTable || tableId === 'participantes_base_editavel' && tableHeadRow.children.length > orderedColumns.length) {
                         tr.appendChild(tdActions);
                     }
 
@@ -1238,20 +1189,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const numEscolasVisitadasUnicas = metricsContainer.querySelector(`#demandas-num_escolas_visitadas_unicas`);
                     if (numEscolasVisitadasUnicas) numEscolasVisitadasUnicas.textContent = data.metrics.num_escolas_visitadas_unicas || 0;
 
-                    const totalPmsOrientadosReal = metricsContainer.querySelector(`#demandas-total_pms_orientados_real`);
-                    if (totalPmsOrientadosReal) totalPmsOrientadosReal.textContent = data.metrics.total_pms_orientados_real || 0;
-                    const totalPmsOrientadosEsperado = metricsContainer.querySelector(`#demandas-total_pms_orientados_esperado`);
-                    if (totalPmsOrientadosEsperado) totalPmsOrientadosEsperado.textContent = data.metrics.total_pms_orientados_esperado || 0;
+                    const totalPmsOrientados = metricsContainer.querySelector(`#demandas-total_pms_orientados`);
+                    if (totalPmsOrientados) totalPmsOrientados.textContent = data.metrics.total_pms_orientados || 0;
 
-                    const totalCursistasOrientadosReal = metricsContainer.querySelector(`#demandas-total_cursistas_orientados_real`);
-                    if (totalCursistasOrientadosReal) totalCursistasOrientadosReal.textContent = data.metrics.total_cursistas_orientados_real || 0;
-                    const totalCursistasOrientadosEsperado = metricsContainer.querySelector(`#demandas-total_cursistas_orientados_esperado`);
-                    if (totalCursistasOrientadosEsperado) totalCursistasOrientadosEsperado.textContent = data.metrics.total_cursistas_orientados_esperado || 0;
-                    
-                    const totalFormacoes = metricsContainer.querySelector(`#demandas-total_formacoes`);
-                    if(totalFormacoes) totalFormacoes.textContent = data.metrics.total_formacoes || 0;
-                    const totalSubstituicoes = metricsContainer.querySelector(`#demandas-total_substituicoes`);
-                    if(totalSubstituicoes) totalSubstituicoes.textContent = data.metrics.total_substituicoes || 0;
+                    const totalCursistasOrientados = metricsContainer.querySelector(`#demandas-total_cursistas_orientados`);
+                    if (totalCursistasOrientados) totalCursistasOrientados.textContent = data.metrics.total_cursistas_orientados || 0;
                 } else if (tableId === 'ateste') {
                     const numFormacoesUnicas = metricsContainer.querySelector(`#ateste-num_formacoes_unicas`);
                     if (numFormacoesUnicas) numFormacoesUnicas.textContent = data.metrics.num_formacoes_unicas || 0;
@@ -1376,15 +1318,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Lógica para limpar campos específicos ou carregar datalists novamente
                     if (formId === 'formDemandas') {
                         if (escolasContainer) escolasContainer.style.display = 'none';
-                        if (pmOrientadosRealInput) pmOrientadosRealInput.value = '';
-                        if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = '';
-                        if (cursistasOrientadosRealInput) cursistasOrientadosRealInput.value = '';
-                        if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = '';
-                        if (formacoesRealizadasInput) formacoesRealizadasInput.value = '';
-                        if (substituicoesRealizadasInput) substituicoesRealizadasInput.value = '';
+                        if (pmOrientadosInput) pmOrientadosInput.value = 0;
+                        if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
                     }
                     if (formId === 'formPresenca') {
-                        if (substitutoPresencaContainer) substitutoPresencaContainer.style.display = 'none';
+                        if (substitutoPresencaContainer) substituicaoPresencaContainer.style.display = 'none';
                         if (nomeSubstitutoPresencaInput) nomeSubstitutoPresencaInput.value = '';
                     }
 
@@ -1491,148 +1429,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.removeChild(link);
     }
     
-    // Funções para Modais de Confirmação e Senha
-    const passwordModal = document.getElementById('password-modal');
-    const confirmPasswordForm = document.getElementById('confirmPasswordForm');
-    let currentAdminAction = null;
-    let currentAdminActionDetails = null;
-
-    function openPasswordModal(action, details) {
-        currentAdminAction = action;
-        currentAdminActionDetails = details;
-        passwordModal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closePasswordModal() {
-        passwordModal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-        confirmPasswordForm.reset();
-    }
-    
-    // Evento para fechar o modal de senha
-    passwordModal.querySelector('.close-button').addEventListener('click', closePasswordModal);
-    passwordModal.querySelector('.modal-close-button').addEventListener('click', closePasswordModal);
-
-    // Evento para submeter a senha
-    confirmPasswordForm.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const password = document.getElementById('confirm-password').value;
-        if (!password) {
-            alert('A senha é obrigatória.');
-            return;
-        }
-
-        try {
-            const response = await fetch('/admin/verify_password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: password })
-            });
-            const verificationResult = await response.json();
-
-            if (verificationResult.success) {
-                closePasswordModal();
-                if (currentAdminAction === 'clear_all') {
-                    if (confirm('ATENÇÃO: Esta ação é irreversível. Tem certeza que deseja apagar TODOS os dados dos formulários?')) {
-                        const clearResponse = await fetch('/admin_tools', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'clear_all', password: password })
-                        });
-                        const result = await clearResponse.json();
-                        alert(result.message);
-                        if (result.success) {
-                            window.location.reload();
-                        }
-                    }
-                } else if (currentAdminAction === 'clear_table') {
-                    const table = currentAdminActionDetails.table;
-                    if (confirm(`Atenção! Você está prestes a apagar todos os dados da tabela "${table}". Esta ação é irreversível. Deseja continuar?`)) {
-                        const clearResponse = await fetch('/admin/delete_table_data', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ table: table, password: password })
-                        });
-                        const result = await clearResponse.json();
-                        alert(result.message);
-                        if (result.success) {
-                            // Recarregar a tabela se ela estiver visível
-                            const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
-                            if (currentTableId === table) {
-                                fetchResults(table, 1);
-                            }
-                        }
-                    }
-                }
-                 else if (currentAdminAction === 'delete_entry') {
-                    const { table, id } = currentAdminActionDetails;
-                    handleDeleteRecord(id, table, null, null, null, password);
-                } else if (currentAdminAction === 'import_participants') {
-                    // Lógica para importar a planilha de participantes
-                    const fileInput = document.getElementById('participants_file');
-                    const file = fileInput.files[0];
-                    if (!file) {
-                        alert('Nenhum arquivo selecionado.');
-                        return;
-                    }
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    try {
-                        const response = await fetch('/admin/import_participants', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const result = await response.json();
-                        alert(result.message);
-                        if (result.success) {
-                            loadAllDatalists();
-                            if (document.querySelector('.tab-button.active')?.dataset.tableId === 'participantes_base_editavel') {
-                                fetchResults('participantes_base_editavel', 1);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('ERRO JS:', error);
-                        alert('Ocorreu um erro ao importar o arquivo.');
-                    }
-                }
-            } else {
-                alert(verificationResult.message);
-            }
-        } catch (error) {
-            console.error('ERRO JS:', error);
-            alert('Ocorreu um erro ao verificar a senha.');
-        }
-    });
-    
     // NOVO: Função para exclusão de registros
-    window.handleDeleteRecord = async function(recordId, table, turma = null, data_formacao = null, pauta = null, password = null) {
+    window.handleDeleteRecord = async function(recordId, table, turma = null, data_formacao = null, pauta = null) {
         let confirmed = false;
         let deleteRelated = false;
-
-        const performDeletion = async (pw) => {
-            try {
-                const response = await fetch('/admin/delete_entry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: recordId,
-                        table: table,
-                        delete_related: deleteRelated,
-                        password: pw
-                    })
-                });
-    
-                const result = await response.json();
-                alert(result.message);
-                if (result.success) {
-                    fetchResults(table, currentPage[table] || 1);
-                }
-            } catch (error) {
-                console.error('ERRO JS: Erro ao excluir registro:', error);
-                alert('Ocorreu um erro ao tentar excluir o registro.');
-            }
-        }
     
         if (table === 'presenca' && turma && data_formacao && pauta) {
             const options = ['Excluir apenas este registro.', 'Excluir todos os registros da mesma formação (turma, data e pauta).'];
@@ -1650,31 +1450,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     
         if (confirmed) {
-            if (password) {
-                await performDeletion(password);
-            } else {
-                 const passwordPrompt = prompt(`Por favor, digite sua senha para confirmar a exclusão do registro ID ${recordId}:`);
-                if (passwordPrompt) {
-                     // Verificar a senha antes de enviar a requisição de exclusão
-                     const verificationResponse = await fetch('/admin/verify_password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password: passwordPrompt })
-                     });
-                     const verificationResult = await verificationResponse.json();
-
-                     if (verificationResult.success) {
-                        await performDeletion(passwordPrompt);
-                     } else {
-                        alert(verificationResult.message);
-                     }
+            try {
+                const response = await fetch('/admin/delete_entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: recordId,
+                        table: table,
+                        delete_related: deleteRelated
+                    })
+                });
+    
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    fetchResults(table, currentPage[table] || 1);
                 } else {
-                    alert('Exclusão cancelada.');
+                    alert(`Erro: ${result.message}`);
                 }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao excluir registro:', error);
+                alert('Ocorreu um erro ao tentar excluir o registro.');
             }
         }
     };
-    
+
     // ====================================================================
     // Lógica para os novos botões de ferramentas administrativas (ATUALIZADO)
     // ====================================================================
@@ -1697,7 +1497,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteUserButton = document.getElementById('delete-user-button');
     const newUserButton = document.getElementById('new-user-button');
     const saveUserButton = document.getElementById('save-user-button');
-    
+    const uploadBaseForm = document.getElementById('uploadBaseForm');
+    const uploadStatus = document.getElementById('uploadStatus');
+
     // Funções auxiliares para o formulário de gerenciamento de usuário
     const resetUserForm = () => {
         manageUserForm.reset();
@@ -1821,53 +1623,337 @@ document.addEventListener('DOMContentLoaded', function() {
         newUserButton.addEventListener('click', resetUserForm);
     }
     
-    // Lógica para excluir dados de uma tabela inteira (NOVA)
-    const clearTableForm = document.getElementById('clearTableForm');
-    if (clearTableForm) {
-        clearTableForm.addEventListener('submit', async function(event) {
+    // Antiga lógica para exclusão de entrada individual
+    const deleteEntryForm = document.getElementById('deleteEntryForm');
+    if (deleteEntryForm) {
+        deleteEntryForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const table = document.getElementById('clear-table-select').value;
-            
-            if (table) {
-                const password = prompt(`Por favor, digite sua senha para confirmar a exclusão de todos os dados da tabela "${table}":`);
-                if (password) {
-                    try {
-                        const response = await fetch('/admin/delete_table_data', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ table: table, password: password })
-                        });
-                        const result = await response.json();
-                        alert(result.message);
-                        if (result.success) {
-                            const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
-                            if (currentTableId === table) {
-                                fetchResults(table, 1);
-                            }
+            const table = document.getElementById('delete-table').value;
+            const id = document.getElementById('delete-id').value;
+
+            if (confirm(`Tem certeza que deseja excluir o registro ID ${id} da tabela "${table}"? Esta ação é irreversível!`)) {
+                try {
+                    const response = await fetch('/admin/delete_entry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ table, id })
+                    });
+                    const result = await response.json();
+                    alert(result.message);
+                    if (result.success) {
+                        deleteEntryForm.reset();
+                        // Recarregar a tabela se ela estiver visível
+                        const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
+                        if (currentTableId === table) {
+                            fetchResults(table, currentPage[table] || 1);
                         }
-                    } catch (error) {
-                        console.error('ERRO JS:', error);
-                        alert('Ocorreu um erro ao tentar limpar a tabela.');
                     }
-                } else {
-                    alert('Ação cancelada.');
+                } catch (error) {
+                    console.error('ERRO JS: Erro ao excluir registro individual:', error);
+                    alert('Ocorreu um erro ao tentar excluir o registro.');
                 }
-            } else {
-                alert('Por favor, selecione uma tabela para limpar.');
             }
         });
     }
-    
+
+    // NOVO: Lógica para o formulário de upload de planilha
+    if (uploadBaseForm) {
+        uploadBaseForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const fileInput = document.getElementById('baseFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Por favor, selecione um arquivo.');
+                return;
+            }
+
+            const isConfirmed = confirm("ATENÇÃO: Você está prestes a apagar todos os dados da base de participantes e substituí-los. Tem certeza que deseja continuar?");
+            if (!isConfirmed) {
+                return;
+            }
+
+            uploadStatus.textContent = 'Enviando e processando... Isso pode demorar.';
+
+            const formData = new FormData();
+            formData.append('baseFile', file);
+            
+            try {
+                const response = await fetch('/upload_base', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message);
+                    uploadStatus.textContent = result.message;
+                    uploadBaseForm.reset();
+                    loadAllDatalists();
+                } else {
+                    alert('Erro no upload: ' + result.message);
+                    uploadStatus.textContent = 'Erro: ' + result.message;
+                }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao fazer upload da base:', error);
+                alert('Erro ao conectar com o servidor para fazer upload da base.');
+                uploadStatus.textContent = 'Erro ao conectar com o servidor.';
+            }
+        });
+    }
+
+
+    const avisoForm = document.getElementById('avisoForm');
+    if (avisoForm) {
+        // Carrega o aviso existente ao carregar a página admin
+        fetchAvisoDataForAdmin();
+
+        avisoForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const data = {
+                titulo: document.getElementById('aviso-titulo').value,
+                conteudo: document.getElementById('aviso-conteudo').value,
+                imagem_url: document.getElementById('aviso-imagem-url').value,
+            };
+            try {
+                const response = await fetch('/admin/avisos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.success) {
+                    // Após salvar, recarrega os dados no formulário e no pop-up
+                    fetchAvisoDataForAdmin();
+                    fetchAviso();
+                }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao salvar aviso:', error);
+                alert('Erro ao salvar aviso.');
+            }
+        });
+    }
+
+    // Corrigido: Adicionada verificação para evitar o erro de card fantasma.
+    async function fetchAvisoDataForAdmin() {
+        try {
+            const response = await fetch('/get_aviso');
+            const aviso = await response.json();
+            const avisoFormH3 = avisoForm.querySelector('h3');
+
+            if (aviso && aviso.titulo && aviso.conteudo) {
+                document.getElementById('aviso-titulo').value = aviso.titulo;
+                document.getElementById('aviso-conteudo').value = aviso.conteudo;
+                document.getElementById('aviso-imagem-url').value = aviso.imagem_url;
+                
+                if (avisoFormH3) {
+                    avisoFormH3.textContent = 'Editar Aviso Existente';
+                }
+            } else {
+                if (avisoFormH3) {
+                    avisoFormH3.textContent = 'Criar Novo Aviso';
+                }
+            }
+        } catch (error) {
+            console.warn('DEBUG JS: Erro ao carregar aviso para o admin (provavelmente não há aviso cadastrado):', error);
+        }
+    }
+
+
+    // NOVO: Lógica revisada para mostrar o pop-up de aviso apenas se houver conteúdo
+    async function fetchAviso() {
+        const avisoModal = document.getElementById('aviso-modal');
+        try {
+            const response = await fetch('/get_aviso');
+            const aviso = await response.json();
+            if (aviso && aviso.titulo && aviso.conteudo) {
+                document.getElementById('aviso-modal-titulo').textContent = aviso.titulo;
+                document.getElementById('aviso-modal-conteudo').textContent = aviso.conteudo;
+                const imagemElement = document.getElementById('aviso-modal-imagem');
+                if (aviso.imagem_url) {
+                    imagemElement.src = aviso.imagem_url;
+                    imagemElement.style.display = 'block';
+                } else {
+                    imagemElement.style.display = 'none';
+                }
+                // Exibe o modal apenas se houver aviso
+                avisoModal.style.display = 'block';
+            } else {
+                avisoModal.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('ERRO JS: Erro ao carregar aviso:', error);
+            avisoModal.style.display = 'none';
+        }
+    }
+
+    document.getElementById('aviso-close-button').addEventListener('click', () => {
+        document.getElementById('aviso-modal').style.display = 'none';
+    });
+
+    window.onclick = function(event) {
+        const avisoModal = document.getElementById('aviso-modal');
+        if (event.target == avisoModal) {
+            avisoModal.style.display = 'none';
+        }
+    };
+
+
+    const linkForm = document.getElementById('linkForm');
+    const linksAdminListBody = document.querySelector('#links-admin-list tbody');
+
+    async function loadLinksAdmin() {
+        try {
+            const response = await fetch('/admin/links');
+            const links = await response.json();
+            linksAdminListBody.innerHTML = '';
+            links.forEach(link => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${link.titulo}</td>
+                    <td><a href="${link.url}" target="_blank">${link.url}</a></td>
+                    <td>
+                        <button class="edit-link-button" data-id="${link.id}">Editar</button>
+                        <button class="delete-link-button red-button" data-id="${link.id}">Excluir</button>
+                    </td>
+                `;
+                linksAdminListBody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('ERRO JS: Erro ao carregar links:', error);
+            linksAdminListBody.innerHTML = '<tr><td colspan="3">Erro ao carregar links.</td></tr>';
+        }
+    }
+
+    linksAdminListBody.addEventListener('click', async function(event) {
+        if (event.target.classList.contains('edit-link-button')) {
+            const linkId = event.target.dataset.id;
+            try {
+                const response = await fetch(`/admin/links?id=${linkId}`);
+                const link = await response.json();
+                if (link.length > 0) {
+                    document.getElementById('link-id').value = link[0].id;
+                    document.getElementById('link-titulo').value = link[0].titulo;
+                    document.getElementById('link-descricao').value = link[0].descricao;
+                    document.getElementById('link-url').value = link[0].url;
+                    document.getElementById('link-imagem-url').value = link[0].imagem_url;
+                    linkForm.querySelector('button[type="submit"]').textContent = 'Atualizar Link';
+                    document.getElementById('cancelEditLinkButton').style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao carregar link para edição:', error);
+            }
+        } else if (event.target.classList.contains('delete-link-button')) {
+            const linkId = event.target.dataset.id;
+            if (confirm('Tem certeza que deseja excluir este link?')) {
+                try {
+                    const response = await fetch('/admin/links', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: linkId })
+                    });
+                    const result = await response.json();
+                    alert(result.message);
+                    if (result.success) {
+                        loadLinksAdmin();
+                    }
+                } catch (error) {
+                    console.error('ERRO JS: Erro ao excluir link:', error);
+                    alert('Erro ao excluir link.');
+                }
+            }
+        }
+    });
+
+    if (linkForm) {
+        linkForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const linkId = document.getElementById('link-id').value;
+            const data = {
+                titulo: document.getElementById('link-titulo').value,
+                descricao: document.getElementById('link-descricao').value,
+                url: document.getElementById('link-url').value,
+                imagem_url: document.getElementById('link-imagem-url').value,
+            };
+            const method = linkId ? 'POST' : 'POST';
+            const url = '/admin/links';
+            if (linkId) {
+                data.id = linkId;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.success) {
+                    linkForm.reset();
+                    document.getElementById('link-id').value = '';
+                    linkForm.querySelector('button[type="submit"]').textContent = 'Salvar Link';
+                    document.getElementById('cancelEditLinkButton').style.display = 'none';
+                    loadLinksAdmin();
+                }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao salvar link:', error);
+                alert('Erro ao salvar link.');
+            }
+        });
+        document.getElementById('cancelEditLinkButton').addEventListener('click', () => {
+            linkForm.reset();
+            document.getElementById('link-id').value = '';
+            linkForm.querySelector('button[type="submit"]').textContent = 'Salvar Link';
+            document.getElementById('cancelEditLinkButton').style.display = 'none';
+        });
+    }
+
+    async function loadLinksPage() {
+        const linksContainer = document.getElementById('links-container');
+        try {
+            const response = await fetch('/get_links');
+            const links = await response.json();
+            linksContainer.innerHTML = '';
+            if (links.length > 0) {
+                links.forEach(link => {
+                    const linkCard = document.createElement('div');
+                    linkCard.classList.add('link-card');
+                    linkCard.innerHTML = `
+                        <div class="link-info">
+                            <h3><a href="${link.url}" target="_blank">${link.titulo}</a></h3>
+                            <p>${link.descricao}</p>
+                        </div>
+                        <div class="link-image-container">
+                            <img src="${link.imagem_url}" alt="${link.titulo}" class="link-image">
+                        </div>
+                    `;
+                    linksContainer.appendChild(linkCard);
+                });
+            } else {
+                linksContainer.innerHTML = '<p>Nenhum link importante cadastrado no momento.</p>';
+            }
+        } catch (error) {
+            console.error('ERRO JS: Erro ao carregar links:', error);
+            linksContainer.innerHTML = '<p>Ocorreu um erro ao carregar os links.</p>';
+        }
+    }
+
+
     const clearAllDataButton = document.getElementById('clearAllDataButton');
     if (clearAllDataButton) {
         clearAllDataButton.addEventListener('click', async () => {
-            const password = prompt('ATENÇÃO: Esta ação é irreversível. Para apagar TODOS os dados dos formulários, digite sua senha para confirmar:');
-            if (password) {
+            if (confirm('ATENÇÃO: Esta ação é irreversível. Tem certeza que deseja apagar TODOS os dados dos formulários?')) {
                 try {
                     const response = await fetch('/admin_tools', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'clear_all', password: password })
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ action: 'clear_all' })
                     });
                     const result = await response.json();
                     if (result.success) {
@@ -1880,62 +1966,67 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('ERRO JS: Erro ao limpar os dados:', error);
                     alert('Ocorreu um erro ao tentar limpar os dados.');
                 }
-            } else {
-                alert('Ação cancelada.');
-            }
-        });
-    }
-    
-    // Lógica para exclusão de entrada individual
-    const deleteEntryForm = document.getElementById('deleteEntryForm');
-    if (deleteEntryForm) {
-        deleteEntryForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const table = document.getElementById('delete-table').value;
-            const id = document.getElementById('delete-id').value;
-            
-            if (table && id) {
-                 const password = prompt(`Para sua segurança, digite sua senha para confirmar a exclusão do registro ID ${id} da tabela "${table}":`);
-                 if (password) {
-                     try {
-                         const response = await fetch('/admin/delete_entry', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ table, id, password })
-                         });
-                         const result = await response.json();
-                         if (result.success) {
-                             alert(result.message);
-                             deleteEntryForm.reset();
-                             const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
-                             if (currentTableId === table) {
-                                 fetchResults(table, currentPage[table] || 1);
-                             }
-                         } else {
-                             alert('Erro: ' + result.message);
-                         }
-                     } catch (error) {
-                         console.error('ERRO JS: Erro ao excluir registro individual:', error);
-                         alert('Ocorreu um erro ao tentar excluir o registro.');
-                     }
-                 } else {
-                     alert('Ação cancelada.');
-                 }
-            } else {
-                alert('Por favor, selecione uma tabela e informe um ID.');
             }
         });
     }
 
     const downloadAllReportsButton = document.getElementById('downloadAllReportsButton');
+    const downloadStatus = document.getElementById('downloadStatus');
+
     if (downloadAllReportsButton) {
         downloadAllReportsButton.addEventListener('click', async () => {
+            downloadAllReportsButton.disabled = true;
+            downloadAllReportsButton.textContent = 'Gerando Relatórios...';
+            downloadStatus.textContent = 'A geração do relatório foi iniciada. Aguarde, o download começará em breve.';
+
             try {
-                window.location.href = '/download_all_reports';
-                alert('O download dos relatórios será iniciado em breve. Por favor, aguarde.');
+                // Rota corrigida para iniciar o processo assíncrono
+                const response = await fetch('/download_all_reports_async');
+                const result = await response.json();
+
+                if (result.success) {
+                    const checkStatusInterval = setInterval(async () => {
+                        try {
+                            const statusResponse = await fetch('/check_download_status');
+                            const statusResult = await statusResponse.json();
+
+                            if (statusResult.status === 'ready') {
+                                clearInterval(checkStatusInterval);
+                                downloadStatus.textContent = 'Relatório pronto! O download irá começar...';
+                                // Dispara o download do arquivo
+                                window.location.href = `/download_file/${statusResult.filename}`;
+                                
+                                // Resetar o estado do botão após um pequeno atraso
+                                setTimeout(() => {
+                                    downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
+                                    downloadAllReportsButton.disabled = false;
+                                    downloadStatus.textContent = '';
+                                }, 3000);
+
+                            } else {
+                                downloadStatus.textContent += '.';
+                            }
+                        } catch (statusError) {
+                            clearInterval(checkStatusInterval);
+                            console.error('ERRO JS: Erro ao verificar o status do download:', statusError);
+                            downloadStatus.textContent = 'Erro ao verificar o status do download. Tente novamente mais tarde.';
+                            downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
+                            downloadAllReportsButton.disabled = false;
+                        }
+                    }, 5000); // Verifica a cada 5 segundos
+
+                } else {
+                    alert('Erro ao iniciar a geração dos relatórios: ' + result.message);
+                    downloadStatus.textContent = 'Erro: ' + result.message;
+                    downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
+                    downloadAllReportsButton.disabled = false;
+                }
             } catch (error) {
-                console.error('ERRO JS: Erro ao iniciar o download:', error);
-                alert('Ocorreu um erro ao tentar gerar os relatórios.');
+                console.error('ERRO JS: Erro ao iniciar a requisição de download:', error);
+                alert('Ocorreu um erro na requisição. Tente novamente.');
+                downloadStatus.textContent = 'Erro ao conectar com o servidor.';
+                downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
+                downloadAllReportsButton.disabled = false;
             }
         });
     }
@@ -2013,8 +2104,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const isBasic = currentAccessLevel === 'basic_access';
             const isEfape = currentAccessLevel === 'efape_access';
 
-            await loadAllDatalists();
-            await fetchAviso();
+            loadAllDatalists();
+            loadSpecificDatalists();
+            fetchAviso();
 
             if (currentAccessLevel === 'super_admin') {
                 document.querySelectorAll('.tab-button').forEach(button => {
@@ -2087,232 +2179,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('ERRO JS: Erro ao verificar o nível de acesso ou inicializar a UI:', error);
             window.location.href = '/login';
         }
-    }
-
-    checkAccessAndInitializeUI();
-
-    handleFormSubmit('formPresenca', '/submit_presenca', 'Registro de presença enviado com sucesso!');
-    handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
-    handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
-    handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
-
-    // Funções para gerenciar Avisos (Admin)
-    async function fetchAvisoDataForAdmin() {
-        const form = document.getElementById('avisoForm');
-        if (!form) return;
-        try {
-            const response = await fetch('/get_aviso');
-            if (!response.ok) throw new Error('Falha ao buscar aviso.');
-            const data = await response.json();
-            if (data.titulo) {
-                form.querySelector('#aviso-titulo').value = data.titulo;
-                form.querySelector('#aviso-conteudo').value = data.conteudo;
-                form.querySelector('#aviso-imagem-url').value = data.imagem_url || '';
-            }
-        } catch (error) {
-            console.error('Erro ao buscar aviso para edição:', error);
-        }
-    }
-
-    async function handleAvisoFormSubmit(event) {
-        event.preventDefault();
-        const form = event.target;
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-        try {
-            const response = await fetch('/admin/avisos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await response.json();
-            alert(result.message);
-        } catch (error) {
-            console.error('Erro ao salvar aviso:', error);
-            alert('Erro ao salvar aviso.');
-        }
-    }
-
-    const avisoForm = document.getElementById('avisoForm');
-    if (avisoForm) {
-        avisoForm.addEventListener('submit', handleAvisoFormSubmit);
-    }
-    
-    // Funções para gerenciar Links (Admin)
-    async function loadLinksAdmin() {
-        const listContainer = document.getElementById('links-admin-list').querySelector('tbody');
-        if (!listContainer) return;
-        try {
-            const response = await fetch('/admin/links');
-            if (!response.ok) throw new Error('Falha ao carregar links.');
-            const links = await response.json();
-            listContainer.innerHTML = '';
-            links.forEach(link => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${link.titulo}</td>
-                    <td><a href="${link.url}" target="_blank">${link.url}</a></td>
-                    <td>
-                        <button class="edit-button" data-id="${link.id}">Editar</button>
-                        <button class="delete-button red-button" data-id="${link.id}">Excluir</button>
-                    </td>
-                `;
-                listContainer.appendChild(tr);
-            });
-            listContainer.querySelectorAll('.edit-button').forEach(button => {
-                button.addEventListener('click', (e) => editLink(e.target.dataset.id));
-            });
-            listContainer.querySelectorAll('.delete-button').forEach(button => {
-                button.addEventListener('click', (e) => deleteLink(e.target.dataset.id));
-            });
-        } catch (error) {
-            console.error('Erro ao carregar links:', error);
-            listContainer.innerHTML = '<tr><td colspan="3">Erro ao carregar links.</td></tr>';
-        }
-    }
-
-    async function editLink(linkId) {
-        const form = document.getElementById('linkForm');
-        try {
-            const response = await fetch(`/admin/links?id=${linkId}`);
-            if (!response.ok) throw new Error('Link não encontrado.');
-            const [link] = await response.json();
-            form.querySelector('#link-id').value = link.id;
-            form.querySelector('#link-titulo').value = link.titulo;
-            form.querySelector('#link-descricao').value = link.descricao;
-            form.querySelector('#link-url').value = link.url;
-            form.querySelector('#link-imagem-url').value = link.imagem_url || '';
-            document.getElementById('cancelEditLinkButton').style.display = 'inline-block';
-            document.getElementById('linkForm').scrollIntoView({ behavior: 'smooth' });
-        } catch (error) {
-            alert(error.message);
-        }
-    }
-    
-    async function deleteLink(linkId) {
-        if (!confirm('Tem certeza que deseja excluir este link?')) return;
-        try {
-            const response = await fetch('/admin/links', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: linkId })
-            });
-            const result = await response.json();
-            alert(result.message);
-            if (result.success) {
-                loadLinksAdmin();
-            }
-        } catch (error) {
-            console.error('Erro ao excluir link:', error);
-            alert('Erro ao excluir link.');
-        }
-    }
-
-    const linkForm = document.getElementById('linkForm');
-    if (linkForm) {
-        linkForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(linkForm);
-            const data = Object.fromEntries(formData.entries());
-            const method = data.id ? 'POST' : 'POST';
-            try {
-                const response = await fetch('/admin/links', {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                alert(result.message);
-                if (result.success) {
-                    linkForm.reset();
-                    document.getElementById('link-id').value = '';
-                    document.getElementById('cancelEditLinkButton').style.display = 'none';
-                    loadLinksAdmin();
-                }
-            } catch (error) {
-                console.error('Erro ao salvar link:', error);
-                alert('Erro ao salvar link.');
-            }
-        });
-
-        document.getElementById('cancelEditLinkButton').addEventListener('click', () => {
-            linkForm.reset();
-            document.getElementById('link-id').value = '';
-            document.getElementById('cancelEditLinkButton').style.display = 'none';
-        });
-    }
-
-    async function loadLinksPage() {
-        const container = document.getElementById('links-container');
-        if (!container) return;
-        try {
-            const response = await fetch('/get_links');
-            if (!response.ok) throw new Error('Falha ao carregar links.');
-            const links = await response.json();
-            container.innerHTML = '';
-            links.forEach(link => {
-                const card = document.createElement('div');
-                card.classList.add('link-card');
-                card.innerHTML = `
-                    <div class="link-info">
-                        <h3><a href="${link.url}" target="_blank">${link.titulo}</a></h3>
-                        <p>${link.descricao}</p>
-                    </div>
-                    ${link.imagem_url ? `<div class="link-image-container"><img src="${link.imagem_url}" alt="${link.titulo}" class="link-image"></div>` : ''}
-                `;
-                container.appendChild(card);
-            });
-        } catch (error) {
-            console.error('Erro ao carregar links:', error);
-            container.innerHTML = '<p>Erro ao carregar links. Tente novamente.</p>';
-        }
-    }
-
-    async function fetchAviso() {
-        const avisoModal = document.getElementById('aviso-modal');
-        if (!avisoModal) return;
-        const closeButton = document.getElementById('aviso-close-button');
-        if (closeButton) {
-            closeButton.onclick = function() {
-                avisoModal.style.display = "none";
-                document.body.style.overflow = 'auto';
-            };
-        }
-        try {
-            const response = await fetch('/get_aviso');
-            const data = await response.json();
-            if (data && data.titulo && data.conteudo) {
-                document.getElementById('aviso-modal-titulo').textContent = data.titulo;
-                document.getElementById('aviso-modal-conteudo').textContent = data.conteudo;
-                const imagem = document.getElementById('aviso-modal-imagem');
-                if (data.imagem_url) {
-                    imagem.src = data.imagem_url;
-                    imagem.style.display = 'block';
-                } else {
-                    imagem.style.display = 'none';
-                }
-                avisoModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            }
-        } catch (error) {
-            console.error('Erro ao buscar aviso:', error);
-        }
-    }
-
-    const importParticipantsForm = document.getElementById('importParticipantsForm');
-    if (importParticipantsForm) {
-        importParticipantsForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            
-            const password = prompt('Para sua segurança, por favor, digite sua senha para importar a planilha:');
-            if (!password) {
-                alert('Importação cancelada.');
-                return;
-            }
-
-            // Usar o modal de confirmação de senha para processar o upload
-            openPasswordModal('import_participants', { password: password });
-        });
     }
 
     checkAccessAndInitializeUI();

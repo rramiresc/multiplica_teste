@@ -176,7 +176,7 @@
                 <option value="17:00hs até 18:30hs">17:00hs até 18:30hs</option>
             </select>
 
-            <label for="esperado_participantes">Número de cursistas esperados no encontro (sem contar o formador).</label>
+            <label for="esperado_participantes">Número de cursistas esperados no encontro (sem contar o formador):</label>
             <input type="number" id="esperado_participantes" name="esperado_participantes" readonly>
 
             <label for="real_participantes">Número real de pessoas presentes no encontro:</label>
@@ -198,6 +198,7 @@
                 <option value="Turma sem inscritos">Turma sem inscritos</option>
                 <option value="Turma sem Formador e sem inscritos">Turma sem Formador e sem inscritos</option>
                 <option value="Turma remanejada para outro dia">Turma remanejada para outro dia</option>
+                <option value="Turma remanejada para outro dia">Ausência de cursistas e formador</option>
             </select>
         </div>
 
@@ -296,7 +297,8 @@
             {% for pergunta, nome_pergunta in perguntas %}
             <p>{{ pergunta }}</p>
             <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende" required> Atende</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Plenamente" required> Atende Plenamente</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Parcialmente"> Atende Parcialmente</label>
                 <label><input type="radio" name="{{ nome_pergunta }}" value="Não Atende"> Não Atende</label>
             </div>
             {% endfor %}
@@ -331,8 +333,8 @@
             <label for="cpf_pec_demandas">CPF do PEC Multiplica:</label>
             <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" readonly>
 
-            <label for="semana_demanda_date">Semana de Referência das demandas:</label>
-            <input type="date" id="semana_demanda_date" name="semana_demanda_date" required>
+            <label for="semana_demandas">Semana de Referência das demandas:</label>
+            <input type="week" id="semana_demandas" name="semana_demandas" required>
 
             <label for="caff_demandas">Indique seu CAFF responsável:</label>
             <input type="text" id="caff_demandas" name="caff_demandas" list="caffs-list" required>
@@ -346,7 +348,7 @@
         <div class="form-section">
             <h3>Relatório de Atividades</h3>
             <label for="formacoes_realizadas_demandas">Quantas Formações das Turmas com Professores Multiplicadores foram realizadas na semana indicada? (somente números)</label>
-            <input type="number" id="formacoes_realizadas_demandas" name="formacoes_realizadas_demandas" readonly>
+            <input type="number" id="formacoes_realizadas_demandas" name="formacoes_realizadas_demandas" required>
             
             <label>Participou de forma SÍNCRONA do Alinhamento Semanal?</label>
             <div class="radio-group">
@@ -374,17 +376,11 @@
                     </div>
             </div>
             
-            <label for="pm_orientados_esperado_demandas">Número de PMs Orientados (Esperado):</label>
-            <input type="number" id="pm_orientados_esperado_demandas" name="pm_orientados_esperado_demandas" readonly>
+            <label for="pm_orientados_demandas">Quantos Professores Multiplicadores foram orientados individualmente ou em grupo na semana?</label>
+            <input type="number" id="pm_orientados_demandas" name="pm_orientados_demandas" readonly>
 
-            <label for="pm_orientados_demandas">Número de PMs Orientados (Real):</label>
-            <input type="number" id="pm_orientados_demandas" name="pm_orientados_demandas">
-
-            <label for="cursistas_orientados_esperado_demandas">Número de Cursistas Orientados (Esperado):</label>
-            <input type="number" id="cursistas_orientados_esperado_demandas" name="cursistas_orientados_esperado_demandas" readonly>
-
-            <label for="cursistas_orientados_demandas">Número de Cursistas Orientados (Real):</label>
-            <input type="number" id="cursistas_orientados_demandas" name="cursistas_orientados_demandas">
+            <label for="cursistas_orientados_demandas">Quantos Cursistas foram orientados individualmente ou em grupo na semana?</label>
+            <input type="number" id="cursistas_orientados_demandas" name="cursistas_orientados_demandas" readonly>
 
             <label for="rubricas_preenchidas_demandas">Quantas rubricas foram preenchidas na semana?</label>
             <input type="number" id="rubricas_preenchidas_demandas" name="rubricas_preenchidas_demandas">
@@ -393,7 +389,7 @@
             <input type="number" id="feedbacks_realizados_demandas" name="feedbacks_realizados_demandas">
             
             <label for="substituicoes_realizadas_demandas">Quantas substituições de professores multiplicadores foram realizadas?</label>
-            <input type="number" id="substituicoes_realizadas_demandas" name="substituicoes_realizadas_demandas" readonly>
+            <input type="number" id="substituicoes_realizadas_demandas" name="substituicoes_realizadas_demandas">
         </div>
 
         <div class="form-section">
@@ -431,10 +427,6 @@
                 <label><input type="checkbox" name="engajamento_demandas" value="Outra"> Outra: <input type="text" name="outra_acao_demandas" style="width: auto;"></label>
             </div>
         </div>
-        <div class="form-section">
-            <label for="observacao_demandas">Observação (opcional):</label>
-            <textarea id="observacao_demandas" name="observacao_demandas" rows="3"></textarea>
-        </div>
         <button type="submit">Enviar</button>
     </form>
 </div>
@@ -448,27 +440,31 @@
         <h3>Filtros de Busca</h3>
         <form id="filterFormPresenca">
             <input type="text" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
-            <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
-            <input type="text" name="de_participante" placeholder="Diretoria de Ensino do Participante" value="">
-            <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
             
+            <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
+            
+            <input type="text" name="de_participante" placeholder="DE do Participante" value="">
+
+            <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
+
             <select name="presenca">
-                <option value="">Presença: Todos</option>
+                <option value="">Presença (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
             <select name="camera">
-                <option value="">Câmera Aberta: Todos</option>
+                <option value="">Câmera (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
             
             <input type="text" name="tema" placeholder="Tema" value="">
+            
             <input type="text" name="turma" placeholder="Turma" value="">
 
             <select name="declinou_participante">
-                <option value="">Declinou: Todos</option>
+                <option value="">Declinou (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
@@ -485,10 +481,12 @@
 
     <div class="metrics" id="metrics-presenca">
         <h3>Métricas</h3>
-        <p>Número de Formulários Enviados: <span id="presenca-num_formularios">0</span></p>
-        <p>Cálculo de Presentes/Esperados: <span id="presenca-presentes">0</span> / <span id="presenca-esperados">0</span></p>
-        <p>% de Presença: <span id="presenca-pct_presenca">0.00%</span></p>
-        <p>% de Câmera: <span id="presenca-pct_camera">0.00%</span></p>
+        <div class="metrics-grid">
+            <p>Formulários Enviados: <span id="presenca-num_formularios">0</span></p>
+            <p>Presentes: <span id="presenca-presentes">0</span> / Esperados: <span id="presenca-esperados">0</span></p>
+            <p>% de Presença: <span id="presenca-pct_presenca">0.00%</span></p>
+            <p>% de Câmera: <span id="presenca-pct_camera">0.00%</span></p>
+        </div>
     </div>
 
     <div id="table-presenca">
@@ -516,8 +514,8 @@
         <h3>Filtros de Busca</h3>
         <form id="filterFormAcompanhamento">
             <input type="text" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
+            
             <input type="text" name="formador_assistido" placeholder="Responsável pela Formação" value="">
-            <input type="text" name="turma" placeholder="Turma" value="">
             
             <input type="week" id="semana_acompanhamento_filtro" name="semana" placeholder="Semana (Domingo a Sábado)" value="">
 
@@ -531,11 +529,13 @@
 
     <div class="metrics" id="metrics-acompanhamento">
         <h3>Métricas</h3>
-        <p>Número de Acompanhamentos: <span id="acompanhamento-num_acompanhamentos">0</span></p>
-        <p>Número de Encontros Ocorridos: <span id="acompanhamento-num_encontros_ocorridos">0</span></p>
-        <p>Número de participantes esperados: <span id="acompanhamento-num_participantes_esperados">0</span></p>
-        <p>Número real de participantes: <span id="acompanhamento-num_participantes_reais">0</span></p>
-        <p>Número de participantes com câmera aberta: <span id="acompanhamento-num_camera_aberta">0</span></p>
+        <div class="metrics-grid">
+            <p>Acompanhamentos: <span id="acompanhamento-num_acompanhamentos">0</span></p>
+            <p>Encontros Ocorridos: <span id="acompanhamento-num_encontros_ocorridos">0</span></p>
+            <p>Participantes Esperados: <span id="acompanhamento-num_participantes_esperados">0</span></p>
+            <p>Participantes Reais: <span id="acompanhamento-num_participantes_reais">0</span></p>
+            <p>Câmera Aberta: <span id="acompanhamento-num_camera_aberta">0</span></p>
+        </div>
     </div>
 
     <div id="table-acompanhamento">
@@ -562,10 +562,14 @@
     <form id="filterFormAvaliacao">
         <div class="filters">
             <h3>Filtros de Busca</h3>
-            <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino do Participante" value="">
-            <input type="text" name="observado" placeholder="Nome do Observado (Responsável)" value="">
-            <input type="text" name="escola" placeholder="Escola do Participante" value="">
+            <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
+            
+            <input type="text" name="observado" placeholder="Nome do Observado" value="">
+            
+            <input type="text" name="escola" placeholder="Escola" value="">
+            
             <input type="text" name="tema_observado" placeholder="Tema" value="">
+            
             <input type="text" name="codigo_turma" placeholder="Turma" value="">
 
             <div class="button-group">
@@ -577,8 +581,10 @@
     </form>
     <div class="metrics" id="metrics-avaliacao">
         <h3>Métricas</h3>
-        <p>Número de Formulários Enviados: <span id="avaliacao-num_formularios">0</span></p>
-        <p>Nota Média: <span id="avaliacao-media_notas">0.00</span></p>
+        <div class="metrics-grid">
+            <p>Formulários Enviados: <span id="avaliacao-num_formularios">0</span></p>
+            <p>Nota Média: <span id="avaliacao-media_notas">0.00</span></p>
+        </div>
     </div>
 
     <div id="table-avaliacao">
@@ -606,7 +612,9 @@
         <h3>Filtros de Busca</h3>
         <form id="filterFormDemandas">
             <input type="text" name="pec" placeholder="PEC Multiplica responsável" value="">
+            
             <input type="text" name="caff" placeholder="CAFF responsável" value="">
+            
             <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
             <input type="week" id="semana_demandas_filtro" name="semana" placeholder="Semana" value="">
@@ -621,12 +629,12 @@
 
     <div class="metrics" id="metrics-demandas">
         <h3>Métricas</h3>
-        <p>Número de Formulários Enviados: <span id="demandas-num_formularios">0</span></p>
-        <p>Número de Escolas Visitadas (únicas): <span id="demandas-num_escolas_visitadas_unicas">0</span></p>
-        <p>Total de PMs Orientados: <span id="demandas-total_pms_orientados_real">0</span> / <span id="demandas-total_pms_orientados_esperado">0</span></p>
-        <p>Total de Cursistas Orientados: <span id="demandas-total_cursistas_orientados_real">0</span> / <span id="demandas-total_cursistas_orientados_esperado">0</span></p>
-        <p>Total de Formações: <span id="demandas-total_formacoes">0</span></p>
-        <p>Total de Substituições: <span id="demandas-total_substituicoes">0</span></p>
+        <div class="metrics-grid">
+            <p>Formulários Enviados: <span id="demandas-num_formularios">0</span></p>
+            <p>Escolas Visitadas (únicas): <span id="demandas-num_escolas_visitadas_unicas">0</span></p>
+            <p>PMs Orientados: <span id="demandas-total_pms_orientados">0</span></p>
+            <p>Cursistas Orientados: <span id="demandas-total_cursistas_orientados">0</span></p>
+        </div>
     </div>
 
     <div id="table-demandas">
@@ -650,14 +658,16 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAteste">
-            <input type="date" id="start_date_ateste" name="start_date" placeholder="Período: Data de Início" value="">
+            <label for="start_date_ateste">Período: Data de Início</label>
+            <input type="date" id="start_date_ateste" name="start_date" value="">
             
-            <input type="date" id="end_date_ateste" name="end_date" placeholder="Período: Data de Fim" value="">
+            <label for="end_date_ateste">Período: Data de Fim</label>
+            <input type="date" id="end_date_ateste" name="end_date" value="">
 
-            <input type="text" id="responsavel_ateste" name="responsavel_base" list="responsaveis-list-ateste" placeholder="PEC Responsável" value="">
+            <input type="text" id="responsavel_ateste" name="responsavel_base" list="responsaveis-list-ateste" placeholder="Responsável (Base de Dados)" value="">
             <datalist id="responsaveis-list-ateste"></datalist>
             
-            <input type="text" id="nome_ateste" name="nome_quem_preencheu" list="nomes-list-ateste" placeholder="Nome (Quem Preencheu a Presença)" value="">
+            <input type="text" id="nome_ateste" name="nome_quem_preencheu" list="nomes-list-ateste" placeholder="Nome (Quem Preencheu)" value="">
             <datalist id="nomes-list-ateste"></datalist>
 
             <input type="text" id="tema_ateste_filtro" name="tema" list="temas-list-ateste" placeholder="Tema" value="">
@@ -673,8 +683,10 @@
 
     <div class="metrics" id="metrics-ateste">
         <h3>Métricas</h3>
-        <p>Número de Formações Únicas Atestáveis: <span id="ateste-num_formacoes_unicas">0</span></p>
-        <p>Total a Pagar: R$ <span id="ateste-total_a_pagar">0,00</span></p>
+        <div class="metrics-grid">
+            <p>Formações Únicas Atestáveis: <span id="ateste-num_formacoes_unicas">0</span></p>
+            <p>Total a Pagar: R$ <span id="ateste-total_a_pagar">0,00</span></p>
+        </div>
     </div>
 
     <div id="table-ateste">
@@ -708,16 +720,6 @@
 
 <div id="admin-tools" class="section" style="display:none;">
     <h2>Ferramentas de Administração</h2>
-
-    <div class="form-section">
-        <h3>Importar Planilha de Participantes</h3>
-        <p><b>AVISO:</b> Esta ação irá apagar e substituir completamente a base de dados de participantes por uma nova planilha.</p>
-        <form id="importParticipantsForm">
-            <label for="participants_file">Selecione o arquivo participantes_base_editavel.xlsx:</label>
-            <input type="file" id="participants_file" name="file" accept=".xlsx" required>
-            <button type="submit" class="red-button">Importar e Atualizar Base</button>
-        </form>
-    </div>
 
     <div class="form-section">
         <h3>Gerenciar Usuário e Participante</h3>
@@ -784,6 +786,18 @@
             </div>
         </form>
     </div>
+    
+    <div class="form-section">
+        <h3>Atualizar Base de Participantes via Planilha</h3>
+        <p>Faça o upload de uma planilha (.xlsx) com a base de participantes. Esta ação <b>irá apagar todos os dados</b> existentes na tabela `participantes_base_editavel` e substituí-los pelo conteúdo da nova planilha.</p>
+        <form id="uploadBaseForm" action="/upload_base" method="POST" enctype="multipart/form-data">
+            <label for="baseFile">Arquivo .xlsx:</label>
+            <input type="file" id="baseFile" name="baseFile" accept=".xlsx" required>
+            <button type="submit">Fazer Upload e Atualizar</button>
+        </form>
+        <div id="uploadStatus" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
 
     <div class="form-section">
         <h3>Gerenciar Avisos</h3>
@@ -833,27 +847,7 @@
         <h3>Exportar Todos os Dados</h3>
         <p>Baixe todos os dados dos formulários em um único arquivo zip, contendo arquivos CSV separados por tabela.</p>
         <button id="downloadAllReportsButton" type="button">Baixar Todos os Relatórios</button>
-    </div>
-
-    <div class="form-section">
-        <h3>Limpar Dados de Tabela</h3>
-        <p><b>AVISO:</b> Esta ação é irreversível. Ela irá apagar permanentemente todos os dados da tabela selecionada.</p>
-        <form id="clearTableForm">
-            <label for="clear-table-select">Tabela:</label>
-            <select id="clear-table-select" name="table" required>
-                <option value="">Selecione uma tabela</option>
-                <option value="presenca">Presença</option>
-                <option value="acompanhamento">Acompanhamento</option>
-                <option value="avaliacao">Avaliação</option>
-                <option value="demandas">Demandas</option>
-                <option value="ateste">Ateste</option>
-                <option value="usuarios">Usuários</option>
-                <option value="avisos">Avisos</option>
-                <option value="links">Links</option>
-                <option value="participantes_base_editavel">Base de Participantes</option>
-            </select>
-            <button type="submit" class="red-button">Limpar Tabela</button>
-        </form>
+        <div id="downloadStatus" style="margin-top: 15px; font-weight: bold;"></div>
     </div>
 
     <div class="form-section">
@@ -906,22 +900,6 @@
         </div>
     </div>
   </div>
-</div>
-
-<div id="password-modal" class="modal">
-    <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h3>Confirmação de Senha</h3>
-        <p>Para sua segurança, por favor, digite sua senha para confirmar a ação.</p>
-        <form id="confirmPasswordForm">
-            <label for="confirm-password">Senha:</label>
-            <input type="password" id="confirm-password" required>
-            <div class="button-group">
-                <button type="submit" class="modal-save-button">Confirmar</button>
-                <button type="button" class="modal-close-button close-button">Cancelar</button>
-            </div>
-        </form>
-    </div>
 </div>
 
 <script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
