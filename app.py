@@ -313,6 +313,7 @@ def load_links_base():
         LINKS_DF = pd.read_excel(file_path)
         LINKS_DF.columns = LINKS_DF.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('á', 'a').str.replace('ã', 'a').str.replace('ç', 'c').str.replace('ê', 'e').str.replace('ô', 'o')
         LINKS_DF.rename(columns={'nome_turma': 'turma', 'url': 'url_formacao'}, inplace=True)
+        LINKS_DF['dia_do_mes'] = LINKS_DF['dia_do_mes'].astype(str) # Força a conversão para string
         LINKS_DF.replace({np.nan: None}, inplace=True)
         print("Base de links de visitação carregada com sucesso!")
         return True
@@ -502,12 +503,12 @@ def register():
 
         # Determinar nível de acesso a partir da base de participantes
         user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
-        access_level_to_assign = 'no_access'
+        highest_access_level = "no_access"
         if user_in_data:
             etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
             access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
             if access_levels_found:
-                access_level_to_assign = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
+                highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
             
         new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=access_level_to_assign)
         try:
