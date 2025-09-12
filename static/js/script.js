@@ -938,17 +938,53 @@ document.addEventListener('DOMContentLoaded', function() {
             let url;
             let record;
             // Para tabelas que usam um ID diferente, como a URL para 'visitas'
-            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios' || tableId === 'visitas') {
+            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios') {
                 url = `/get_record/${tableId}/${recordId}`;
+            } else if (tableId === 'visitas') {
+                // CORREÇÃO: Usa a rota de path para a URL
+                url = `/get_record/${tableId}/${encodeURIComponent(recordId)}`;
             } else {
                 url = `/get_record/${tableId}/${recordId}`;
             }
             const response = await fetch(url);
+    
             if (!response.ok) {
-                // CORREÇÃO: O servidor retornou um erro, mas não é um JSON válido.
-                // Isso acontece quando a rota de login é retornada.
+                // CORREÇÃO: Trata o 404 para permitir a criação de um novo registro de visita
+                if (response.status === 404 && tableId === 'visitas') {
+                    // Prepara o modal para um novo registro
+                    const userResponse = await fetch('/get_user_info');
+                    const userData = await userResponse.json();
+                    userAccessLevel = userData.access_level;
+                    userCpf = userData.cpf;
+                    userName = userData.nome;
+
+                    const rowData = await fetch(`/get_results/${tableId}?url_formacao=${encodeURIComponent(recordId)}`).then(res => res.json());
+                    const defaultRecord = rowData.results[0];
+
+                    if (defaultRecord) {
+                        editModalContent.innerHTML = editModalHtmlTemplates[tableId]({
+                            url_formacao: recordId,
+                            responsavel_visita: null,
+                            cpf_responsavel_visita: null,
+                            encontro_aconteceu: null,
+                            motivo_nao_aconteceu: null,
+                            observacao: null,
+                            data_registro: null,
+                            // Dados da planilha original para exibição
+                            turma: defaultRecord.turma,
+                            tema: defaultRecord.tema,
+                            data_aula: defaultRecord.data_aula,
+                            nome_responsavel: defaultRecord.nome_responsavel
+                        });
+                        return;
+                    } else {
+                        editModalContent.innerHTML = `<p style="color:red;">Não foi possível carregar os dados base para a URL de visitação.</p>`;
+                        return;
+                    }
+                }
+
+                // Lógica de erro genérica para outros status
                 const errorText = await response.text();
-                // Verifica se a resposta contém HTML da página de login
                 if (errorText.includes('<html') && errorText.includes('/login')) {
                     alert('Sessão expirada ou acesso negado. Você será redirecionado para a página de login.');
                     window.location.href = '/login';
@@ -957,6 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const errorData = JSON.parse(errorText);
                 throw new Error(errorData.error || 'Erro ao carregar o registro.');
             }
+    
             record = await response.json();
     
             if (!record) {
@@ -2218,9 +2255,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const linkId = document.getElementById('link-id').value;
             const data = {
                 titulo: document.getElementById('link-titulo').value,
-                descricao: document.getElementById('link-descricao').value,
-                url: document.getElementById('link-url').value,
-                imagem_url: document.getElementById('link-imagem-url').value,
+                conteudo: document.getElementById('aviso-conteudo').value,
+                imagem_url: document.getElementById('aviso-imagem-url').value,
             };
             const method = linkId ? 'POST' : 'POST';
             const url = '/admin/links';
