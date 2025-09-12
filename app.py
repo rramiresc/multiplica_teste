@@ -93,7 +93,7 @@ def format_datetime(dt):
 
 def format_date(d):
     if isinstance(d, datetime):
-        return d.astimezone(SAO_PAULO_TIMEZONE).strftime('%d/%m/%Y')
+        return d.astimezone(SAO_PAUL_TIMEZONE).strftime('%d/%m/%Y')
     return d
 
 def format_time(t):
@@ -507,14 +507,14 @@ def register():
 
         # Determinar nível de acesso a partir da base de participantes
         user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
-        highest_access_level = "no_access"
+        access_level_to_assign = 'no_access'
         if user_in_data:
             etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
             access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
             if access_levels_found:
-                highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
+                access_level_to_assign = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
             
-        new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=highest_access_level)
+        new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=access_level_to_assign)
         try:
             db.session.add(new_user)
             db.session.commit()
@@ -621,14 +621,7 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        
-        # AQUI FOI CORRIGIDO: Conversão para string e remoção de nulos
-        if 'dia_do_mes' in all_links.columns:
-            all_links['dia_do_mes'] = all_links['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
-            data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique()])
-        else:
-            data['visitas_dias_mes'] = []
-
+        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -1499,13 +1492,26 @@ def upload_base():
     
     return jsonify({'success': False, 'message': 'Formato de arquivo não permitido. Apenas .xlsx é aceito.'}), 400
 
+# CORRIGIDO: Rota de exportação assíncrona
+@app.route('/download_all_reports_async', methods=['GET'])
+@login_required("super_admin")
+def download_all_reports_async():
+    try:
+        user_cpf = session.get('user_cpf')
+        thread = Thread(target=generate_and_save_reports, args=(user_cpf,))
+        thread.start()
+        return jsonify({'success': True, 'message': 'A geração do relatório foi iniciada em segundo plano. O download começará em breve.'})
+    except Exception as e:
+        app.logger.error(f"Erro ao iniciar a thread de exportação: {e}")
+        return jsonify({'success': False, 'message': 'Erro ao iniciar a geração dos relatórios.'}), 500
+
 def generate_and_save_reports(user_cpf):
     """
     Função para gerar o arquivo zip de relatórios em segundo plano.
     """
     with app.app_context():
         try:
-            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos']
+            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos', 'visitas']
             zip_filename = f'todos_relatorios_{now_sp().strftime("%Y%m%d%H%M%S")}.zip'
             zip_path = os.path.join(app.config['DOWNLOAD_FOLDER'], zip_filename)
 
@@ -1564,18 +1570,6 @@ def generate_and_save_reports(user_cpf):
         except Exception as e:
             app.logger.error(f"Erro ao gerar o zip de relatórios em segundo plano para {user_cpf}: {e}")
             
-@app.route('/download_all_reports_async', methods=['GET'])
-@login_required("super_admin")
-def download_all_reports_async():
-    try:
-        user_cpf = session.get('user_cpf')
-        thread = Thread(target=generate_and_save_reports, args=(user_cpf,))
-        thread.start()
-        return jsonify({'success': True, 'message': 'A geração do relatório foi iniciada. Você será notificado quando o download estiver pronto.'})
-    except Exception as e:
-        app.logger.error(f"Erro ao iniciar a thread de exportação: {e}")
-        return jsonify({'success': False, 'message': 'Erro ao iniciar a geração dos relatórios.'}), 500
-
 @app.route('/check_download_status', methods=['GET'])
 @login_required("super_admin")
 def check_download_status():
@@ -2077,6 +2071,92 @@ def get_record(table_name, record_id):
         record = Model.query.filter_by(url_formacao=record_id).first()
         if not record:
              return jsonify({'error': 'Registro não encontrado.'}), 404
+    else:
+        try:
+            record = Model.query.get(int(record_id))
+        except (ValueError, TypeError):
+            return jsonify({'error': 'ID de registro inválido.'}), 400
+
+    if not record:
+        return jsonify({'error': 'Registro não encontrado.'}), 404
+    
+    user_access_level = session.get('access_level')
+    user_cpf = session.get('user_cpf')
+
+    if user_access_level != 'super_admin':
+        is_owner = False
+        
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_name = user_info[0].get('nome') if user_info else None
+
+        if table_name == 'presenca':
+            is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
+        elif table_name == 'acompanhamento':
+            is_owner = record.responsavel_acompanhamento == user_name
+        elif table_name == 'avaliacao':
+            is_owner = record.observador == user_name
+        elif table_name == 'demandas':
+            is_owner = record.cpf_pec == user_cpf
+        elif table_name == 'ateste':
+            is_owner = record.cpf == user_cpf
+        elif table_name == 'usuarios':
+            is_owner = record.cpf == user_cpf
+        elif table_name == 'visitas':
+            is_owner = (record.cpf_responsavel_visita and record.cpf_responsavel_visita == user_cpf) or not record.cpf_responsavel_visita
+        
+        if not is_owner:
+             return jsonify({'success': False, 'message': 'Acesso negado. Você só pode ver seus próprios registros.'}), 403
+
+    data = {}
+    for column in inspect(Model).c:
+        value = getattr(record, column.name)
+        if isinstance(value, (datetime, date)):
+            data[column.name] = value.isoformat()
+        else:
+            data[column.name] = value
+    
+    return jsonify(data)
+
+
+@app.route('/admin/toggle_visibility', methods=['POST'])
+@login_required('super_admin')
+def toggle_visibility():
+    data = request.json
+    element_id = data.get('element_id')
+    is_hidden = data.get('is_hidden')
+
+    if not element_id:
+        return jsonify({'success': False, 'message': 'ID do elemento não fornecido.'}), 400
+
+    try:
+        element = HiddenElement.query.filter_by(element_id=element_id).first()
+        if element:
+            element.is_hidden = is_hidden
+        else:
+            element = HiddenElement(element_id=element_id, is_hidden=is_hidden)
+            db.session.add(element)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Visibilidade alterada com sucesso.'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
+        return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
+
+# CORRIGIDO: Agora a rota usa o conversor 'path' para URLs complexas
+@app.route('/get_record/<table_name>/<path:record_id>', methods=['GET'])
+@login_required('basic_access')
+def get_record(table_name, record_id):
+    if table_name not in MODEL_MAP:
+        return jsonify({'error': 'Tabela não encontrada.'}), 404
+
+    Model = MODEL_MAP[table_name]
+
+    if table_name == 'usuarios':
+        record = Model.query.filter_by(cpf=record_id).first()
+    elif table_name == 'visitas':
+        record = Model.query.filter_by(url_formacao=record_id).first()
+        if not record:
+            return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
         try:
             record = Model.query.get(int(record_id))
