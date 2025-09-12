@@ -7,7 +7,7 @@ body {
     padding: 0;
     background-color: #f0f2f5; /* Cor de fundo mais clara e moderna */
     color: #333;
-    transition: background-color 0.5s ease-in-out; 
+    transition: background-color 0.5s ease-in-out;
 }
 
 /* Estilos para o cabeçalho */
@@ -25,23 +25,25 @@ body {
 }
 
 .app-header.day-mode {
-    background-image: url('../static/img/dia.jpeg');
+    /* CORREÇÃO: Caminho corrigido para a imagem de fundo */
+    background-image: url('/static/img/dia.jpeg');
 }
 
 .app-header.night-mode {
-    background-image: url('../static/img/noite.jpeg');
+    /* CORREÇÃO: Caminho corrigido para a imagem de fundo */
+    background-image: url('/static/img/noite.jpeg');
 }
 
 .header-content {
     display: flex;
-    flex-direction: row; 
+    flex-direction: row;
     align-items: center;
     justify-content: space-between; /* Alinha o conteúdo à esquerda e direita */
     width: 100%;
     max-width: 1600px;
     padding: 0 40px; /* Aumenta o padding lateral */
-    gap: 30px; 
-    position: relative; 
+    gap: 30px;
+    position: relative;
 }
 
 .app-logo {
@@ -53,9 +55,9 @@ body {
 
 .app-header h1 {
     margin: 0;
-    font-size: 1.8em; 
+    font-size: 1.8em;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    white-space: nowrap; 
+    white-space: nowrap;
 }
 
 .logout-button {
@@ -78,7 +80,7 @@ body {
 /* Estilos para as abas de navegação */
 .navigation-tabs {
     display: flex;
-    flex-wrap: wrap; 
+    flex-wrap: wrap;
     justify-content: center;
     background-color: #ffffff;
     padding: 10px;
@@ -93,10 +95,10 @@ body {
     cursor: pointer;
     font-size: 1em;
     margin: 3px;
-    border-radius: 8px; 
+    border-radius: 8px;
     transition: all 0.3s ease;
-    flex-grow: 1; 
-    max-width: 250px; 
+    flex-grow: 1;
+    max-width: 250px;
     color: #555;
     font-weight: 500;
 }
@@ -134,7 +136,7 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     width: calc(100% - 40px);
     max-width: 1600px;
-    box-sizing: border-box; 
+    box-sizing: border-box;
 }
 
 .result-header {
@@ -207,7 +209,7 @@ input[type="url"],
 input[type="week"],
 select,
 textarea {
-    width: calc(100% - 22px); 
+    width: calc(100% - 22px);
     padding: 12px;
     margin-bottom: 15px;
     border: 1px solid #ccc;
@@ -307,7 +309,7 @@ button[type="button"]:active {
 .participante-item .participante-nome {
     font-weight: bold;
     color: #2e7d32;
-    flex-basis: 100%; 
+    flex-basis: 100%;
     margin-bottom: 5px;
 }
 
@@ -353,9 +355,9 @@ button[type="button"]:active {
 
 .filters form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-    gap: 20px; 
-    align-items: start; 
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    align-items: start;
 }
 
 .filters label {
@@ -368,18 +370,18 @@ button[type="button"]:active {
 
 .filters input, .filters select {
     width: 100%;
-    margin-bottom: 0; 
+    margin-bottom: 0;
 }
 
 .filters .button-group {
-    grid-column: 1 / -1; 
+    grid-column: 1 / -1;
     display: flex;
-    justify-content: flex-end; 
-    gap: 10px; 
+    justify-content: flex-end;
+    gap: 10px;
     margin-top: 15px;
 }
 .filters button {
-    margin-top: 0; 
+    margin-top: 0;
 }
 
 .metrics {
@@ -417,7 +419,7 @@ button[type="button"]:active {
 }
 
 .table-container {
-    overflow-x: auto; 
+    overflow-x: auto;
     border: 1px solid #ddd;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -434,7 +436,7 @@ table th, table td {
     border: 1px solid #ddd;
     padding: 12px 15px;
     text-align: left;
-    white-space: nowrap; 
+    white-space: nowrap;
 }
 
 table th {
@@ -443,7 +445,7 @@ table th {
     font-weight: bold;
     text-transform: uppercase;
     font-size: 0.9em;
-    position: sticky; 
+    position: sticky;
     top: 0;
     z-index: 1;
 }
@@ -690,22 +692,22 @@ table tbody tr:hover {
 
 .aviso-content {
     display: flex;
-    flex-direction: column; 
-    align-items: center; 
+    flex-direction: column;
+    align-items: center;
     gap: 15px;
 }
 
 .aviso-content img {
-    max-width: 100%; 
+    max-width: 100%;
     max-height: 100%;
-    height: auto; 
+    height: auto;
     border-radius: 8px;
     flex-shrink: 0;
     margin: 0 auto;
 }
 
 .aviso-texto {
-    padding-right: 0; 
+    padding-right: 0;
     width: 100%;
 }
 
@@ -722,7 +724,7 @@ table tbody tr:hover {
     margin: 0;
     color: #555;
     line-height: 1.4;
-    text-align: center; 
+    text-align: center;
 }
 
 /* Estilos para a lista de administração (links e cards) */
@@ -762,10 +764,10 @@ table tbody tr:hover {
         padding: 25px;
     }
     .filters form {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
     .app-header h1 {
-        font-size: 2em; 
+        font-size: 2em;
     }
     .app-logo {
         max-width: 120px;
@@ -786,7 +788,7 @@ table tbody tr:hover {
     .section {
         margin: 15px;
         padding: 20px;
-        width: calc(100% - 30px); 
+        width: calc(100% - 30px);
     }
     
     .result-header {
@@ -795,7 +797,7 @@ table tbody tr:hover {
     }
 
     .app-header .header-content {
-        flex-direction: column; 
+        flex-direction: column;
         gap: 10px;
     }
 
@@ -817,17 +819,17 @@ table tbody tr:hover {
     }
 
     .filters .button-group {
-        flex-direction: column; 
+        flex-direction: column;
         align-items: stretch;
         justify-content: center;
         gap: 10px;
-        margin-top: 10px; 
+        margin-top: 10px;
     }
 
     .logout-button {
-        position: static; 
+        position: static;
         transform: none;
-        margin-top: 10px; 
+        margin-top: 10px;
     }
 
     .link-card, .aviso-content {

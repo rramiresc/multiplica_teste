@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Multiplica 2025.2 - Coleta de Dados{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', _external=True, v=config['APP_VERSION']) }}">
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='img/multiplica_favicon.jpg') }}">
 </head>
 <body>
@@ -434,19 +434,24 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormVisitas">
-            <input type="text" name="tema" placeholder="Tema" list="temas-list-visitas" value="">
+            <label for="tema_visitas">Tema:</label>
+            <input type="text" id="tema_visitas" name="tema" placeholder="Tema" list="temas-list-visitas" value="">
             <datalist id="temas-list-visitas"></datalist>
             
-            <input type="text" name="turma" placeholder="Turma" list="turmas-list-visitas" value="">
+            <label for="turma_visitas">Turma:</label>
+            <input type="text" id="turma_visitas" name="turma" placeholder="Turma" list="turmas-list-visitas" value="">
             <datalist id="turmas-list-visitas"></datalist>
             
-            <input type="text" name="dia_da_semana" placeholder="Dia da Semana" list="dias-semana-list" value="">
+            <label for="dia_da_semana_visitas">Dia da Semana:</label>
+            <input type="text" id="dia_da_semana_visitas" name="dia_da_semana" placeholder="Dia da Semana" list="dias-semana-list" value="">
             <datalist id="dias-semana-list"></datalist>
 
-            <input type="text" name="dia_do_mes" placeholder="Dia do Mês" list="dias-mes-list" value="">
+            <label for="dia_do_mes_visitas">Dia do Mês:</label>
+            <input type="text" id="dia_do_mes_visitas" name="dia_do_mes" placeholder="Dia do Mês" list="dias-mes-list" value="">
             <datalist id="dias-mes-list"></datalist>
 
-            <input type="text" name="responsavel_pela_visita" placeholder="Responsável pela Visitação" list="responsaveis-visita-list" value="">
+            <label for="responsavel_pela_visita">Responsável pela Visitação:</label>
+            <input type="text" id="responsavel_pela_visita" name="responsavel_visita" placeholder="Responsável pela Visitação" list="responsaveis-visita-list" value="">
             <datalist id="responsaveis-visita-list"></datalist>
 
             <div class="checkbox-group">
@@ -496,36 +501,46 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormPresenca">
-            <input type="text" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
+            <label for="diretoria_presenca_filtro">Diretoria do Responsável:</label>
+            <input type="text" id="diretoria_presenca_filtro" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
             
-            <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
+            <label for="responsavel_filtro">Nome do Responsável:</label>
+            <input type="text" id="responsavel_filtro" name="responsavel" placeholder="Nome do Responsável" value="">
             
-            <input type="text" name="de_participante" placeholder="DE do Participante" value="">
+            <label for="de_participante_filtro">DE do Participante:</label>
+            <input type="text" id="de_participante_filtro" name="de_participante" placeholder="DE do Participante" value="">
 
-            <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
+            <label for="escola_participante_filtro">Escola do Participante:</label>
+            <input type="text" id="escola_participante_filtro" name="escola_participante" placeholder="Escola do Participante" value="">
 
-            <select name="presenca">
+            <label for="presenca_filtro">Presença:</label>
+            <select id="presenca_filtro" name="presenca">
                 <option value="">Presença (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
-            <select name="camera">
+            <label for="camera_filtro">Câmera:</label>
+            <select id="camera_filtro" name="camera">
                 <option value="">Câmera (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
             
-            <input type="text" name="tema" placeholder="Tema" value="">
+            <label for="tema_presenca_filtro">Tema:</label>
+            <input type="text" id="tema_presenca_filtro" name="tema" placeholder="Tema" value="">
             
-            <input type="text" name="turma" placeholder="Turma" value="">
+            <label for="turma_presenca_filtro">Turma:</label>
+            <input type="text" id="turma_presenca_filtro" name="turma" placeholder="Turma" value="">
 
-            <select name="declinou_participante">
+            <label for="declinou_participante_filtro">Declinou:</label>
+            <select id="declinou_participante_filtro" name="declinou_participante">
                 <option value="">Declinou (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
+            <label for="semana_presenca_filtro">Semana:</label>
             <input type="week" id="semana_presenca_filtro" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
@@ -571,10 +586,13 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAcompanhamento">
-            <input type="text" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
+            <label for="responsavel_acompanhamento_filtro">Responsável pelo Acompanhamento:</label>
+            <input type="text" id="responsavel_acompanhamento_filtro" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
             
-            <input type="text" name="formador_assistido" placeholder="Responsável pela Formação" value="">
+            <label for="formador_assistido_filtro">Responsável pela Formação:</label>
+            <input type="text" id="formador_assistido_filtro" name="formador_assistido" placeholder="Responsável pela Formação" value="">
             
+            <label for="semana_acompanhamento_filtro">Semana (Domingo a Sábado):</label>
             <input type="week" id="semana_acompanhamento_filtro" name="semana" placeholder="Semana (Domingo a Sábado)" value="">
 
             <div class="button-group">
@@ -621,15 +639,20 @@
     <form id="filterFormAvaliacao">
         <div class="filters">
             <h3>Filtros de Busca</h3>
-            <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
+            <label for="diretoria_de_ensino_avaliacao_filtro">Diretoria de Ensino:</label>
+            <input type="text" id="diretoria_de_ensino_avaliacao_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <input type="text" name="observado" placeholder="Nome do Observado" value="">
+            <label for="observado_filtro">Nome do Observado:</label>
+            <input type="text" id="observado_filtro" name="observado" placeholder="Nome do Observado" value="">
             
-            <input type="text" name="escola" placeholder="Escola" value="">
+            <label for="escola_avaliacao_filtro">Escola:</label>
+            <input type="text" id="escola_avaliacao_filtro" name="escola" placeholder="Escola" value="">
             
-            <input type="text" name="tema_observado" placeholder="Tema" value="">
+            <label for="tema_observado_avaliacao_filtro">Tema:</label>
+            <input type="text" id="tema_observado_avaliacao_filtro" name="tema_observado" placeholder="Tema" value="">
             
-            <input type="text" name="codigo_turma" placeholder="Turma" value="">
+            <label for="codigo_turma_avaliacao_filtro">Turma:</label>
+            <input type="text" id="codigo_turma_avaliacao_filtro" name="codigo_turma" placeholder="Turma" value="">
 
             <div class="button-group">
                 <button type="submit">Aplicar Filtros</button>
@@ -671,13 +694,17 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormDemandas">
-            <input type="text" name="pec" placeholder="PEC Multiplica responsável" value="">
+            <label for="pec_filtro">PEC Multiplica responsável:</label>
+            <input type="text" id="pec_filtro" name="pec" placeholder="PEC Multiplica responsável" value="">
             
-            <input type="text" name="caff" placeholder="CAFF responsável" value="">
+            <label for="caff_filtro">CAFF responsável:</label>
+            <input type="text" id="caff_filtro" name="caff" placeholder="CAFF responsável" value="">
             
-            <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
+            <label for="diretoria_de_ensino_demanda_filtro">Diretoria de Ensino:</label>
+            <input type="text" id="diretoria_de_ensino_demanda_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <input type="week" id="semana_demandas_filtro" name="semana" placeholder="Semana" value="">
+            <label for="semana_demandas_filtro_resultados">Semana:</label>
+            <input type="week" id="semana_demandas_filtro_resultados" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
                 <button type="submit">Aplicar Filtros</button>
@@ -725,12 +752,15 @@
             <label for="end_date_ateste">Período: Data de Fim</label>
             <input type="date" id="end_date_ateste" name="end_date" value="">
 
+            <label for="responsavel_ateste">Responsável (Base de Dados):</label>
             <input type="text" id="responsavel_ateste" name="responsavel_base" list="responsaveis-list-ateste" placeholder="Responsável (Base de Dados)" value="">
             <datalist id="responsaveis-list-ateste"></datalist>
             
+            <label for="nome_ateste">Nome (Quem Preencheu):</label>
             <input type="text" id="nome_ateste" name="nome_quem_preencheu" list="nomes-list-ateste" placeholder="Nome (Quem Preencheu)" value="">
             <datalist id="nomes-list-ateste"></datalist>
 
+            <label for="tema_ateste_filtro">Tema:</label>
             <input type="text" id="tema_ateste_filtro" name="tema" list="temas-list-ateste" placeholder="Tema" value="">
             <datalist id="temas-list-ateste"></datalist>
 
@@ -988,6 +1018,6 @@
   </div>
 </div>
 
-<script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/script.js', _external=True, v=config['APP_VERSION']) }}"></script>
 </body>
 </html>

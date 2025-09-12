@@ -870,39 +870,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </form>
         `,
-        'visitas': (record) => `
-            <h3>Editar Registro de Visitação</h3>
-            <form id="editForm">
-                <input type="hidden" name="url_formacao" value="${record.url_formacao}">
-                <p><strong>URL da Formação:</strong> <a href="${record.url_formacao}" target="_blank">Acessar</a></p>
-                <p><strong>Responsável:</strong> ${record.responsavel_visita}</p>
-                <label for="encontro_aconteceu">Encontro Aconteceu?</label>
-                <select id="encontro_aconteceu" name="encontro_aconteceu" required>
-                    <option value="">Selecione</option>
-                    <option value="Sim" ${record.encontro_aconteceu === 'Sim' ? 'selected' : ''}>Sim</option>
-                    <option value="Não" ${record.encontro_aconteceu === 'Não' ? 'selected' : ''}>Não</option>
-                    <option value="Não visitado" ${record.encontro_aconteceu === 'Não visitado' ? 'selected' : ''}>Não visitado</option>
-                </select>
-                <label for="motivo_nao_aconteceu">Motivo (se "Não")</label>
-                <select id="motivo_nao_aconteceu" name="motivo_nao_aconteceu">
-                    <option value="">Selecione</option>
-                    <option value="Sem PM" ${record.motivo_nao_aconteceu === 'Sem PM' ? 'selected' : ''}>Sem PM</option>
-                    <option value="Sem PEC" ${record.motivo_nao_aconteceu === 'Sem PEC' ? 'selected' : ''}>Sem PEC</option>
-                    <option value="Turma sem inscritos" ${record.motivo_nao_aconteceu === 'Turma sem inscritos' ? 'selected' : ''}>Turma sem inscritos</option>
-                    <option value="Sem FORMADOR" ${record.motivo_nao_aconteceu === 'Sem FORMADOR' ? 'selected' : ''}>Sem FORMADOR</option>
-                    <option value="Houve problemas técnicos" ${record.motivo_nao_aconteceu === 'Houve problemas técnicos' ? 'selected' : ''}>Houve problemas técnicos</option>
-                    <option value="Turma excluída" ${record.motivo_nao_aconteceu === 'Turma excluída' ? 'selected' : ''}>Turma excluída</option>
-                </select>
-                <label for="observacao">Observação:</label>
-                <textarea id="observacao" name="observacao">${record.observacao || ''}</textarea>
-                <div class="button-group">
-                    <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
-                </div>
-            </form>
-        `
-    };
+        'visitas': (record) => {
+            const isReserved = record.responsavel_visita && record.responsavel_visita.trim() !== '';
+            const isCurrentUser = record.cpf_responsavel_visita === userCpf;
+            const isSuperAdmin = userAccessLevel === 'super_admin';
+            const canEdit = !isReserved || isCurrentUser || isSuperAdmin;
+            
+            const actionButtonHtml = canEdit 
+                ? `
+                    <div class="button-group">
+                        <button type="submit" class="modal-save-button">Salvar</button>
+                        <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
+                    </div>`
+                : `<p class="error-message">Este registro já foi preenchido por ${record.responsavel_visita} e não pode ser alterado.</p>`;
 
+            return `
+                <h3>Registro de Visitação</h3>
+                <form id="editForm">
+                    <input type="hidden" name="url_formacao" value="${record.url_formacao}">
+                    <input type="hidden" name="responsavel_visita" value="${isCurrentUser ? record.responsavel_visita : ''}">
+                    <input type="hidden" name="cpf_responsavel_visita" value="${isCurrentUser ? userCpf : ''}">
+
+                    <p><strong>URL da Formação:</strong> <a href="${record.url_formacao}" target="_blank">Acessar</a></p>
+                    <p><strong>Turma:</strong> ${record.turma}</p>
+                    <p><strong>Tema:</strong> ${record.tema}</p>
+                    <p><strong>Data:</strong> ${record.data_aula}</p>
+                    <p><strong>Responsável:</strong> ${record.nome_responsavel}</p>
+
+                    <label for="encontro_aconteceu">Encontro Aconteceu?</label>
+                    <select id="encontro_aconteceu" name="encontro_aconteceu" ${!canEdit ? 'disabled' : ''} required>
+                        <option value="">Selecione</option>
+                        <option value="Sim" ${record.encontro_aconteceu === 'Sim' ? 'selected' : ''}>Sim</option>
+                        <option value="Não" ${record.encontro_aconteceu === 'Não' ? 'selected' : ''}>Não</option>
+                        <option value="Não visitado" ${record.encontro_aconteceu === 'Não visitado' ? 'selected' : ''}>Não visitado</option>
+                    </select>
+
+                    <label for="motivo_nao_aconteceu">Motivo (se "Não"):</label>
+                    <select id="motivo_nao_aconteceu" name="motivo_nao_aconteceu" ${!canEdit ? 'disabled' : ''}>
+                        <option value="">Selecione</option>
+                        <option value="Sem PM" ${record.motivo_nao_aconteceu === 'Sem PM' ? 'selected' : ''}>Sem PM</option>
+                        <option value="Sem PEC" ${record.motivo_nao_aconteceu === 'Sem PEC' ? 'selected' : ''}>Sem PEC</option>
+                        <option value="Turma sem inscritos" ${record.motivo_nao_aconteceu === 'Turma sem inscritos' ? 'selected' : ''}>Turma sem inscritos</option>
+                        <option value="Sem FORMADOR" ${record.motivo_nao_aconteceu === 'Sem FORMADOR' ? 'selected' : ''}>Sem FORMADOR</option>
+                        <option value="Houve problemas técnicos" ${record.motivo_nao_aconteceu === 'Houve problemas técnicos' ? 'selected' : ''}>Houve problemas técnicos</option>
+                        <option value="Turma excluída" ${record.motivo_nao_aconteceu === 'Turma excluída' ? 'selected' : ''}>Turma excluída</option>
+                    </select>
+                    
+                    <label for="observacao_visitas">Observação:</label>
+                    <textarea id="observacao_visitas" name="observacao" ${!canEdit ? 'disabled' : ''}>${record.observacao || ''}</textarea>
+                    
+                    ${actionButtonHtml}
+                </form>
+            `;
+        }
+    };
+    
     window.openEditModal = async function(recordId, tableId) {
         currentRecordId = recordId;
         currentTableId = tableId;
@@ -914,9 +936,8 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             let url;
             let record;
-            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios') {
-                url = `/get_record/${tableId}/${recordId}`;
-            } else if (tableId === 'visitas') {
+            // Para tabelas que usam um ID diferente, como a URL para 'visitas'
+            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios' || tableId === 'visitas') {
                 url = `/get_record/${tableId}/${recordId}`;
             } else {
                 url = `/get_record/${tableId}/${recordId}`;
@@ -933,9 +954,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            const userResponse = await fetch('/get_user_info');
+            const userData = await userResponse.json();
+            const userAccessLevel = userData.access_level;
+            const userCpf = userData.cpf;
+            const userName = userData.nome;
+
             const template = editModalHtmlTemplates[tableId];
             if (template) {
-                editModalContent.innerHTML = template(record);
+                // Passando as variáveis para a função de template, especialmente para a lógica da tabela 'visitas'
+                editModalContent.innerHTML = template(record, userAccessLevel, userCpf, userName);
             } else {
                 editModalContent.innerHTML = `<p style="color:red;">Não há um formulário de edição para a tabela: ${tableId}.</p>`;
             }
@@ -982,9 +1010,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const tableHeadRow = document.querySelector(`#table-${tableId} thead tr`);
         const metricsContainer = document.querySelector(`#metrics-${tableId}`);
         const paginationContainer = document.querySelector(`#pagination-${tableId}`);
-        const exportButton = document.getElementById(`exportCsv${tableId.charAt(0).toUpperCase() + tableId.slice(1)}`);
-        const filterForm = document.getElementById(`filterForm${tableId.charAt(0).toUpperCase() + tableId.slice(1)}`);
-
 
         if (!resultsTableBody || !tableHeadRow) {
             console.error(`ERRO JS: Componentes de tabela para '${tableId}' não encontrados.`);
@@ -1124,9 +1149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'nome_responsavel': 'Nome do Responsável',
                 'cpf_responsavel': 'CPF do Responsável',
                 'e-mail': 'E-mail'
-
             };
-
 
             const desiredOrder = {
                 'presenca': ['id', 'diretoria_de_ensino_resp', 'responsavel', 'substituicao_ocorreu', 'nome_substituto', 'tema', 'turma', 'data_formacao', 'pauta', 'observacao', 'nome_participante', 'cpf_participante', 'escola_participante', 'de_participante', 'di_participante', 'pei_participante', 'declinou_participante', 'presenca', 'camera'],
@@ -1135,7 +1158,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     'encontro_realizado', 'dia_semana_encontro', 'horario_encontro', 'esperado_participantes', 'real_participantes',
                     'camera_aberta_participantes', 'motivo_nao_ocorrencia', 'observacao'
                 ],
-                // Ajuste na ordem das colunas para demandas, removendo 'alinhamento_geral'
                 'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'alinhamento_geral', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'pm_orientados_esperado', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento', 'observacao'],
                 'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao'],
                 'participantes_base_editavel': ['cpf', 'nome', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'],
@@ -1207,27 +1229,40 @@ document.addEventListener('DOMContentLoaded', function() {
                                     canEdit = docData.cpf === userCpf;
                                     break;
                                 case 'visitas':
-                                    canEdit = docData.cpf_responsavel_visita === userCpf;
+                                    canEdit = docData.cpf_responsavel_visita === userCpf || !docData.cpf_responsavel_visita;
                                     break;
                             }
                         }
+                        
+                        const recordIdentifier = tableId === 'participantes_base_editavel' || tableId === 'usuarios' ? docData.cpf : (tableId === 'visitas' ? docData.url_formacao : docData.id);
 
-                        if (canEdit) {
-                            const editButton = document.createElement('button');
-                            editButton.textContent = 'Editar';
-                            editButton.classList.add('edit-button');
-                            const recordIdentifier = tableId === 'participantes_base_editavel' || tableId === 'usuarios' || tableId === 'visitas' ? docData.url_formacao || docData.cpf : docData.id;
-                            editButton.onclick = () => openEditModal(recordIdentifier, tableId);
-                            tdActions.appendChild(editButton);
-
-                            const deleteButton = document.createElement('button');
-                            deleteButton.textContent = 'Excluir';
-                            deleteButton.classList.add('delete-button', 'red-button');
-                            deleteButton.onclick = () => handleDeleteRecord(recordIdentifier, tableId, docData.turma, docData.data_formacao, docData.pauta);
-                            tdActions.appendChild(deleteButton);
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Editar';
+                        editButton.classList.add('edit-button');
+                        editButton.onclick = () => openEditModal(recordIdentifier, tableId);
+                        
+                        // Botão de delete só para super admin ou dono do registro em 'visitas'
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Excluir';
+                        deleteButton.classList.add('delete-button', 'red-button');
+                        deleteButton.onclick = () => handleDeleteRecord(recordIdentifier, tableId, docData.turma, docData.data_formacao, docData.pauta);
+                        
+                        if (tableId === 'visitas') {
+                             if (userAccessLevel === 'super_admin' || docData.cpf_responsavel_visita === userCpf) {
+                                tdActions.appendChild(editButton);
+                                tdActions.appendChild(deleteButton);
+                            } else {
+                                tdActions.textContent = 'Sem permissão';
+                            }
                         } else {
-                             tdActions.textContent = 'Sem permissão';
+                            if (canEdit) {
+                                tdActions.appendChild(editButton);
+                                tdActions.appendChild(deleteButton);
+                            } else {
+                                tdActions.textContent = 'Sem permissão';
+                            }
                         }
+                        
                         tr.appendChild(tdActions);
                     }
 

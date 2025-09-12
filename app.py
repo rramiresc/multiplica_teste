@@ -19,6 +19,8 @@ from sqlalchemy import inspect
 from werkzeug.utils import secure_filename
 from threading import Thread
 import base64
+from flask import send_from_directory
+import openpyxl
 
 # Inicializar o Flask
 app = Flask(__name__)
@@ -579,14 +581,18 @@ def get_all_datalists():
         global PARTICIPANTES_DF
         global LINKS_DF
         if PARTICIPANTES_DF is None or PARTICIPANTES_DF.empty:
-            return jsonify({'error': 'Base de participantes não carregada ou vazia.'}), 500
+            data['error'] = 'Base de participantes não carregada ou vazia.'
         
         if LINKS_DF is None or LINKS_DF.empty:
-             return jsonify({'error': 'Base de links de visitação não carregada ou vazia.'}), 500
+             data['error'] = 'Base de links de visitação não carregada ou vazia.'
+
+        if 'error' in data:
+            return jsonify(data), 500
 
         all_participants = PARTICIPANTES_DF
         all_links = LINKS_DF
         
+        # Correção: Converta para listas antes de retornar o JSON
         data['turmas'] = sorted(list(all_participants['turma'].dropna().unique()))
         data['diretorias'] = sorted(list(all_participants['diretoria_de_ensino'].dropna().unique()))
         if "FORMADOR EFAPE" not in data['diretorias']:
@@ -594,7 +600,7 @@ def get_all_datalists():
         data['diretorias'].sort()
         data['responsaveis'] = sorted(list(all_participants['responsavel'].dropna().unique()))
         data['nomes'] = sorted(list(set(all_participants['nome'].dropna().unique()) | set(all_participants['responsavel'].dropna().unique())))
-        data['pecs'] = sorted(list(all_participants[all_participants['etapa'].str.contains('PEC', na=False)]['nome'].dropna().unique()))
+        data['pecs'] = sorted(list(all_participants[all_participants['etapa'].astype(str).str.contains('PEC', na=False)]['nome'].dropna().unique()))
         data['caffs'] = sorted([
             'JULIANA VOLPE DE FREITAS',
             'RENATA KELLY DOS SANTOS LOBAO',
@@ -603,7 +609,6 @@ def get_all_datalists():
             'AINDA NÃO TENHO CAFF'
         ])
         
-        # CORREÇÃO: Adicionando as novas opções de pauta
         pautas_numericas = [str(i) for i in range(0, 17)]
         pautas_desdobramento = [f"Desdobramento {i}" for i in range(1, 9)]
         data['pautas_formativas'] = pautas_numericas + pautas_desdobramento
@@ -614,7 +619,7 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        data['visitas_dias_mes'] = sorted(list(all_links['dia_do_mes'].dropna().unique()))
+        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -1088,7 +1093,7 @@ def submit_visita():
         visita = Visita.query.filter_by(url_formacao=url_formacao).first()
 
         if visita:
-            if visita.cpf_responsavel_visita and visita.cpf_responsavel_visita != user_cpf:
+            if visita.cpf_responsavel_visita and visita.cpf_responsavel_visita != user_cpf and session.get('access_level') != 'super_admin':
                 return jsonify({'success': False, 'message': f'Esta turma já foi reservada por {visita.responsavel_visita}.'}), 403
             
             visita.responsavel_visita = user_name
@@ -1377,6 +1382,7 @@ def get_results(table_name):
             visitas_db = Visita.query.all()
             visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
             visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
+            visitas_df['dia_do_mes'] = visitas_df['dia_do_mes'].astype(str)
 
             # Unindo os dataframes
             df_merged = pd.merge(df_links, visitas_df, on='url_formacao', how='left')
@@ -1489,7 +1495,7 @@ def generate_and_save_reports(user_cpf):
                 global PARTICIPANTES_DF
                 if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
                     excel_file = BytesIO()
-                    with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
+                    with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
                         PARTICIPANTES_DF.to_excel(writer, index=False, sheet_name='Base_Participantes')
                     excel_file.seek(0)
                     zipf.writestr('participantes_base_editavel.xlsx', excel_file.read())
@@ -1527,7 +1533,7 @@ def generate_and_save_reports(user_cpf):
                         df = df[existing_cols]
 
                     excel_file = BytesIO()
-                    with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
+                    with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
                         df.to_excel(writer, index=False, sheet_name=table_name)
                     excel_file.seek(0)
                     
@@ -1792,7 +1798,7 @@ def export_xlsx(table_name):
         df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
 
         excel_buffer = BytesIO()
-        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name=table_name)
         excel_buffer.seek(0)
 
@@ -1990,7 +1996,11 @@ def edit_record(table_name):
         return jsonify({'success': False, 'message': 'Dados inválidos ou tabela não encontrada.'}), 400
 
     Model = MODEL_MAP[table_name]
-    record = Model.query.get(record_id)
+    
+    if table_name == 'visitas':
+        record = Model.query.filter_by(url_formacao=record_id).first()
+    else:
+        record = Model.query.get(record_id)
 
     if not record:
         return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
@@ -2014,6 +2024,8 @@ def edit_record(table_name):
             is_owner = record.cpf_pec == user_cpf
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
+        elif table_name == 'visitas':
+            is_owner = record.cpf_responsavel_visita == user_cpf
 
         if not is_owner:
              return jsonify({'success': False, 'message': 'Acesso negado. Você só pode editar seus próprios registros.'}), 403
@@ -2040,6 +2052,8 @@ def get_record(table_name, record_id):
     
     if table_name == 'usuarios':
         record = Model.query.filter_by(cpf=record_id).first()
+    elif table_name == 'visitas':
+        record = Model.query.filter_by(url_formacao=record_id).first()
     else:
         record = Model.query.get(record_id)
 
@@ -2067,6 +2081,8 @@ def get_record(table_name, record_id):
             is_owner = record.cpf == user_cpf
         elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf
+        elif table_name == 'visitas':
+            is_owner = record.cpf_responsavel_visita == user_cpf
         
         if not is_owner:
              return jsonify({'success': False, 'message': 'Acesso negado. Você só pode ver seus próprios registros.'}), 403
