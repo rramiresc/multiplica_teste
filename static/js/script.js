@@ -995,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         canEdit = record.cpf === userCpf;
                         break;
                     case 'visitas':
-                        canEdit = (record.cpf_responsavel_visita && record.cpf_responsavel_visita === userCpf) || !record.cpf_responsavel_visita;
+                        canEdit = (record.cpf_responsavel_visita && record.cpf_responsavel_visita === userCpf) || (!record.cpf_responsavel_visita);
                         break;
                     default:
                         canEdit = false;
@@ -1717,7 +1717,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Verifica se o usuário tem permissão para a ação
         const userResponse = await fetch('/get_user_info');
         const userData = await userResponse.json();
-        const userAccessLevel = userData.access_level;
+        userAccessLevel = userData.access_level;
         
         if (userAccessLevel !== 'super_admin' && table !== 'visitas') {
             alert('Acesso negado. Você não pode excluir registros.');

@@ -2062,7 +2062,8 @@ def edit_record(table_name):
         app.logger.error(f"Erro ao editar registro: {e}")
         return jsonify({'success': False, 'message': f'Erro ao atualizar registro: {e}'}), 500
 
-@app.route('/get_record/<table_name>/<record_id>', methods=['GET'])
+# CORRIGIDO: Agora a rota usa o conversor 'path' para URLs complexas
+@app.route('/get_record/<table_name>/<path:record_id>', methods=['GET'])
 @login_required('basic_access')
 def get_record(table_name, record_id):
     if table_name not in MODEL_MAP:
@@ -2075,7 +2076,10 @@ def get_record(table_name, record_id):
     elif table_name == 'visitas':
         record = Model.query.filter_by(url_formacao=record_id).first()
     else:
-        record = Model.query.get(record_id)
+        try:
+            record = Model.query.get(int(record_id))
+        except (ValueError, TypeError):
+            return jsonify({'error': 'ID de registro inválido.'}), 400
 
     if not record:
         return jsonify({'error': 'Registro não encontrado.'}), 404
