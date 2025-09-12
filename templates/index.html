@@ -141,7 +141,7 @@
             <label>Câmera do formador estava aberta?</label>
             <div class="radio-group">
                 <label><input type="radio" name="formador_camera" value="Sim" required> Sim</label>
-                <label><input type="radio" name="formador_camera" value="Não"> Não</label>
+                <label><input type="radio" name="formador_camera" value="NÃO"> Não</label>
             </div>
 
             <label>O Formador estava com o fundo de tela do Multiplica?</label>
@@ -424,7 +424,7 @@
             </div>
             <label for="observacao_demandas">Observação (opcional):</label>
             <textarea id="observacao_demandas" name="observacao_demandas" rows="3"></textarea>
-        </div>
+
         <button type="submit">Enviar</button>
     </form>
 </div>
@@ -434,23 +434,18 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormVisitas">
-            <label for="tema_visitas">Tema:</label>
             <input type="text" id="tema_visitas" name="tema" placeholder="Tema" list="temas-list-visitas" value="">
             <datalist id="temas-list-visitas"></datalist>
             
-            <label for="turma_visitas">Turma:</label>
             <input type="text" id="turma_visitas" name="turma" placeholder="Turma" list="turmas-list-visitas" value="">
             <datalist id="turmas-list-visitas"></datalist>
             
-            <label for="dia_da_semana_visitas">Dia da Semana:</label>
             <input type="text" id="dia_da_semana_visitas" name="dia_da_semana" placeholder="Dia da Semana" list="dias-semana-list" value="">
             <datalist id="dias-semana-list"></datalist>
 
-            <label for="dia_do_mes_visitas">Dia do Mês:</label>
             <input type="text" id="dia_do_mes_visitas" name="dia_do_mes" placeholder="Dia do Mês" list="dias-mes-list" value="">
             <datalist id="dias-mes-list"></datalist>
 
-            <label for="responsavel_pela_visita">Responsável pela Visitação:</label>
             <input type="text" id="responsavel_pela_visita" name="responsavel_visita" placeholder="Responsável pela Visitação" list="responsaveis-visita-list" value="">
             <datalist id="responsaveis-visita-list"></datalist>
 
@@ -501,46 +496,36 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormPresenca">
-            <label for="diretoria_presenca_filtro">Diretoria do Responsável:</label>
             <input type="text" id="diretoria_presenca_filtro" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
             
-            <label for="responsavel_filtro">Nome do Responsável:</label>
             <input type="text" id="responsavel_filtro" name="responsavel" placeholder="Nome do Responsável" value="">
             
-            <label for="de_participante_filtro">DE do Participante:</label>
             <input type="text" id="de_participante_filtro" name="de_participante" placeholder="DE do Participante" value="">
 
-            <label for="escola_participante_filtro">Escola do Participante:</label>
             <input type="text" id="escola_participante_filtro" name="escola_participante" placeholder="Escola do Participante" value="">
 
-            <label for="presenca_filtro">Presença:</label>
             <select id="presenca_filtro" name="presenca">
                 <option value="">Presença (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
-            <label for="camera_filtro">Câmera:</label>
             <select id="camera_filtro" name="camera">
                 <option value="">Câmera (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
             
-            <label for="tema_presenca_filtro">Tema:</label>
             <input type="text" id="tema_presenca_filtro" name="tema" placeholder="Tema" value="">
             
-            <label for="turma_presenca_filtro">Turma:</label>
             <input type="text" id="turma_presenca_filtro" name="turma" placeholder="Turma" value="">
 
-            <label for="declinou_participante_filtro">Declinou:</label>
             <select id="declinou_participante_filtro" name="declinou_participante">
                 <option value="">Declinou (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
-            <label for="semana_presenca_filtro">Semana:</label>
             <input type="week" id="semana_presenca_filtro" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
@@ -586,13 +571,10 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAcompanhamento">
-            <label for="responsavel_acompanhamento_filtro">Responsável pelo Acompanhamento:</label>
             <input type="text" id="responsavel_acompanhamento_filtro" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
             
-            <label for="formador_assistido_filtro">Responsável pela Formação:</label>
             <input type="text" id="formador_assistido_filtro" name="formador_assistido" placeholder="Responsável pela Formação" value="">
             
-            <label for="semana_acompanhamento_filtro">Semana (Domingo a Sábado):</label>
             <input type="week" id="semana_acompanhamento_filtro" name="semana" placeholder="Semana (Domingo a Sábado)" value="">
 
             <div class="button-group">
@@ -639,19 +621,14 @@
     <form id="filterFormAvaliacao">
         <div class="filters">
             <h3>Filtros de Busca</h3>
-            <label for="diretoria_de_ensino_avaliacao_filtro">Diretoria de Ensino:</label>
             <input type="text" id="diretoria_de_ensino_avaliacao_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <label for="observado_filtro">Nome do Observado:</label>
             <input type="text" id="observado_filtro" name="observado" placeholder="Nome do Observado" value="">
             
-            <label for="escola_avaliacao_filtro">Escola:</label>
             <input type="text" id="escola_avaliacao_filtro" name="escola" placeholder="Escola" value="">
             
-            <label for="tema_observado_avaliacao_filtro">Tema:</label>
             <input type="text" id="tema_observado_avaliacao_filtro" name="tema_observado" placeholder="Tema" value="">
             
-            <label for="codigo_turma_avaliacao_filtro">Turma:</label>
             <input type="text" id="codigo_turma_avaliacao_filtro" name="codigo_turma" placeholder="Turma" value="">
 
             <div class="button-group">
@@ -694,16 +671,12 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormDemandas">
-            <label for="pec_filtro">PEC Multiplica responsável:</label>
             <input type="text" id="pec_filtro" name="pec" placeholder="PEC Multiplica responsável" value="">
             
-            <label for="caff_filtro">CAFF responsável:</label>
             <input type="text" id="caff_filtro" name="caff" placeholder="CAFF responsável" value="">
             
-            <label for="diretoria_de_ensino_demanda_filtro">Diretoria de Ensino:</label>
             <input type="text" id="diretoria_de_ensino_demanda_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <label for="semana_demandas_filtro_resultados">Semana:</label>
             <input type="week" id="semana_demandas_filtro_resultados" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
@@ -746,21 +719,16 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAteste">
-            <label for="start_date_ateste">Período: Data de Início</label>
-            <input type="date" id="start_date_ateste" name="start_date" value="">
+            <input type="date" id="start_date_ateste" name="start_date" placeholder="Período: Data de Início" value="">
             
-            <label for="end_date_ateste">Período: Data de Fim</label>
-            <input type="date" id="end_date_ateste" name="end_date" value="">
+            <input type="date" id="end_date_ateste" name="end_date" placeholder="Período: Data de Fim" value="">
 
-            <label for="responsavel_ateste">Responsável (Base de Dados):</label>
             <input type="text" id="responsavel_ateste" name="responsavel_base" list="responsaveis-list-ateste" placeholder="Responsável (Base de Dados)" value="">
             <datalist id="responsaveis-list-ateste"></datalist>
             
-            <label for="nome_ateste">Nome (Quem Preencheu):</label>
             <input type="text" id="nome_ateste" name="nome_quem_preencheu" list="nomes-list-ateste" placeholder="Nome (Quem Preencheu)" value="">
             <datalist id="nomes-list-ateste"></datalist>
 
-            <label for="tema_ateste_filtro">Tema:</label>
             <input type="text" id="tema_ateste_filtro" name="tema" list="temas-list-ateste" placeholder="Tema" value="">
             <datalist id="temas-list-ateste"></datalist>
 
@@ -818,8 +786,7 @@
         <p>Pesquise por um CPF para ver o status do usuário. Se o usuário existir, você pode editar o nível de acesso. Se não existir, você pode adicioná-lo ao sistema.</p>
         <form id="manageUserForm">
             <div class="user-search-container">
-                <label for="search-cpf">Pesquisar ou Adicionar CPF:</label>
-                <input type="text" id="search-cpf" name="search_cpf" placeholder="Digite o CPF">
+                <input type="text" id="search-cpf" name="search_cpf" placeholder="Pesquisar ou Adicionar CPF">
                 <button type="button" id="search-button">Pesquisar</button>
             </div>
             
@@ -870,7 +837,6 @@
         <h3>Atualizar Base de Participantes via Planilha</h3>
         <p>Faça o upload de uma planilha (.xlsx) com a base de participantes. Esta ação <b>irá apagar todos os dados</b> existentes na tabela `participantes_base_editavel` e substituí-los pelo conteúdo da nova planilha.</p>
         <form id="uploadBaseForm" action="/upload_base" method="POST" enctype="multipart/form-data">
-            <label for="baseFile">Arquivo .xlsx:</label>
             <input type="file" id="baseFile" name="baseFile" accept=".xlsx" required>
             <button type="submit">Fazer Upload e Atualizar</button>
         </form>
@@ -881,7 +847,6 @@
         <h3>Gerenciar Visibilidade de Elementos</h3>
         <p>Selecione um elemento para ocultar ou mostrar. Elementos ocultados não serão visíveis para os usuários com níveis de acesso abaixo de Super Admin.</p>
         <form id="visibilityForm">
-            <label for="element-select">Elemento:</label>
             <select id="element-select" required>
                 <option value="">Selecione um elemento</option>
                 <optgroup label="Formulários">
@@ -903,7 +868,6 @@
                     <option value="links-importantes">Links Importantes</option>
                 </optgroup>
             </select>
-            <label for="visibility-status">Status:</label>
             <select id="visibility-status" required>
                 <option value="false">Visível</option>
                 <option value="true">Oculto</option>
@@ -917,12 +881,9 @@
     <div class="form-section">
         <h3>Gerenciar Avisos</h3>
         <form id="avisoForm">
-            <label for="aviso-titulo">Título:</label>
-            <input type="text" id="aviso-titulo" name="titulo" required>
-            <label for="aviso-conteudo">Conteúdo:</label>
-            <textarea id="aviso-conteudo" name="conteudo" rows="4" required></textarea>
-            <label for="aviso-imagem-url">URL da Imagem:</label>
-            <input type="url" id="aviso-imagem-url" name="imagem_url">
+            <input type="text" id="aviso-titulo" name="titulo" placeholder="Título" required>
+            <textarea id="aviso-conteudo" name="conteudo" rows="4" placeholder="Conteúdo" required></textarea>
+            <input type="url" id="aviso-imagem-url" name="imagem_url" placeholder="URL da Imagem">
             <button type="submit">Salvar Aviso</button>
         </form>
     </div>
@@ -931,14 +892,10 @@
         <h3>Gerenciar Links</h3>
         <form id="linkForm">
             <input type="hidden" id="link-id" name="id">
-            <label for="link-titulo">Título:</label>
-            <input type="text" id="link-titulo" name="titulo" required>
-            <label for="link-descricao">Descrição:</label>
-            <textarea id="link-descricao" name="descricao" rows="2"></textarea>
-            <label for="link-url">URL:</label>
-            <input type="url" id="link-url" name="url" required>
-            <label for="link-imagem-url">URL da Imagem:</label>
-            <input type="url" id="link-imagem-url" name="imagem_url">
+            <input type="text" id="link-titulo" name="titulo" placeholder="Título" required>
+            <textarea id="link-descricao" name="descricao" rows="2" placeholder="Descrição"></textarea>
+            <input type="url" id="link-url" name="url" placeholder="URL" required>
+            <input type="url" id="link-imagem-url" name="imagem_url" placeholder="URL da Imagem">
             <button type="submit">Salvar Link</button>
             <button type="button" id="cancelEditLinkButton" style="display:none;">Cancelar Edição</button>
         </form>
@@ -975,7 +932,6 @@
         <h3>Excluir Registro Individual</h3>
         <p>Selecione a tabela e informe o ID do registro que deseja excluir.</p>
         <form id="deleteEntryForm">
-            <label for="delete-table">Tabela:</label>
             <select id="delete-table" name="table" required>
                 <option value="">Selecione uma tabela</option>
                 <option value="presenca">Presença</option>
@@ -989,8 +945,7 @@
                 <option value="participantes_base_editavel">Base de Participantes</option>
             </select>
             
-            <label for="delete-id">ID do Registro:</label>
-            <input type="number" id="delete-id" name="id" required>
+            <input type="number" id="delete-id" name="id" placeholder="ID do Registro" required>
             
             <button type="submit" class="red-button">Excluir Registro</button>
         </form>
