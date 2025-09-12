@@ -1388,6 +1388,8 @@ def get_results(table_name):
             # Converte a coluna `dia_do_mes` para string e remove nulos antes de filtrar
             if 'dia_do_mes' in df_merged.columns:
                  df_merged['dia_do_mes'] = df_merged['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            else: # Adiciona a coluna se ela não existir após o merge
+                 df_merged['dia_do_mes'] = None
             
             # Aplicando os filtros da URL
             filters = request.args.to_dict()
