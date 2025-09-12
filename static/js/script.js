@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalItems = {};
     const currentFilters = {};
     let allParticipantsCache = [];
+    let userAccessLevel = 'none'; // Variável global para o nível de acesso do usuário
+    let userCpf = ''; // Variável global para o CPF do usuário
+    let userName = ''; // Variável global para o nome do usuário
 
     // ====================================================================
     // Funções para buscar dados do Flask (que lê base_de_dados.xlsx e JSONs)
@@ -886,8 +889,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h3>Registro de Visitação</h3>
                 <form id="editForm">
                     <input type="hidden" name="url_formacao" value="${record.url_formacao}">
-                    <input type="hidden" name="responsavel_visita" value="${isCurrentUser ? record.responsavel_visita : ''}">
-                    <input type="hidden" name="cpf_responsavel_visita" value="${isCurrentUser ? userCpf : ''}">
+                    <input type="hidden" name="responsavel_visita" value="${isCurrentUser || !isReserved ? userName : record.responsavel_visita}">
+                    <input type="hidden" name="cpf_responsavel_visita" value="${isCurrentUser || !isReserved ? userCpf : record.cpf_responsavel_visita}">
 
                     <p><strong>URL da Formação:</strong> <a href="${record.url_formacao}" target="_blank">Acessar</a></p>
                     <p><strong>Turma:</strong> ${record.turma}</p>
@@ -942,7 +945,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             const response = await fetch(url);
             if (!response.ok) {
-                const errorData = await response.json();
+                // CORREÇÃO: O servidor retornou um erro, mas não é um JSON válido.
+                // Isso acontece quando a rota de login é retornada.
+                const errorText = await response.text();
+                // Verifica se a resposta contém HTML da página de login
+                if (errorText.includes('<html') && errorText.includes('/login')) {
+                    alert('Sessão expirada ou acesso negado. Você será redirecionado para a página de login.');
+                    window.location.href = '/login';
+                    return;
+                }
+                const errorData = JSON.parse(errorText);
                 throw new Error(errorData.error || 'Erro ao carregar o registro.');
             }
             record = await response.json();
@@ -954,9 +966,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const userResponse = await fetch('/get_user_info');
             const userData = await userResponse.json();
-            const userAccessLevel = userData.access_level;
-            const userCpf = userData.cpf;
-            const userName = userData.nome;
+            userAccessLevel = userData.access_level;
+            userCpf = userData.cpf;
+            userName = userData.nome;
             
             // Lógica de permissão de edição ajustada
             let canEdit = false;
@@ -983,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         canEdit = record.cpf === userCpf;
                         break;
                     case 'visitas':
-                        canEdit = record.cpf_responsavel_visita === userCpf || !record.cpf_responsavel_visita;
+                        canEdit = (record.cpf_responsavel_visita && record.cpf_responsavel_visita === userCpf) || !record.cpf_responsavel_visita;
                         break;
                     default:
                         canEdit = false;
@@ -1087,9 +1099,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // NOVO: Busca informações do usuário logado para controle de acesso
             const userResponse = await fetch('/get_user_info');
             const userData = await userResponse.json();
-            const userAccessLevel = userData.access_level;
-            const userCpf = userData.cpf;
-            const userName = userData.nome;
+            userAccessLevel = userData.access_level;
+            userCpf = userData.cpf;
+            userName = userData.nome;
 
             const columnDisplayNames = {
                 'id': 'ID',
@@ -1264,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     canEdit = docData.cpf === userCpf;
                                     break;
                                 case 'visitas':
-                                    canEdit = docData.cpf_responsavel_visita === userCpf || !docData.cpf_responsavel_visita;
+                                    canEdit = (docData.cpf_responsavel_visita && docData.cpf_responsavel_visita === userCpf) || (!docData.cpf_responsavel_visita);
                                     break;
                             }
                         }
@@ -1286,6 +1298,8 @@ document.addEventListener('DOMContentLoaded', function() {
                              if (userAccessLevel === 'super_admin' || docData.cpf_responsavel_visita === userCpf) {
                                 tdActions.appendChild(editButton);
                                 tdActions.appendChild(deleteButton);
+                            } else if (!docData.cpf_responsavel_visita) {
+                                tdActions.appendChild(editButton);
                             } else {
                                 tdActions.textContent = 'Sem permissão';
                             }
@@ -1705,11 +1719,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const userData = await userResponse.json();
         const userAccessLevel = userData.access_level;
         
-        if (userAccessLevel !== 'super_admin') {
+        if (userAccessLevel !== 'super_admin' && table !== 'visitas') {
             alert('Acesso negado. Você não pode excluir registros.');
             return;
         }
+
+        if (table === 'visitas' && userAccessLevel !== 'super_admin') {
+            const isConfirmed = confirm('Tem certeza que deseja liberar este registro? Ele ficará disponível para outros usuários editarem.');
+            if (isConfirmed) {
+                 try {
+                    const response = await fetch('/delete_visita_by_url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url_formacao: recordId })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message);
+                        fetchResults(table, currentPage[table] || 1);
+                    } else {
+                        alert(`Erro: ${result.message}`);
+                    }
+                 } catch (error) {
+                    console.error('ERRO JS: Erro ao liberar registro de visitação:', error);
+                    alert('Ocorreu um erro ao tentar liberar o registro.');
+                 }
+            }
+            return;
+        }
         
+        // Lógica de exclusão para Super Admin
         let confirmed = false;
         let deleteRelated = false;
     
@@ -2371,8 +2410,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ====================================================================
     // Lógica de Autenticação e Exibição Condicional (ATUALIZADO)
     // ====================================================================
-    let currentAccessLevel = 'none';
-
     async function checkAccessAndInitializeUI() {
         console.log("DEBUG JS: Iniciando checkAccessAndInitializeUI...");
         try {
@@ -2383,8 +2420,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             const data = await response.json();
-            currentAccessLevel = data.access_level;
-            console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
+            userAccessLevel = data.access_level;
+            console.log("DEBUG JS: Nível de acesso do usuário:", userAccessLevel);
+
+            const userInfoResponse = await fetch('/get_user_info');
+            const userInfoData = await userInfoResponse.json();
+            userCpf = userInfoData.cpf;
+            userName = userInfoData.nome;
 
             // Carrega a visibilidade dos elementos antes de exibir a interface
             const visibilityResponse = await fetch('/get_visibility');
@@ -2402,7 +2444,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('aviso-modal').style.display = 'none';
 
             // Lógica para exibir abas com base no nível de acesso
-            switch (currentAccessLevel) {
+            switch (userAccessLevel) {
                 case 'basic_access':
                     // PM e CM
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
@@ -2444,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.tab-button').forEach(button => {
                 const elementId = button.dataset.sectionId || button.id;
                 // Apenas oculta se não for super_admin E o elemento estiver marcado como oculto
-                if (currentAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
+                if (userAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
                     button.style.display = 'none';
                     const sectionId = button.dataset.sectionId;
                     const section = document.getElementById(sectionId);
@@ -2464,7 +2506,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Lógicas específicas de carregamento para o admin
-            if (currentAccessLevel === 'super_admin') {
+            if (userAccessLevel === 'super_admin') {
                 loadLinksAdmin();
                 fetchAvisoDataForAdmin();
                 fetchResults('usuarios');

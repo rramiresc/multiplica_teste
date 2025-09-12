@@ -514,7 +514,7 @@ def register():
             if access_levels_found:
                 highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
             
-        new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=access_level_to_assign)
+        new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=highest_access_level)
         try:
             db.session.add(new_user)
             db.session.commit()
@@ -1145,8 +1145,8 @@ def delete_visita_by_url():
 
     if not visita:
         return jsonify({'success': False, 'message': 'Registro de visitação não encontrado.'}), 404
-
-    if session.get('access_level') == 'super_admin' or visita.cpf_responsavel_visita == user_cpf:
+        
+    if session.get('access_level') == 'super_admin':
         try:
             db.session.delete(visita)
             db.session.commit()
@@ -1154,6 +1154,21 @@ def delete_visita_by_url():
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'message': f'Erro ao excluir registro: {e}'}), 500
+
+    if visita.cpf_responsavel_visita == user_cpf:
+        try:
+            # Reseta o registro em vez de excluí-lo
+            visita.responsavel_visita = None
+            visita.cpf_responsavel_visita = None
+            visita.encontro_aconteceu = None
+            visita.motivo_nao_aconteceu = None
+            visita.observacao = None
+            visita.data_registro = None
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Seu registro de visitação foi removido. Agora está disponível para outros usuários.'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'Erro ao liberar o registro: {e}'}), 500
     else:
         return jsonify({'success': False, 'message': 'Acesso negado. Você não pode excluir registros de outros usuários.'}), 403
 
@@ -2019,12 +2034,23 @@ def edit_record(table_name):
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
         elif table_name == 'visitas':
-            is_owner = record.cpf_responsavel_visita == user_cpf
-
+            # Se o registro não tem responsável, qualquer um pode editar
+            if not record.cpf_responsavel_visita:
+                is_owner = True
+            else:
+                is_owner = record.cpf_responsavel_visita == user_cpf
+        
         if not is_owner:
              return jsonify({'success': False, 'message': 'Acesso negado. Você só pode editar seus próprios registros.'}), 403
 
     try:
+        # Lógica de preenchimento automático para visitas, se o campo estava vazio
+        if table_name == 'visitas' and not record.cpf_responsavel_visita:
+            user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+            user_name = user_info[0].get('nome') if user_info else 'Usuário Desconhecido'
+            record.responsavel_visita = user_name
+            record.cpf_responsavel_visita = user_cpf
+
         for key, value in data.items():
             if hasattr(record, key):
                 setattr(record, key, value)
@@ -2076,7 +2102,7 @@ def get_record(table_name, record_id):
         elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf
         elif table_name == 'visitas':
-            is_owner = record.cpf_responsavel_visita == user_cpf
+            is_owner = (record.cpf_responsavel_visita and record.cpf_responsavel_visita == user_cpf) or not record.cpf_responsavel_visita
         
         if not is_owner:
              return jsonify({'success': False, 'message': 'Acesso negado. Você só pode ver seus próprios registros.'}), 403
