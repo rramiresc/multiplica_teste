@@ -43,7 +43,6 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'xlsx'}
 app.config['DOWNLOAD_FOLDER'] = 'downloads'
-app.config['APP_VERSION'] = '1.0.0'
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
@@ -65,9 +64,9 @@ SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
 # Definição dos níveis de acesso (CORRIGIDO: CM tem acesso básico)
 ACCESS_LEVELS = {
     'PM': 'basic_access',
-    'PEC': 'intermediate_access',
-    'FORMADOR': 'formador_access',
-    'EFAPE': 'efape_access',
+    'PEC': 'full_access',
+    'FORMADOR': 'full_access',
+    'EFAPE': 'full_access',
     'ADM': 'super_admin',
     'PC': 'no_access',
     'CM': 'basic_access'
@@ -76,9 +75,6 @@ ACCESS_LEVELS = {
 ACCESS_HIERARCHY = {
     "no_access": 0,
     "basic_access": 1,
-    "formador_access": 2,
-    "efape_access": 3,
-    "intermediate_access": 4,
     "full_access": 5,
     "super_admin": 6
 }
@@ -620,12 +616,7 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        # CORREÇÃO AQUI: Garante que apenas valores numéricos são convertidos para int e depois para string.
-        if 'dia_do_mes' in all_links.columns:
-            data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique() if pd.notna(d)])
-        else:
-            data['visitas_dias_mes'] = []
-
+        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -634,7 +625,7 @@ def get_all_datalists():
         return jsonify({'error': 'Erro interno ao carregar dados.'}), 500
 
 @app.route('/get_pecs_and_formadores', methods=['GET'])
-@login_required("basic_access")
+@login_required("full_access")
 def get_pecs_and_formadores():
     try:
         global PARTICIPANTES_DF
@@ -700,7 +691,7 @@ def get_turmas_by_tema_and_responsavel_basic():
     return jsonify([])
 
 @app.route('/get_schools_by_de')
-@login_required("intermediate_access")
+@login_required("full_access")
 def get_schools_by_de():
     diretoria = request.args.get('diretoria')
     global PARTICIPANTES_DF
@@ -710,7 +701,7 @@ def get_schools_by_de():
     return jsonify([])
 
 @app.route('/get_counts_by_schools')
-@login_required("intermediate_access")
+@login_required("full_access")
 def get_counts_by_schools():
     escolas_str = request.args.get('escolas')
     global PARTICIPANTES_DF
@@ -739,7 +730,7 @@ def get_counts_by_schools():
     return jsonify({'pm_count': 0, 'pc_count': 0, 'pm_total': 0, 'pc_total': 0})
 
 @app.route('/get_info_by_nome_or_cpf')
-@login_required("intermediate_access")
+@login_required("full_access")
 def get_info_by_nome_or_cpf():
     search_term = request.args.get('search_term')
     global PARTICIPANTES_DF
@@ -782,7 +773,7 @@ def get_participantes_by_turma():
     return jsonify([])
 
 @app.route('/get_formador_assistido')
-@login_required("efape_access")
+@login_required("full_access")
 def get_formador_assistido():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -793,7 +784,7 @@ def get_formador_assistido():
     return jsonify([])
 
 @app.route('/get_tema_by_turma')
-@login_required("efape_access")
+@login_required("full_access")
 def get_tema_by_turma():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -804,7 +795,7 @@ def get_tema_by_turma():
     return jsonify([])
 
 @app.route('/submit_acompanhamento', methods=['POST'])
-@login_required("efape_access")
+@login_required("full_access")
 def submit_acompanhamento():
     try:
         data = request.json
@@ -974,7 +965,7 @@ def submit_presenca():
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de presença: {e}'}), 500
 
 @app.route('/submit_avaliacao', methods=['POST'])
-@login_required("intermediate_access")
+@login_required("full_access")
 def submit_avaliacao():
     try:
         data = request.json
@@ -1028,7 +1019,7 @@ def submit_avaliacao():
         return jsonify({'success': False, 'message': f'Erro ao salvar avaliação: {e}'}), 500
 
 @app.route('/submit_demandas', methods=['POST'])
-@login_required("intermediate_access")
+@login_required("full_access")
 def submit_demandas():
     try:
         data = request.json
@@ -1083,7 +1074,7 @@ def submit_demandas():
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de demanda: {e}'}), 500
 
 @app.route('/submit_visita', methods=['POST'])
-@login_required('intermediate_access')
+@login_required('full_access')
 def submit_visita():
     try:
         data = request.json
@@ -1132,7 +1123,7 @@ def submit_visita():
         return jsonify({'success': False, 'message': f'Erro ao salvar visitação: {e}'}), 500
 
 @app.route('/delete_visita_by_url', methods=['POST'])
-@login_required('intermediate_access')
+@login_required('full_access')
 def delete_visita_by_url():
     data = request.json
     url_formacao = data.get('url_formacao')
@@ -1168,14 +1159,8 @@ def get_results(table_name):
         if user_access_level == 'basic_access':
             if table_name not in ['presenca', 'visitas']:
                 return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'formador_access':
-             if table_name not in ['presenca', 'acompanhamento', 'ateste', 'visitas']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'efape_access':
-             if table_name not in ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel', 'visitas']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'intermediate_access':
-             if table_name in ['usuarios', 'avisos', 'links']:
+        elif user_access_level == 'full_access':
+             if table_name not in ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'visitas']:
                 return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
         
         # === INÍCIO DA LÓGICA DE FILTRAGEM DO CONTEÚDO ===
@@ -1231,19 +1216,9 @@ def get_results(table_name):
                 Presenca.responsavel == user_name,
                 Presenca.nome_substituto == user_name
             ))
-        elif user_access_level == 'formador_access' and table_name in ['presenca', 'acompanhamento', 'ateste']:
-            # Os Formadores podem ver TUDO para as tabelas que tem acesso. O filtro de nome é removido aqui.
+        elif user_access_level == 'full_access':
+            # Usuários com full_access podem ver tudo, sem restrições por diretoria
             pass
-        elif user_access_level == 'efape_access' and table_name in ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel']:
-            # Os EFAPEs podem ver TUDO para as tabelas que tem acesso. O filtro de nome é removido aqui.
-            pass
-        elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas', 'visitas']:
-            # Os PECs podem ver TUDO de sua diretoria, e o filtro é mantido.
-            if user_de:
-                if table_name == 'presenca':
-                    query = query.filter_by(diretoria_de_ensino_resp=user_de)
-                elif table_name in ['avaliacao', 'demandas']:
-                    query = query.filter_by(diretoria_de_ensino=user_de)
         
         filtered_query = query
         
@@ -1404,7 +1379,7 @@ def get_results(table_name):
                         df_merged = df_merged[df_merged[key].astype(str).str.contains(value, case=False, na=False)]
                     elif key == 'dia_do_mes':
                         # CORREÇÃO APLICADA AQUI: Garante que a coluna 'dia_do_mes' é string antes de comparar
-                        df_merged = df_merged[df_merged[key].astype(str).replace(r'\.0$', '', regex=True) == str(value)]
+                        df_merged = df_merged[df_merged[key].astype(str) == value]
                     elif key == 'sem_responsavel_pela_visita' and value == 'true':
                         df_merged = df_merged[df_merged['responsavel_visita'].isnull() | (df_merged['responsavel_visita'] == '')]
                         
@@ -1702,14 +1677,8 @@ def export_csv(table_name):
         if user_access_level == 'basic_access':
             if table_name not in ['presenca', 'visitas']:
                 return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'formador_access':
-             if table_name not in ['presenca', 'acompanhamento', 'ateste', 'visitas']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'efape_access':
-             if table_name not in ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel', 'visitas']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'intermediate_access':
-             if table_name in ['usuarios', 'avisos', 'links']:
+        elif user_access_level == 'full_access':
+             if table_name not in ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'visitas']:
                 return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
                 
         if table_name == 'participantes_base_editavel':
@@ -1743,12 +1712,9 @@ def export_csv(table_name):
                     Presenca.responsavel == user_info[0].get('responsavel'),
                     Presenca.nome_substituto == user_info[0].get('nome')
                 ))
-            elif user_access_level == 'formador_access' and table_name in ['acompanhamento', 'ateste']:
-                 query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
-            elif user_access_level == 'efape_access' and table_name in ['acompanhamento', 'ateste']:
-                 query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
-            elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
-                query = query.filter_by(diretoria_de_ensino=user_info[0].get('diretoria_de_ensino'))
+            elif user_access_level == 'full_access':
+                # Usuários com full_access podem ver tudo, sem restrições
+                pass
 
         filters = request.args.to_dict()
         for key, value in filters.items():
@@ -1932,7 +1898,7 @@ def gerenciar_links():
         return jsonify({'success': False, 'message': f'Erro ao processar a requisição: {e}'}), 500
 
 @app.route('/get_links', methods=['GET'])
-@login_required('intermediate_access')
+@login_required('full_access')
 def get_links():
     links = Link.query.all()
     return jsonify([{

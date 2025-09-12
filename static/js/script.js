@@ -859,9 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select id="access_level" name="access_level" required>
                     <option value="no_access" ${record.access_level === 'no_access' ? 'selected' : ''}>Sem Acesso</option>
                     <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC)</option>
-                    <option value="formador_access" ${record.access_level === 'formador_access' ? 'selected' : ''}>Formador Access (FORMADOR)</option>
-                    <option value="efape_access" ${record.access_level === 'efape_access' ? 'selected' : ''}>EFAPE Access (EFAPE)</option>
-                    <option value="intermediate_access" ${record.access_level === 'intermediate_access' ? 'selected' : ''}>Intermediate Access (PEC)</option>
+                    <option value="full_access" ${record.access_level === 'full_access' ? 'selected' : ''}>Full Access (PEC/FORMADOR/EFAPE)</option>
                     <option value="super_admin" ${record.access_level === 'super_admin' ? 'selected' : ''}>Super Admin (ADM)</option>
                 </select>
                 <div class="button-group">
@@ -959,7 +957,44 @@ document.addEventListener('DOMContentLoaded', function() {
             const userAccessLevel = userData.access_level;
             const userCpf = userData.cpf;
             const userName = userData.nome;
+            
+            // Lógica de permissão de edição ajustada
+            let canEdit = false;
+            if (userAccessLevel === 'super_admin') {
+                canEdit = true;
+            } else {
+                 switch (tableId) {
+                    case 'presenca':
+                        canEdit = record.cpf_participante === userCpf || record.responsavel === userName || record.nome_substituto === userName;
+                        break;
+                    case 'acompanhamento':
+                        canEdit = record.responsavel_acompanhamento === userName;
+                        break;
+                    case 'avaliacao':
+                        canEdit = record.observador === userName;
+                        break;
+                    case 'demandas':
+                        canEdit = record.cpf_pec === userCpf;
+                        break;
+                    case 'ateste':
+                        canEdit = record.cpf === userCpf;
+                        break;
+                    case 'usuarios':
+                        canEdit = record.cpf === userCpf;
+                        break;
+                    case 'visitas':
+                        canEdit = record.cpf_responsavel_visita === userCpf || !record.cpf_responsavel_visita;
+                        break;
+                    default:
+                        canEdit = false;
+                }
+            }
 
+            if (!canEdit) {
+                 editModalContent.innerHTML = `<p style="color:red;">Acesso negado. Você só pode editar seus próprios registros.</p>`;
+                 return;
+            }
+    
             const template = editModalHtmlTemplates[tableId];
             if (template) {
                 // Passando as variáveis para a função de template, especialmente para a lógica da tabela 'visitas'
@@ -1664,6 +1699,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // NOVO: Função para exclusão de registros
     window.handleDeleteRecord = async function(recordId, table, turma = null, data_formacao = null, pauta = null) {
+        
+        // Verifica se o usuário tem permissão para a ação
+        const userResponse = await fetch('/get_user_info');
+        const userData = await userResponse.json();
+        const userAccessLevel = userData.access_level;
+        
+        if (userAccessLevel !== 'super_admin') {
+            alert('Acesso negado. Você não pode excluir registros.');
+            return;
+        }
+        
         let confirmed = false;
         let deleteRelated = false;
     
@@ -2364,30 +2410,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
                     window.showSection('form-presenca');
                     break;
-                case 'formador_access':
-                    // FORMADOR
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
-                    document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
-                    window.showSection('form-presenca');
-                    break;
-                case 'efape_access':
-                    // EFAPE
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
-                    document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
-                    window.showSection('form-presenca');
-                    break;
-                case 'intermediate_access':
-                    // PEC
+                case 'full_access':
+                    // PEC, Formador, EFAPE
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
