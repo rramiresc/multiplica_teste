@@ -937,52 +937,45 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             let url;
             let record;
-            // Para tabelas que usam um ID diferente, como a URL para 'visitas'
-            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios') {
-                url = `/get_record/${tableId}/${recordId}`;
-            } else if (tableId === 'visitas') {
-                // CORREÇÃO: Usa a rota de path para a URL
+            if (tableId === 'visitas') {
                 url = `/get_record/${tableId}/${encodeURIComponent(recordId)}`;
             } else {
                 url = `/get_record/${tableId}/${recordId}`;
             }
             const response = await fetch(url);
     
+            // CORRIGIDO: Lógica aprimorada para lidar com o 404 de registros de visitação
             if (!response.ok) {
-                // CORREÇÃO: Trata o 404 para permitir a criação de um novo registro de visita
                 if (response.status === 404 && tableId === 'visitas') {
-                    // Prepara o modal para um novo registro
+                    // O registro não existe no BD, então o modal será para criar um novo.
                     const userResponse = await fetch('/get_user_info');
                     const userData = await userResponse.json();
                     userAccessLevel = userData.access_level;
                     userCpf = userData.cpf;
                     userName = userData.nome;
 
-                    const rowData = await fetch(`/get_results/${tableId}?url_formacao=${encodeURIComponent(recordId)}`).then(res => res.json());
+                    // Busca os dados da linha correspondente na base de links para preencher o modal
+                    const rowDataResponse = await fetch(`/get_results/visitas?url_formacao=${encodeURIComponent(recordId)}`);
+                    const rowData = await rowDataResponse.json();
                     const defaultRecord = rowData.results[0];
 
                     if (defaultRecord) {
-                        editModalContent.innerHTML = editModalHtmlTemplates[tableId]({
-                            url_formacao: recordId,
-                            responsavel_visita: null,
-                            cpf_responsavel_visita: null,
+                         const initialRecord = {
+                            ...defaultRecord,
+                            responsavel_visita: userName,
+                            cpf_responsavel_visita: userCpf,
                             encontro_aconteceu: null,
                             motivo_nao_aconteceu: null,
-                            observacao: null,
-                            data_registro: null,
-                            // Dados da planilha original para exibição
-                            turma: defaultRecord.turma,
-                            tema: defaultRecord.tema,
-                            data_aula: defaultRecord.data_aula,
-                            nome_responsavel: defaultRecord.nome_responsavel
-                        });
+                            observacao: null
+                        };
+                        editModalContent.innerHTML = editModalHtmlTemplates[tableId](initialRecord);
                         return;
                     } else {
                         editModalContent.innerHTML = `<p style="color:red;">Não foi possível carregar os dados base para a URL de visitação.</p>`;
                         return;
                     }
                 }
-
+                
                 // Lógica de erro genérica para outros status
                 const errorText = await response.text();
                 if (errorText.includes('<html') && errorText.includes('/login')) {
@@ -995,47 +988,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     
             record = await response.json();
-    
-            if (!record) {
-                editModalContent.innerHTML = `<p style="color:red;">Registro não encontrado.</p>`;
-                return;
-            }
             
-            const userResponse = await fetch('/get_user_info');
-            const userData = await userResponse.json();
-            userAccessLevel = userData.access_level;
-            userCpf = userData.cpf;
-            userName = userData.nome;
-            
-            // Lógica de permissão de edição ajustada
+            // CORRIGIDO: Lógica de permissão de edição ajustada
             let canEdit = false;
             if (userAccessLevel === 'super_admin') {
                 canEdit = true;
             } else {
                  switch (tableId) {
-                    case 'presenca':
-                        canEdit = record.cpf_participante === userCpf || record.responsavel === userName || record.nome_substituto === userName;
-                        break;
-                    case 'acompanhamento':
-                        canEdit = record.responsavel_acompanhamento === userName;
-                        break;
-                    case 'avaliacao':
-                        canEdit = record.observador === userName;
-                        break;
-                    case 'demandas':
-                        canEdit = record.cpf_pec === userCpf;
-                        break;
-                    case 'ateste':
-                        canEdit = record.cpf === userCpf;
-                        break;
-                    case 'usuarios':
-                        canEdit = record.cpf === userCpf;
-                        break;
                     case 'visitas':
                         canEdit = (record.cpf_responsavel_visita && record.cpf_responsavel_visita === userCpf) || (!record.cpf_responsavel_visita);
                         break;
                     default:
-                        canEdit = false;
+                        // Para outras tabelas, a lógica de checagem do proprietário é mais simples
+                        canEdit = record.cpf_participante === userCpf || record.responsavel === userName || record.observador === userName || record.cpf_pec === userCpf || record.cpf === userCpf;
+                        break;
                 }
             }
 
@@ -1046,8 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
             const template = editModalHtmlTemplates[tableId];
             if (template) {
-                // Passando as variáveis para a função de template, especialmente para a lógica da tabela 'visitas'
-                editModalContent.innerHTML = template(record, userAccessLevel, userCpf, userName);
+                editModalContent.innerHTML = template(record);
             } else {
                 editModalContent.innerHTML = `<p style="color:red;">Não há um formulário de edição para a tabela: ${tableId}.</p>`;
             }
@@ -2291,156 +2256,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cancelEditLinkButton').style.display = 'none';
         });
     }
-
-    async function loadLinksPage() {
-        const linksContainer = document.getElementById('links-container');
-        try {
-            const response = await fetch('/get_links');
-            const links = await response.json();
-            linksContainer.innerHTML = '';
-            if (links.length > 0) {
-                links.forEach(link => {
-                    const linkCard = document.createElement('div');
-                    linkCard.classList.add('link-card');
-                    linkCard.innerHTML = `
-                        <div class="link-info">
-                            <h3><a href="${link.url}" target="_blank">${link.titulo}</a></h3>
-                            <p>${link.descricao}</p>
-                        </div>
-                        <div class="link-image-container">
-                            <img src="${link.imagem_url}" alt="${link.titulo}" class="link-image">
-                        </div>
-                    `;
-                    linksContainer.appendChild(linkCard);
-                });
-            } else {
-                linksContainer.innerHTML = '<p>Nenhum link importante cadastrado no momento.</p>';
-            }
-        } catch (error) {
-            console.error('ERRO JS: Erro ao carregar links:', error);
-            linksContainer.innerHTML = '<p>Ocorreu um erro ao carregar os links.</p>';
-        }
-    }
-
-
-    const clearAllDataButton = document.getElementById('clearAllDataButton');
-    if (clearAllDataButton) {
-        clearAllDataButton.addEventListener('click', async () => {
-            if (confirm('ATENÇÃO: Esta ação é irreversível. Tem certeza que deseja apagar TODOS os dados dos formulários?')) {
-                try {
-                    const response = await fetch('/admin_tools', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ action: 'clear_all' })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        window.location.reload();
-                    } else {
-                        alert('Erro ao limpar os dados: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('ERRO JS: Erro ao limpar os dados:', error);
-                    alert('Ocorreu um erro ao tentar limpar os dados.');
-                }
-            }
-        });
-    }
-
-    const downloadAllReportsButton = document.getElementById('downloadAllReportsButton');
-    const downloadStatus = document.getElementById('downloadStatus');
-
-    if (downloadAllReportsButton) {
-        downloadAllReportsButton.addEventListener('click', async () => {
-            downloadAllReportsButton.disabled = true;
-            downloadAllReportsButton.textContent = 'Gerando Relatórios...';
-            downloadStatus.textContent = 'A geração do relatório foi iniciada. Aguarde, o download começará em breve.';
-
-            try {
-                // Rota corrigida para iniciar o processo assíncrono
-                const response = await fetch('/download_all_reports_async');
-                const result = await response.json();
-
-                if (result.success) {
-                    const checkStatusInterval = setInterval(async () => {
-                        try {
-                            const statusResponse = await fetch('/check_download_status');
-                            const statusResult = await statusResponse.json();
-
-                            if (statusResult.status === 'ready') {
-                                clearInterval(checkStatusInterval);
-                                downloadStatus.textContent = 'Relatório pronto! O download irá começar...';
-                                // Dispara o download do arquivo
-                                window.location.href = `/download_file/${statusResult.filename}`;
-                                
-                                // Resetar o estado do botão após um pequeno atraso
-                                setTimeout(() => {
-                                    downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                                    downloadAllReportsButton.disabled = false;
-                                    downloadStatus.textContent = '';
-                                }, 3000);
-
-                            } else {
-                                downloadStatus.textContent += '.';
-                            }
-                        } catch (statusError) {
-                            clearInterval(checkStatusInterval);
-                            console.error('ERRO JS: Erro ao verificar o status do download:', statusError);
-                            downloadStatus.textContent = 'Erro ao verificar o status do download. Tente novamente mais tarde.';
-                            downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                            downloadAllReportsButton.disabled = false;
-                        }
-                    }, 5000); // Verifica a cada 5 segundos
-
-                } else {
-                    alert('Erro ao iniciar a geração dos relatórios: ' + result.message);
-                    downloadStatus.textContent = 'Erro: ' + result.message;
-                    downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                    downloadAllReportsButton.disabled = false;
-                }
-            } catch (error) {
-                console.error('ERRO JS: Erro ao iniciar a requisição de download:', error);
-                alert('Ocorreu um erro na requisição. Tente novamente.');
-                downloadStatus.textContent = 'Erro ao conectar com o servidor.';
-                downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                downloadAllReportsButton.disabled = false;
-            }
-        });
-    }
-
-    const toggleFormResultButtons = document.querySelectorAll('.toggle-form-result');
-    toggleFormResultButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const formId = this.dataset.formId;
-            const resultId = this.dataset.resultId;
-
-            const formSection = document.getElementById(formId);
-            const resultSection = document.getElementById(resultId);
-
-            if (formSection && resultSection) {
-                const isFormVisible = formSection.style.display === 'block';
-                if (isFormVisible) {
-                    formSection.style.display = 'none';
-                    resultSection.style.display = 'block';
-                    if (resultId === 'controle-ateste') {
-                        fetchResults('ateste');
-                    } else {
-                        const tableId = resultId.split('-')[1];
-                        currentPage[tableId] = 1;
-                        fetchResults(tableId, 1);
-                    }
-                    this.textContent = 'Exibir Formulário';
-                } else {
-                    formSection.style.display = 'block';
-                    resultSection.style.display = 'none';
-                    this.textContent = 'Ocultar Resultado';
-                }
-            }
-        });
-    });
 
 
     // ====================================================================

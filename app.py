@@ -2075,6 +2075,8 @@ def get_record(table_name, record_id):
         record = Model.query.filter_by(cpf=record_id).first()
     elif table_name == 'visitas':
         record = Model.query.filter_by(url_formacao=record_id).first()
+        if not record:
+             return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
         try:
             record = Model.query.get(int(record_id))
