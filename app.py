@@ -287,7 +287,7 @@ def load_participants_base():
         # Tenta ler o arquivo na raiz do projeto
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Arquivo '{file_path}' não encontrado.")
-            
+
         PARTICIPANTES_DF = pd.read_excel(file_path)
         # Limpar colunas com nomes mistos ou nulos e padronizar o CPF
         PARTICIPANTES_DF.columns = PARTICIPANTES_DF.columns.str.lower().str.strip().str.replace(' ', '_')
@@ -312,7 +312,7 @@ def load_links_base():
     try:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Arquivo '{file_path}' não encontrado.")
-        
+
         LINKS_DF = pd.read_excel(file_path)
         LINKS_DF.columns = LINKS_DF.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('á', 'a').str.replace('ã', 'a').str.replace('ç', 'c').str.replace('ê', 'e').str.replace('ô', 'o')
         LINKS_DF.rename(columns={'nome_turma': 'turma', 'url': 'url_formacao'}, inplace=True)
@@ -1397,6 +1397,7 @@ def get_results(table_name):
                     if key in ['tema', 'turma', 'dia_da_semana', 'responsavel_visita', 'responsavel_pela_visita']:
                         df_merged = df_merged[df_merged[key].astype(str).str.contains(value, case=False, na=False)]
                     elif key == 'dia_do_mes':
+                        # CORREÇÃO APLICADA AQUI: Garante que a coluna 'dia_do_mes' é string antes de comparar
                         df_merged = df_merged[df_merged[key].astype(str) == value]
                     elif key == 'sem_responsavel_pela_visita' and value == 'true':
                         df_merged = df_merged[df_merged['responsavel_visita'].isnull() | (df_merged['responsavel_visita'] == '')]
