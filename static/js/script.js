@@ -10,14 +10,14 @@ document.addEventListener('DOMContentLoaded', function() {
         'q1_2': '1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.',
         'q1_3': '1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.',
         'q2_1': '2.1 - Inicia a formação no horário determinado.',
-        'q2_2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
-        '2.3': '2.3 - Encerra a formação no horário estipulado.',
+        '2.2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
+        'q2_3': '2.3 - Encerra a formação no horário estipulado.',
         'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
         'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
         'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
         'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
-        'q4_2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
-        'q4_3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
+        '4.2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
+        '4.3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
         'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
         '5.2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
         '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
@@ -51,64 +51,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Função para carregar todas as datalists relevantes de uma vez
-    async function loadAllDatalists() {
-        console.log("DEBUG JS: Carregando todas as datalists...");
+    // A função loadSpecificDatalists será mesclada em loadAllDatalists para evitar o erro.
+    // O código abaixo é a nova implementação otimizada.
+    async function loadAllDatalistsOptimized() {
+        console.log("DEBUG JS: Carregando todas as datalists de uma vez...");
         try {
-            const response = await fetch('/get_all_datalists');
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error(`ERRO JS: Falha na resposta da API: ${response.status} - ${errorText}`);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            const data = await response.json();
+            const allDatalistsResponse = await fetch('/get_all_datalists');
+            const pecsAndFormadoresResponse = await fetch('/get_pecs_and_formadores');
+            const responsaveisForPresencaResponse = await fetch('/get_responsaveis_for_presenca');
+
+            const allDatalistsData = await allDatalistsResponse.json();
+            const pecsAndFormadoresData = await pecsAndFormadoresResponse.json();
+            const responsaveisForPresencaData = await responsaveisForPresencaResponse.json();
+
+            // Popular datalists gerais
+            populateDatalist(allDatalistsData.turmas, 'turmas-list');
+            populateDatalist(allDatalistsData.diretorias, 'diretorias-list');
+            populateDatalist(allDatalistsData.pecs, 'pecs-list');
+            populateDatalist(allDatalistsData.caffs, 'caffs-list');
+            populateDatalist(allDatalistsData.pautas_formativas, 'pautas-formativas-list');
+            populateDatalist(allDatalistsData.temas, 'temas-list-presenca');
+            populateDatalist(allDatalistsData.temas, 'temas-list-ateste');
+            populateDatalist(allDatalistsData.responsaveis, 'responsaveis-list-ateste');
+            populateDatalist(allDatalistsData.nomes, 'nomes-list-ateste');
+
+            // Popular datalists específicas
+            populateDatalist(pecsAndFormadoresData, 'observadores-list');
+            populateDatalist(responsaveisForPresencaData, 'responsaveis-list');
+            populateDatalist(allDatalistsData.nomes, 'nomes-list-avaliacao');
+            populateDatalist(allDatalistsData.cpfs, 'cpfs-list');
             
-            populateDatalist(data.turmas, 'turmas-list');
-            populateDatalist(data.diretorias, 'diretorias-list');
-            populateDatalist(data.responsaveis, 'responsaveis-list');
-            populateDatalist(data.nomes, 'nomes-list-avaliacao');
-            populateDatalist(data.pecs, 'pecs-list');
-            populateDatalist(data.caffs, 'caffs-list');
-            populateDatalist(data.pautas_formativas, 'pautas-formativas-list');
-            populateDatalist(data.temas, 'temas-list-presenca');
-            populateDatalist(data.temas, 'temas-list-ateste');
-            populateDatalist(data.responsaveis, 'responsaveis-list-ateste');
-            populateDatalist(data.nomes, 'nomes-list-ateste');
+            // Popula as datalists para a nova página de Visitações
+            populateDatalist(allDatalistsData.visitas_temas, 'temas-list-visitas');
+            populateDatalist(allDatalistsData.visitas_turmas, 'turmas-list-visitas');
+            populateDatalist(allDatalistsData.visitas_dias_semana, 'dias-semana-list');
+            populateDatalist(allDatalistsData.visitas_dias_mes, 'dias-mes-list');
+            populateDatalist(allDatalistsData.visitas_responsaveis_visita, 'responsaveis-visita-list');
 
         } catch (error) {
-            console.error(`ERRO JS: Erro ao carregar os dados para datalists:`, error);
+            console.error('ERRO JS: Erro ao carregar datalists:', error);
         }
     }
 
-    async function loadSpecificDatalists() {
-        console.log("DEBUG JS: Carregando datalists específicas para formulários...");
-        try {
-            // Carrega a lista para o campo de Responsável pelo Acompanhamento
-            const acompanhamentoRes = await fetch('/get_pecs_and_formadores');
-            if(acompanhamentoRes.ok) {
-                const data = await acompanhamentoRes.json();
-                populateDatalist(data, 'observadores-list');
-            }
-            
-            // Carrega a lista para o campo de Responsável pelo Preenchimento
-            const presencaRes = await fetch('/get_responsaveis_for_presenca');
-            if(presencaRes.ok) {
-                const data = await acompanhamentoRes.json();
-                populateDatalist(data, 'responsaveis-list');
-            }
-            
-            // Carrega a lista de todos os nomes para o campo de Observado
-            const nomesRes = await fetch('/get_all_datalists');
-            if (nomesRes.ok) {
-                const data = await nomesRes.json();
-                populateDatalist(data.nomes, 'nomes-list-avaliacao');
-            }
-
-        } catch (error) {
-            console.error('ERRO JS: Erro ao carregar datalists específicas:', error);
-        }
-    }
-    
     window.populateDatalist = populateDatalist;
 
     // ====================================================================
@@ -145,38 +129,45 @@ document.addEventListener('DOMContentLoaded', function() {
     // Lógica para o Formulário de Registro de Presença
     // ====================================================================
 
+    const diretoriaPresencaInput = document.getElementById('diretoria_presenca');
     const responsavelPresencaInput = document.getElementById('responsavel_presenca');
     const temaPresencaInput = document.getElementById('tema_presenca');
     const turmaPresencaInput = document.getElementById('turma_presenca');
     const turmaPresencaDatalist = document.getElementById('turmas-list');
     const participantesContainer = document.getElementById('participantes-container');
     const temasPresencaDatalist = document.getElementById('temas-list-presenca');
-    const substituicaoRadioGroup = document.querySelector('input[name="substituicao_ocorreu"]');
+
+    // MUDANÇA AQUI: Agora a seleção é feita com botões de rádio
+    const substituicaoRadioGroup = document.getElementById('substituicao-ocorreu-radio-group');
     const substitutoPresencaContainer = document.getElementById('substituto-presenca-container');
     const nomeSubstitutoPresencaInput = document.getElementById('nome_substituto_presenca');
 
-    window.toggleSubstituicaoPresenca = function(radioGroup) {
-        const selectedValue = radioGroup.querySelector('input:checked')?.value;
-        if (selectedValue === 'Sim') {
-            substitutoPresencaContainer.style.display = 'block';
-            if (nomeSubstitutoPresencaInput) {
+    if (substituicaoRadioGroup) {
+        substituicaoRadioGroup.addEventListener('change', function(event) {
+            const selectedValue = event.target.value;
+            if (selectedValue === 'Sim') {
+                substitutoPresencaContainer.style.display = 'block';
                 nomeSubstitutoPresencaInput.required = true;
-            }
-        } else {
-            substitutoPresencaContainer.style.display = 'none';
-            if (nomeSubstitutoPresencaInput) {
+            } else {
+                substitutoPresencaContainer.style.display = 'none';
                 nomeSubstitutoPresencaInput.required = false;
                 nomeSubstitutoPresencaInput.value = '';
             }
-        }
-    };
+        });
+    }
 
     if (responsavelPresencaInput) {
         responsavelPresencaInput.addEventListener('change', async function() {
             const responsavel = this.value;
             console.log(`DEBUG JS: Responsável de presença alterado para: ${responsavel}`);
+            
+            // Mantém o valor do campo de turma se ele já tiver sido preenchido
+            const originalTurmaValue = turmaPresencaInput.value;
             temaPresencaInput.value = '';
-            turmaPresencaInput.value = '';
+            if (originalTurmaValue === '') {
+                turmaPresencaInput.value = '';
+            }
+            
             participantesContainer.innerHTML = '';
             if (temasPresencaDatalist) temasPresencaDatalist.innerHTML = '';
             if (turmaPresencaDatalist) turmaPresencaDatalist.innerHTML = '';
@@ -190,14 +181,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     const temas = await temasResponse.json();
                     populateDatalist(temas, 'temas-list-presenca');
-
+                    
                 } catch (error) {
                     console.error('ERRO JS: Erro ao carregar temas por responsável:', error);
                     if (temasPresencaDatalist) temasPresencaDatalist.innerHTML = '';
                     if (turmaPresencaDatalist) turmaPresencaDatalist.innerHTML = '';
                 }
             } else {
-                loadAllDatalists();
+                loadAllDatalistsOptimized();
             }
         });
     }
@@ -275,7 +266,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                             participantesContainer.appendChild(div);
 
-                            // Adiciona a regra de validação para a câmera
                             const presencaRadios = div.querySelectorAll(`input[name="presenca_${participante.cpf}"]`);
                             const cameraRadios = div.querySelectorAll(`input[name="camera_${participante.cpf}"]`);
 
@@ -291,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 cameraRadio.checked = false;
                                             }
                                         } else {
-                                            cameraRadio.disabled = false;
+                                            cameraRadios.disabled = false;
                                             // Se a presença é 'SIM', marca a câmera como 'SIM' automaticamente
                                             if (cameraRadio.value === 'SIM') {
                                                 cameraRadio.checked = true;
@@ -447,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (nome_responsavel_selecionado) {
                 try {
-                    const response = await fetch(`/get_info_by_nome?nome=${encodeURIComponent(nome_responsavel_selecionado)}`);
+                    const response = await fetch(`/get_info_by_nome_or_cpf?search_term=${encodeURIComponent(nome_responsavel_selecionado)}`);
                     if (!response.ok) {
                         const errorText = await response.text();
                         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
@@ -497,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else if (responsavel_selecionado) {
                 console.log("DEBUG JS: Tema limpo, recarregando todas as turmas para o responsável.");
-                const response = await fetch(`/get_info_by_nome?nome=${encodeURIComponent(responsavel_selecionado)}`);
+                const response = await fetch(`/get_info_by_nome_or_cpf?search_term=${encodeURIComponent(responsavel_selecionado)}`);
                 if (response.ok) {
                     const data = await response.json();
                     populateDatalist(data.turmas || [], 'turmas-observado-list');
@@ -511,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('formAvaliacao');
         let totalWeightedAchievedScore = 0;
         let totalPossibleWeightedScore = 0;
+
         const dimensionsConfig = {
             'Dimensão 1': { questions: ['q1_1', 'q1_2', 'q1_3'], weight: 1 },
             'Dimensão 2': { questions: ['q2_1', 'q2_2', 'q2_3'], weight: 2 },
@@ -518,24 +509,31 @@ document.addEventListener('DOMContentLoaded', function() {
             'Dimensão 4': { questions: ['q4_1', 'q4_2', 'q4_3'], weight: 2 },
             'Dimensão 5': { questions: ['q5_1', 'q5_2', 'q5_3'], weight: 2 }
         };
-        const scoreMap = { 'Atende Plenamente': 1, 'Atende Parcialmente': 0.5, 'Não Atende': 0 };
+
+        // CORRIGIDO: Mapeamento de score para a nova escala
+        const scoreMap = { 'Atende': 1, 'Não Atende': 0 };
+
         for (const dimName in dimensionsConfig) {
             const { questions, weight } = dimensionsConfig[dimName];
             let dimensionCurrentRawScore = 0;
             let answeredQuestionsInDimension = 0;
+
             questions.forEach(q => {
                 const selected = form.querySelector(`input[name="${q}"]:checked`);
                 if (selected) {
-                    dimensionCurrentRawScore += scoreMap[selected.value];
+                    // Usar o score da nova escala
+                    dimensionCurrentRawScore += scoreMap[selected.value] !== undefined ? scoreMap[selected.value] : 0;
                     answeredQuestionsInDimension++;
                 }
             });
+
             if (answeredQuestionsInDimension > 0) {
                 const proportion = dimensionCurrentRawScore / questions.length;
                 totalWeightedAchievedScore += proportion * weight;
                 totalPossibleWeightedScore += weight;
             }
         }
+        
         const finalScore = totalPossibleWeightedScore > 0 ? (totalWeightedAchievedScore / totalPossibleWeightedScore) * 10 : 0;
         document.getElementById('nota_final_avaliacao').value = finalScore.toFixed(2);
         console.log(`DEBUG JS: Nota final calculada: ${finalScore.toFixed(2)}`);
@@ -544,32 +542,50 @@ document.addEventListener('DOMContentLoaded', function() {
     // ====================================================================
     // Lógica para o Formulário de Registro de Demandas Semanais
     // ====================================================================
-
-    const pecDemandasInput = document.getElementById('pec_demandas');
     const cpfPecDemandasInput = document.getElementById('cpf_pec_demandas');
+    const pecDemandasInput = document.getElementById('pec_demandas');
     const diretoriaDemandasInput = document.getElementById('diretoria_demandas');
     const escolasContainer = document.getElementById('escolas-container');
-    const escolasCheckboxContainer = document.getElementById('escolas-checkbox-container'); // NOVO CONTAINER
+    const escolasCheckboxContainer = document.getElementById('escolas-checkbox-container');
+    
+    // NOVOS CAMPOS (agora editáveis)
     const pmOrientadosInput = document.getElementById('pm_orientados_demandas');
     const cursistasOrientadosInput = document.getElementById('cursistas_orientados_demandas');
+    const formacoesRealizadasInput = document.getElementById('formacoes_realizadas_demandas');
+    const substituicoesRealizadasInput = document.getElementById('substituicoes_realizadas_demandas');
+    
+    // Novos campos de contagem total (agora lidos do backend)
+    const pmOrientadosEsperadoInput = document.getElementById('pm_orientados_esperado_demandas');
+    const cursistasOrientadosEsperadoInput = document.getElementById('cursistas_orientados_esperado_demandas');
 
-    if (pecDemandasInput) {
-        pecDemandasInput.addEventListener('change', async function() {
-            const nome = this.value;
-            console.log(`DEBUG JS: PEC de demandas alterado para: ${nome}`);
-            cpfPecDemandasInput.value = '';
+    if (cpfPecDemandasInput) {
+        cpfPecDemandasInput.addEventListener('change', async function() {
+            const cpf = this.value;
+            console.log(`DEBUG JS: CPF do PEC de demandas alterado para: ${cpf}`);
+            
+            // Limpa os campos, mas mantém a edição manual possível
+            pecDemandasInput.value = '';
             diretoriaDemandasInput.value = '';
+            pmOrientadosEsperadoInput.value = '';
+            cursistasOrientadosEsperadoInput.value = '';
 
             try {
-                const response = await fetch(`/get_info_by_nome?nome=${encodeURIComponent(nome)}`);
+                const response = await fetch(`/get_info_by_nome_or_cpf?search_term=${encodeURIComponent(cpf)}`);
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
                 const data = await response.json();
-                cpfPecDemandasInput.value = data.cpf || '';
-                diretoriaDemandasInput.value = data.diretoria_de_ensino || '';
-                console.log(`DEBUG JS: Dados do PEC carregados para '${nome}'.`);
+                
+                if (Object.keys(data).length > 0) {
+                    pecDemandasInput.value = data.nome || '';
+                    diretoriaDemandasInput.value = data.diretoria_de_ensino || '';
+                    console.log(`DEBUG JS: Dados do PEC carregados para o CPF '${cpf}'.`);
+                } else {
+                    pecDemandasInput.value = '';
+                    diretoriaDemandasInput.value = '';
+                    console.log("DEBUG JS: Nenhum dado encontrado para o CPF selecionado.");
+                }
 
                 if (document.querySelector('input[name="visitas_escolas_demandas"]:checked')?.value === 'Sim') {
                     loadSchoolsByDiretoria();
@@ -579,6 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 
     window.toggleSchoolSelection = function(radioGroup) {
         const selectedValue = radioGroup.querySelector('input:checked')?.value;
@@ -592,6 +609,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
                 if (pmOrientadosInput) pmOrientadosInput.value = 0;
                 if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
+                // NOVOS CAMPOS
+                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
+                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
             }
         }
     };
@@ -608,7 +628,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadSchoolsByDiretoria() {
         const diretoria = diretoriaDemandasInput.value;
         console.log(`DEBUG JS: Carregando escolas para a diretoria: ${diretoria}`);
-        if (diretoria && escolasCheckboxContainer) { // Usando o novo container
+        if (diretoria && escolasCheckboxContainer) {
             try {
                 const response = await fetch(`/get_schools_by_de?diretoria=${encodeURIComponent(diretoria)}`);
                 if (!response.ok) {
@@ -651,17 +671,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                     }
                 const data = await response.json();
-                if (pmOrientadosInput) pmOrientadosInput.value = data.pm_count;
-                if (cursistasOrientadosInput) cursistasOrientadosInput.value = data.pc_count;
-                console.log(`DEBUG JS: PMs orientados: ${data.pm_count}, Cursistas orientados: ${data.pc_count}.`);
+                
+                // CORREÇÃO: Apenas os campos 'esperado' são preenchidos
+                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = data.pm_total;
+                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = data.pc_total;
+                
+                console.log(`DEBUG JS: Total PMs na UE: ${data.pm_total}, Total PCs na UE: ${data.pc_total}`);
             } catch (error) {
                 console.error('ERRO JS: Erro ao contar participantes:', error);
-                if (pmOrientadosInput) pmOrientadosInput.value = 0;
-                if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
+                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
+                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
             }
         } else {
             if (pmOrientadosInput) pmOrientadosInput.value = 0;
             if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
+            // CORREÇÃO: Apenas os campos 'esperado' são preenchidos
+            if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
+            if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
         }
     };
     
@@ -741,8 +767,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <label>Câmera do formador aberta?</label>
                     <div class="radio-group">
-                        <label><input type="radio" name="formador_camera" value="Sim" ${record.formador_camera === 'Sim' ? 'checked' : ''}> Sim</label>
-                        <label><input type="radio" name="formador_camera" value="Não" ${record.formador_camera === 'Não' ? 'checked' : ''}> Não</label>
+                        <label><input type="radio" name="formador_camera" value="Sim" ${record.formador_camera === 'Sim' ? 'checked' : ''}> SIM</label>
+                        <label><input type="radio" name="formador_camera" value="NÃO" ${record.formador_camera === 'NÃO' ? 'checked' : ''}> NÃO</label>
                     </div>
                     <label>Fundo de tela do Multiplica?</label>
                     <div class="radio-group">
@@ -823,6 +849,57 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                 </div>
             </form>
+        `,
+        'usuarios': (record) => `
+            <h3>Editar Usuário</h3>
+            <form id="editForm">
+                <input type="hidden" name="cpf" value="${record.cpf}">
+                <p><strong>CPF:</strong> ${record.cpf}</p>
+                <label for="access_level">Nível de Acesso:</label>
+                <select id="access_level" name="access_level" required>
+                    <option value="no_access" ${record.access_level === 'no_access' ? 'selected' : ''}>Sem Acesso</option>
+                    <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC)</option>
+                    <option value="formador_access" ${record.access_level === 'formador_access' ? 'selected' : ''}>Formador Access (FORMADOR)</option>
+                    <option value="efape_access" ${record.access_level === 'efape_access' ? 'selected' : ''}>EFAPE Access (EFAPE)</option>
+                    <option value="intermediate_access" ${record.access_level === 'intermediate_access' ? 'selected' : ''}>Intermediate Access (PEC)</option>
+                    <option value="super_admin" ${record.access_level === 'super_admin' ? 'selected' : ''}>Super Admin (ADM)</option>
+                </select>
+                <div class="button-group">
+                    <button type="submit" class="modal-save-button">Salvar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
+        `,
+        'visitas': (record) => `
+            <h3>Editar Registro de Visitação</h3>
+            <form id="editForm">
+                <input type="hidden" name="url_formacao" value="${record.url_formacao}">
+                <p><strong>URL da Formação:</strong> <a href="${record.url_formacao}" target="_blank">Acessar</a></p>
+                <p><strong>Responsável:</strong> ${record.responsavel_visita}</p>
+                <label for="encontro_aconteceu">Encontro Aconteceu?</label>
+                <select id="encontro_aconteceu" name="encontro_aconteceu" required>
+                    <option value="">Selecione</option>
+                    <option value="Sim" ${record.encontro_aconteceu === 'Sim' ? 'selected' : ''}>Sim</option>
+                    <option value="Não" ${record.encontro_aconteceu === 'Não' ? 'selected' : ''}>Não</option>
+                    <option value="Não visitado" ${record.encontro_aconteceu === 'Não visitado' ? 'selected' : ''}>Não visitado</option>
+                </select>
+                <label for="motivo_nao_aconteceu">Motivo (se "Não")</label>
+                <select id="motivo_nao_aconteceu" name="motivo_nao_aconteceu">
+                    <option value="">Selecione</option>
+                    <option value="Sem PM" ${record.motivo_nao_aconteceu === 'Sem PM' ? 'selected' : ''}>Sem PM</option>
+                    <option value="Sem PEC" ${record.motivo_nao_aconteceu === 'Sem PEC' ? 'selected' : ''}>Sem PEC</option>
+                    <option value="Turma sem inscritos" ${record.motivo_nao_aconteceu === 'Turma sem inscritos' ? 'selected' : ''}>Turma sem inscritos</option>
+                    <option value="Sem FORMADOR" ${record.motivo_nao_aconteceu === 'Sem FORMADOR' ? 'selected' : ''}>Sem FORMADOR</option>
+                    <option value="Houve problemas técnicos" ${record.motivo_nao_aconteceu === 'Houve problemas técnicos' ? 'selected' : ''}>Houve problemas técnicos</option>
+                    <option value="Turma excluída" ${record.motivo_nao_aconteceu === 'Turma excluída' ? 'selected' : ''}>Turma excluída</option>
+                </select>
+                <label for="observacao">Observação:</label>
+                <textarea id="observacao" name="observacao">${record.observacao || ''}</textarea>
+                <div class="button-group">
+                    <button type="submit" class="modal-save-button">Salvar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
         `
     };
 
@@ -835,13 +912,26 @@ document.addEventListener('DOMContentLoaded', function() {
         editModalContent.innerHTML = 'Carregando...';
     
         try {
-            const url = `/get_record/${tableId}/${recordId}`;
+            let url;
+            let record;
+            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios') {
+                url = `/get_record/${tableId}/${recordId}`;
+            } else if (tableId === 'visitas') {
+                url = `/get_record/${tableId}/${recordId}`;
+            } else {
+                url = `/get_record/${tableId}/${recordId}`;
+            }
             const response = await fetch(url);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Erro ao carregar o registro.');
             }
-            const record = await response.json();
+            record = await response.json();
+    
+            if (!record) {
+                editModalContent.innerHTML = `<p style="color:red;">Registro não encontrado.</p>`;
+                return;
+            }
             
             const template = editModalHtmlTemplates[tableId];
             if (template) {
@@ -857,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const formData = new FormData(editForm);
                     const data = Object.fromEntries(formData.entries());
-                    const endpoint = `/update_record/${tableId}`;
+                    let endpoint = `/edit_record/${tableId}`;
                     
                     try {
                         const res = await fetch(endpoint, {
@@ -933,6 +1023,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Armazena o estado da paginação
             currentPage[tableId] = page;
             totalItems[tableId] = totalItemsCount;
+            
+            // NOVO: Busca informações do usuário logado para controle de acesso
+            const userResponse = await fetch('/get_user_info');
+            const userData = await userResponse.json();
+            const userAccessLevel = userData.access_level;
+            const userCpf = userData.cpf;
+            const userName = userData.nome;
 
             const columnDisplayNames = {
                 'id': 'ID',
@@ -989,26 +1086,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 'escolas_visitadas': 'Escolas Visitadas',
                 'pm_orientados': 'PMs Orientados',
                 'cursistas_orientados': 'Cursistas Orientados',
+                'pm_orientados_esperado': 'PMs na UE',
+                'cursistas_orientados_esperado': 'Cursistas na UE',
                 'rubricas_preenchidas': 'Rubricas Preenchidas',
                 'feedbacks_realizados': 'Feedbacks Realizados',
                 'substituicoes_realizadas': 'Substituições Realizadas',
                 'engajamento': 'Ações de Engajamento',
-                'valor_formacao': 'Valor da Formação'
+                'valor_formacao': 'Valor da Formação',
+                // Colunas para a tabela de participantes
+                'nome': 'Nome',
+                'cpf': 'CPF',
+                'escola': 'Escola',
+                'diretoria_de_ensino': 'Diretoria de Ensino',
+                'tema': 'Tema',
+                'responsavel': 'Responsável',
+                'turma': 'Turma',
+                'etapa': 'Etapa',
+                'di': 'DI',
+                'pei': 'PEI',
+                'declinou': 'Declinou',
+                // Colunas para a tabela de usuários
+                'password_hash': 'Hash da Senha',
+                'access_level': 'Nível de Acesso',
+                // Novas colunas para a tabela de visitações
+                'url_formacao': 'URL',
+                'responsavel_visita': 'Responsável pela Visitação',
+                'encontro_aconteceu': 'Encontro Aconteceu?',
+                'motivo_nao_aconteceu': 'Motivo Não Aconteceu',
+                'data_registro': 'Data de Registro',
+                'data_aula': 'Data da Formação',
+                'mes': 'Mês',
+                'dia_do_mes': 'Dia do Mês',
+                'dia_da_semana': 'Dia da Semana',
+                'horario_da_formacao': 'Horário',
+                'tenent': 'Tenent',
+                'segmento': 'Segmento',
+                'nome_responsavel': 'Nome do Responsável',
+                'cpf_responsavel': 'CPF do Responsável',
+                'e-mail': 'E-mail'
+
             };
-             // Colunas para a tabela de participantes
-            if (tableId === 'participantes_base_editavel') {
-                columnDisplayNames['nome'] = 'Nome';
-                columnDisplayNames['cpf'] = 'CPF';
-                columnDisplayNames['escola'] = 'Escola';
-                columnDisplayNames['diretoria_de_ensino'] = 'Diretoria de Ensino';
-                columnDisplayNames['tema'] = 'Tema';
-                columnDisplayNames['responsavel'] = 'Responsável';
-                columnDisplayNames['turma'] = 'Turma';
-                columnDisplayNames['etapa'] = 'Etapa';
-                columnDisplayNames['di'] = 'DI';
-                columnDisplayNames['pei'] = 'PEI';
-                columnDisplayNames['declinou'] = 'Declinou';
-            }
 
 
             const desiredOrder = {
@@ -1018,19 +1135,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     'encontro_realizado', 'dia_semana_encontro', 'horario_encontro', 'esperado_participantes', 'real_participantes',
                     'camera_aberta_participantes', 'motivo_nao_ocorrencia', 'observacao'
                 ],
-                'avaliacao': [
-                    'id', 'observador', 'funcao', 'data_acompanhamento', 'data_feedback', 'observado', 'cpf_observado',
-                    'diretoria_de_ensino', 'escola', 'tema_observado', 'codigo_turma', 'pauta_formativa',
-                    'link_gravacao', 'nota_final',
-                    'q1_1', 'q1_2', 'q1_3',
-                    'q2_1', 'q2_2', 'q2_3',
-                    'q3_1', 'q3_2', 'q3_3',
-                    'q4_1', 'q4_2', 'q4_3',
-                    'q5_1', 'q5_2', 'q5_3',
-                    'feedback_estruturado', 'observacoes_gerais'
-                ],
-                'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'alinhamento_geral', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento'],
-                'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao']
+                // Ajuste na ordem das colunas para demandas, removendo 'alinhamento_geral'
+                'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'alinhamento_geral', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'pm_orientados_esperado', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento', 'observacao'],
+                'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao'],
+                'participantes_base_editavel': ['cpf', 'nome', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'],
+                'usuarios': ['id', 'cpf', 'access_level'],
+                'visitas': ['responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'turma', 'tema', 'data_aula', 'dia_do_mes', 'dia_da_semana', 'horario_da_formacao', 'url_formacao', 'tenent', 'segmento', 'nome_responsavel', 'cpf_responsavel', 'e-mail']
             };
 
             let orderedColumns = [];
@@ -1046,16 +1156,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tableHead = document.querySelector(`#table-${tableId} thead tr`);
             tableHead.innerHTML = '';
-            // Adiciona a coluna de Ações para as tabelas de edição se o usuário tiver acesso
-            const accessLevelResponse = await fetch('/get_access_level');
-            const accessLevelData = await accessLevelResponse.json();
-            const userAccessLevel = accessLevelData.access_level;
-            const userInfoResponse = await fetch('/get_user_info');
-            const userInfo = await userInfoResponse.json();
+            // Adiciona a coluna de Ações se o usuário tiver acesso de edição
+            const isEditableTable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios', 'visitas'].includes(tableId);
 
-            const isEditableTable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'].includes(tableId);
-
-            if (isEditableTable || tableId === 'participantes_base_editavel' && userAccessLevel === 'super_admin') {
+            if (isEditableTable) {
                 const thActions = document.createElement('th');
                 thActions.textContent = 'Ações';
                 tableHead.appendChild(thActions);
@@ -1075,44 +1179,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 results.forEach(docData => {
                     const tr = document.createElement('tr');
                     
-                    const tdActions = document.createElement('td');
-                    let canEdit = false;
-                    let canDelete = userAccessLevel === 'super_admin';
-
                     if (isEditableTable) {
+                        const tdActions = document.createElement('td');
+                        
+                        let canEdit = false;
                         if (userAccessLevel === 'super_admin') {
                             canEdit = true;
-                        } else if (tableId === 'presenca' && (userAccessLevel === 'basic_access' || userAccessLevel === 'intermediate_access')) {
-                            canEdit = (userAccessLevel === 'intermediate_access' && docData.de_participante === userInfo.diretoria_de_ensino) ||
-                                      (userAccessLevel === 'basic_access' && docData.responsavel === userInfo.nome);
-                        } else if (tableId === 'acompanhamento' && (userAccessLevel === 'efape_access' || userAccessLevel === 'intermediate_access')) {
-                            canEdit = (userAccessLevel === 'efape_access' && docData.responsavel_acompanhamento === userInfo.nome) ||
-                                      (userAccessLevel === 'intermediate_access' && docData.responsavel_acompanhamento === userInfo.nome);
+                        } else {
+                            // Lógica de verificação de propriedade para cada tabela
+                            switch (tableId) {
+                                case 'presenca':
+                                    canEdit = docData.cpf_participante === userCpf || docData.responsavel === userName || docData.nome_substituto === userName;
+                                    break;
+                                case 'acompanhamento':
+                                    canEdit = docData.responsavel_acompanhamento === userName;
+                                    break;
+                                case 'avaliacao':
+                                    canEdit = docData.observador === userName;
+                                    break;
+                                case 'demandas':
+                                    canEdit = docData.cpf_pec === userCpf;
+                                    break;
+                                case 'ateste':
+                                    canEdit = docData.cpf === userCpf;
+                                    break;
+                                case 'usuarios':
+                                    canEdit = docData.cpf === userCpf;
+                                    break;
+                                case 'visitas':
+                                    canEdit = docData.cpf_responsavel_visita === userCpf;
+                                    break;
+                            }
                         }
-                    }
-                     if (tableId === 'participantes_base_editavel' && userAccessLevel === 'super_admin') {
-                        canEdit = true;
-                    }
 
+                        if (canEdit) {
+                            const editButton = document.createElement('button');
+                            editButton.textContent = 'Editar';
+                            editButton.classList.add('edit-button');
+                            const recordIdentifier = tableId === 'participantes_base_editavel' || tableId === 'usuarios' || tableId === 'visitas' ? docData.url_formacao || docData.cpf : docData.id;
+                            editButton.onclick = () => openEditModal(recordIdentifier, tableId);
+                            tdActions.appendChild(editButton);
 
-                    if (canEdit) {
-                        const editButton = document.createElement('button');
-                        editButton.textContent = 'Editar';
-                        editButton.classList.add('edit-button');
-                        editButton.onclick = () => openEditModal(docData.id, tableId);
-                        tdActions.appendChild(editButton);
-                    } else if (isEditableTable || tableId === 'participantes_base_editavel' && tableHeadRow.children.length > orderedColumns.length) {
-                        tdActions.innerHTML = '<span>-</span>';
-                    }
-
-                    if (canDelete) {
-                        const deleteButton = document.createElement('button');
-                        deleteButton.textContent = 'Excluir';
-                        deleteButton.classList.add('delete-button', 'red-button');
-                        deleteButton.onclick = () => handleDeleteRecord(docData.id, tableId, docData.turma, docData.data_formacao, docData.pauta);
-                        tdActions.appendChild(deleteButton);
-                    }
-                    if (isEditableTable || tableId === 'participantes_base_editavel' && tableHeadRow.children.length > orderedColumns.length) {
+                            const deleteButton = document.createElement('button');
+                            deleteButton.textContent = 'Excluir';
+                            deleteButton.classList.add('delete-button', 'red-button');
+                            deleteButton.onclick = () => handleDeleteRecord(recordIdentifier, tableId, docData.turma, docData.data_formacao, docData.pauta);
+                            tdActions.appendChild(deleteButton);
+                        } else {
+                             tdActions.textContent = 'Sem permissão';
+                        }
                         tr.appendChild(tdActions);
                     }
 
@@ -1189,11 +1304,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     const numEscolasVisitadasUnicas = metricsContainer.querySelector(`#demandas-num_escolas_visitadas_unicas`);
                     if (numEscolasVisitadasUnicas) numEscolasVisitadasUnicas.textContent = data.metrics.num_escolas_visitadas_unicas || 0;
 
+                    // CORRIGIDO: Métricas para o novo formato X/Y
                     const totalPmsOrientados = metricsContainer.querySelector(`#demandas-total_pms_orientados`);
-                    if (totalPmsOrientados) totalPmsOrientados.textContent = data.metrics.total_pms_orientados || 0;
-
+                    const totalPmsEsperados = metricsContainer.querySelector(`#demandas-total_pms_esperados`);
+                    if (totalPmsOrientados && totalPmsEsperados) {
+                        totalPmsOrientados.textContent = data.metrics.total_pms_orientados || 0;
+                        totalPmsEsperados.textContent = data.metrics.total_pms_esperados || 0;
+                    }
+                    
                     const totalCursistasOrientados = metricsContainer.querySelector(`#demandas-total_cursistas_orientados`);
-                    if (totalCursistasOrientados) totalCursistasOrientados.textContent = data.metrics.total_cursistas_orientados || 0;
+                    const totalCursistasEsperados = metricsContainer.querySelector(`#demandas-total_cursistas_esperados`);
+                    if (totalCursistasOrientados && totalCursistasEsperados) {
+                        totalCursistasOrientados.textContent = data.metrics.total_cursistas_orientados || 0;
+                        totalCursistasEsperados.textContent = data.metrics.total_cursistas_esperados || 0;
+                    }
+
                 } else if (tableId === 'ateste') {
                     const numFormacoesUnicas = metricsContainer.querySelector(`#ateste-num_formacoes_unicas`);
                     if (numFormacoesUnicas) numFormacoesUnicas.textContent = data.metrics.num_formacoes_unicas || 0;
@@ -1226,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let [key, value] of formData.entries()) {
                 data[key] = value;
             }
-
+            
             // Lógica específica para o formulário de Presença
             if (formId === 'formPresenca') {
                 const participantesData = {};
@@ -1247,6 +1372,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 data.participantes = participantesData;
+
+                // Captura o nome do responsável se o campo não estiver desabilitado
+                // Se estiver desabilitado, significa que é o próprio usuário
+                // CORREÇÃO: Removido o preenchimento automático
+                if (data.substituicao_ocorreu === 'Não') {
+                    delete data.nome_substituto;
+                }
             }
 
             if (formId === 'formAcompanhamento') {
@@ -1261,8 +1393,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     delete data['camera_aberta_participantes'];
                 }
             }
-
+            
             if (formId === 'formDemandas') {
+                // CORREÇÃO: A lógica de coleta de dados foi ajustada
+                // Agora os valores são coletados diretamente, sem duplicação de variáveis.
+                data.pm_orientados = document.getElementById('pm_orientados_demandas').value;
+                data.cursistas_orientados = document.getElementById('cursistas_orientados_demandas').value;
+
                 // Tratamento para escolas visitadas (múltipla seleção)
                 const selectedValue = this.querySelector('input[name="visitas_escolas_demandas"]:checked')?.value;
                 if (selectedValue === 'Sim') {
@@ -1271,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     data.escolas_visitadas = [];
                 }
-
+                
                 // Tratamento para ações de engajamento (checkboxes)
                 const engagementCheckboxes = this.querySelectorAll('input[name="engajamento_demandas"]:checked');
                 data.engajamento = Array.from(engagementCheckboxes).map(cb => cb.value);
@@ -1286,6 +1423,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
+            
+            if (formId === 'formVisitas') {
+                const url = data.url_formacao;
+                const encontroAconteceu = data.encontro_aconteceu;
+                if (!url || !encontroAconteceu) {
+                    alert('URL da formação e o status do encontro são obrigatórios.');
+                    return;
+                }
+            }
 
             try { // Início do bloco try para a requisição fetch
                 const response = await fetch(endpoint, {
@@ -1296,59 +1442,74 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify(data)
                 });
 
-                if (!response.ok) {
-                    const errorJson = await response.json();
-                    const errorMessage = errorJson.message || `HTTP error! status: ${response.status}`;
-                    if (response.status === 403) {
-                        alert('Acesso negado para enviar este formulário. Nível de permissão insuficiente.');
+                // VERIFICAÇÃO DO TIPO DE CONTEÚDO DA RESPOSTA (CORREÇÃO)
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const result = await response.json();
+                    
+                    if (!response.ok) {
+                        const errorMessage = result.message || `HTTP error! status: ${response.status}`;
+                        if (response.status === 403) {
+                            alert('Acesso negado para enviar este formulário. Nível de permissão insuficiente.');
+                            return;
+                        }
+                        if (response.status === 409) {
+                            alert(errorMessage);
+                            return;
+                        }
+                        alert('Ocorreu um erro ao enviar o formulário: ' + errorMessage);
                         return;
                     }
-                    if (response.status === 409) {
-                        alert(errorMessage);
-                        return;
-                    }
-                    alert('Ocorreu um erro ao enviar o formulário: ' + errorMessage);
-                    return; // Retorna para não executar o resto do bloco se houver erro
-                }
-                const result = await response.json();
-
-                if (result.success) {
-                    alert(successMessage);
-                    form.reset();
-                    // Lógica para limpar campos específicos ou carregar datalists novamente
-                    if (formId === 'formDemandas') {
-                        if (escolasContainer) escolasContainer.style.display = 'none';
-                        if (pmOrientadosInput) pmOrientadosInput.value = 0;
-                        if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
-                    }
-                    if (formId === 'formPresenca') {
-                        if (substitutoPresencaContainer) substituicaoPresencaContainer.style.display = 'none';
-                        if (nomeSubstitutoPresencaInput) nomeSubstitutoPresencaInput.value = '';
-                    }
-
-                    if (formId === 'formAcompanhamento') {
-                        document.getElementById('encontro-realizado-sim').style.display = 'none';
-                        document.getElementById('encontro-realizado-nao').style.display = 'none';
-                    }
-
-                    loadAllDatalists(); // Recarrega todas as datalists após o envio
-                    if (formId === 'formPresenca' && participantesContainer) {
-                        participantesContainer.innerHTML = ''; // Limpa a lista de participantes
-                    }
-                    if (formId === 'formAvaliacao') {
-                        if (temasObservadoDatalist) temasObservadoDatalist.innerHTML = '';
-                        if (turmasObservadoDatalist) turmasObservadoDatalist.innerHTML = '';
-                    }
-
-                    // Atualiza a seção ativa após o envio bem-sucedido
-                    const activeTabButton = document.querySelector('.tab-button.active');
-                    if (activeTabButton && activeTabButton.dataset.sectionId) {
-                        const sectionId = activeTabButton.dataset.sectionId;
-                        const tableId = activeTabButton.dataset.tableId; // Pode ser undefined
-                        window.showSection(sectionId, tableId);
+                    
+                    if (result.success) {
+                        alert(successMessage);
+                        form.reset();
+                        // Lógica para limpar campos específicos ou carregar datalists novamente
+                        if (formId === 'formDemandas') {
+                            if (escolasContainer) escolasContainer.style.display = 'none';
+                            // CORREÇÃO: Limpando os campos após o envio, sem sobrescrevê-los
+                            if (pmOrientadosInput) pmOrientadosInput.value = '';
+                            if (cursistasOrientadosInput) cursistasOrientadosInput.value = '';
+                            if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = '';
+                            if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = '';
+                        }
+                        if (formId === 'formPresenca') {
+                            if (substitutoPresencaContainer) substitutoPresencaContainer.style.display = 'none';
+                            if (nomeSubstitutoPresencaInput) nomeSubstitutoPresencaInput.value = '';
+                        }
+    
+                        if (formId === 'formAcompanhamento') {
+                            document.getElementById('encontro-realizado-sim').style.display = 'none';
+                            document.getElementById('encontro-realizado-nao').style.display = 'none';
+                        }
+    
+                        loadAllDatalistsOptimized(); // Recarrega todas as datalists após o envio
+                        if (formId === 'formPresenca' && participantesContainer) {
+                            participantesContainer.innerHTML = ''; // Limpa a lista de participantes
+                        }
+                        if (formId === 'formAvaliacao') {
+                            if (temasObservadoDatalist) temasObservadoDatalist.innerHTML = '';
+                            if (turmasObservadoDatalist) turmasObservadoDatalist.innerHTML = '';
+                        }
+    
+                        // Atualiza a seção ativa após o envio bem-sucedido
+                        const activeTabButton = document.querySelector('.tab-button.active');
+                        if (activeTabButton && activeTabButton.dataset.sectionId) {
+                            const sectionId = activeTabButton.dataset.sectionId;
+                            const tableId = activeTabButton.dataset.tableId; // Pode ser undefined
+                            window.showSection(sectionId, tableId);
+                        }
+                    } else {
+                        alert('Erro: ' + (result.message || 'Ocorreu um erro desconhecido.'));
                     }
                 } else {
-                    alert('Erro: ' + (result.message || 'Ocorreu um erro desconhecido.'));
+                    // Respostas não-JSON (redirecionamentos, por exemplo)
+                    if (response.ok) {
+                        alert(successMessage);
+                        window.location.reload();
+                    } else {
+                        alert('Erro ao enviar o formulário. O servidor respondeu com um status de erro.');
+                    }
                 }
             } catch (error) { // Catch geral para erros de rede ou processamento da resposta
                 console.error('ERRO JS: Erro ao enviar o formulário ou processar a resposta:', error);
@@ -1377,7 +1538,7 @@ document.addEventListener('DOMContentLoaded', function() {
         currentFilters[tableId] = {};
     });
 
-    // NOVO: Event Listeners para filtros da página de Ateste
+    // NOVO: Event Listeners para filtros da página de Ateste e Visitas
     const filterFormAteste = document.getElementById('filterFormAteste');
     if (filterFormAteste) {
         filterFormAteste.addEventListener('submit', function(event) {
@@ -1387,9 +1548,23 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchResults('ateste', 1);
         });
     }
+    
+    const filterFormVisitas = document.getElementById('filterFormVisitas');
+    if (filterFormVisitas) {
+        filterFormVisitas.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            currentFilters['visitas'] = {};
+            for (const [key, value] of formData.entries()) {
+                currentFilters['visitas'][key] = value;
+            }
+            fetchResults('visitas', 1);
+        });
+    }
+
 
     // Botões de Limpar Filtros (gerais)
-    const clearFilterButtons = ['Presenca', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
+    const clearFilterButtons = ['Presenca', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Visitas'];
     clearFilterButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`clearFilters${tableIdCapitalized}`);
         if (button) {
@@ -1406,11 +1581,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Botões de Exportar para CSV (gerais)
-    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
+    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Visitas'];
     exportCsvButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`exportCsv${tableIdCapitalized}`);
         if (button) {
             button.addEventListener('click', () => exportTableToCsv(tableIdCapitalized.toLowerCase()));
+        }
+    });
+
+    // Botões de Exportar para XLSX (gerais)
+    const exportXlsxButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Visitas'];
+    exportXlsxButtons.forEach(tableIdCapitalized => {
+        const button = document.getElementById(`exportXlsx${tableIdCapitalized}`);
+        if (button) {
+            button.addEventListener('click', () => exportTableToXlsx(tableIdCapitalized.toLowerCase()));
         }
     });
 
@@ -1421,6 +1605,20 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`DEBUG JS: Exportando dados da tabela '${tableId}' da URL: ${url}`);
 
         // Usar um link invisível para disparar o download
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', '');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    function exportTableToXlsx(tableId) {
+        let queryParams = new URLSearchParams(currentFilters[tableId]);
+        
+        const url = `/export_xlsx/${tableId}?${queryParams.toString()}`;
+        console.log(`DEBUG JS: Exportando dados da tabela '${tableId}' da URL: ${url}`);
+        
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', '');
@@ -1451,7 +1649,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
         if (confirmed) {
             try {
-                const response = await fetch('/admin/delete_entry', {
+                const response = await fetch('/admin/delete_entry', { // ROTA ATUALIZADA
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1483,16 +1681,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchButton = document.getElementById('search-button');
     const userDetailsForm = document.getElementById('user-details-form');
     const formCpfInput = document.getElementById('user-cpf');
-    const formNomeInput = document.getElementById('user-nome');
-    const formEscolaInput = document.getElementById('user-escola');
-    const formDeInput = document.getElementById('user-de');
-    const formTemaInput = document.getElementById('user-tema');
-    const formResponsavelInput = document.getElementById('user-responsavel');
-    const formTurmaInput = document.getElementById('user-turma');
-    const formEtapaInput = document.getElementById('user-etapa');
-    const formDiInput = document.getElementById('user-di');
-    const formPeiInput = document.getElementById('user-pei');
-    const formDeclinouInput = document.getElementById('user-declinou');
     const formAccessLevel = document.getElementById('user-access-level');
     const deleteUserButton = document.getElementById('delete-user-button');
     const newUserButton = document.getElementById('new-user-button');
@@ -1502,38 +1690,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Funções auxiliares para o formulário de gerenciamento de usuário
     const resetUserForm = () => {
-        manageUserForm.reset();
-        formCpfInput.readOnly = false;
-        userDetailsForm.style.display = 'none';
-        deleteUserButton.style.display = 'none';
         searchCpfInput.value = '';
+        userDetailsForm.style.display = 'none';
+        formCpfInput.value = '';
+        formAccessLevel.value = 'no_access';
+        formCpfInput.readOnly = false;
+        deleteUserButton.style.display = 'none';
+        saveUserButton.textContent = 'Adicionar Novo Usuário';
     };
 
-    const populateUserForm = (participante, usuario) => {
-        formCpfInput.value = participante.cpf;
-        formNomeInput.value = participante.nome || '';
-        formEscolaInput.value = participante.escola || '';
-        formDeInput.value = participante.diretoria_de_ensino || '';
-        formTemaInput.value = participante.tema || '';
-        formResponsavelInput.value = participante.responsavel || '';
-        formTurmaInput.value = participante.turma || '';
-        formEtapaInput.value = participante.etapa || '';
-        formDiInput.value = participante.di || '';
-        formPeiInput.value = participante.pei || '';
-        formDeclinouInput.value = participante.declinou || '';
-        
-        if (usuario) {
-            formAccessLevel.value = usuario.access_level;
-            deleteUserButton.style.display = 'block';
-        } else {
-            formAccessLevel.value = 'no_access';
-            deleteUserButton.style.display = 'none';
-        }
 
+    const populateUserForm = (usuario) => {
+        formCpfInput.value = usuario?.cpf || '';
+        formAccessLevel.value = usuario?.access_level || 'no_access';
         formCpfInput.readOnly = true;
+        deleteUserButton.style.display = 'block';
+        saveUserButton.textContent = 'Salvar Nível de Acesso';
         userDetailsForm.style.display = 'block';
     };
-
+    
+    // Lógica ajustada para a busca de usuário
     if (searchButton) {
         searchButton.addEventListener('click', async () => {
             const cpf = searchCpfInput.value.trim();
@@ -1541,20 +1717,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Por favor, insira um CPF para pesquisar.');
                 return;
             }
-
             try {
                 const response = await fetch(`/admin/search_user?cpf=${encodeURIComponent(cpf)}`);
+                if (!response.ok) {
+                    throw new Error('Falha na resposta da API.');
+                }
                 const data = await response.json();
-                
-                if (data.participante || data.usuario) {
-                    populateUserForm(data.participante || data.usuario, data.usuario);
-                    alert('Dados do usuário encontrados e preenchidos.');
+                console.log("DEBUG: Dados recebidos da busca:", data);
+
+                if (data.usuario) {
+                    populateUserForm(data.usuario);
+                    alert('Usuário encontrado. Altere o nível de acesso e salve.');
                 } else {
-                    alert('CPF não encontrado. Preencha os dados para adicionar um novo usuário.');
-                    resetUserForm();
-                    formCpfInput.value = cpf;
-                    formCpfInput.readOnly = false;
-                    userDetailsForm.style.display = 'block';
+                    const isConfirmed = confirm("Usuário não encontrado. Deseja adicionar um novo usuário com este CPF?");
+                    if (isConfirmed) {
+                        resetUserForm();
+                        formCpfInput.value = cpf;
+                        formCpfInput.readOnly = false;
+                        userDetailsForm.style.display = 'block';
+                        saveUserButton.textContent = 'Adicionar Novo Usuário';
+                        alert("Defina o nível de acesso para o novo usuário e clique em 'Adicionar'.");
+                    } else {
+                        resetUserForm();
+                    }
                 }
             } catch (error) {
                 console.error('ERRO JS: Erro ao pesquisar usuário:', error);
@@ -1567,14 +1752,24 @@ document.addEventListener('DOMContentLoaded', function() {
         manageUserForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             
-            const formData = new FormData(manageUserForm);
-            const data = Object.fromEntries(formData.entries());
-            data.action = 'add';
+            const cpf = formCpfInput.value.trim();
+            const accessLevel = formAccessLevel.value;
             
-            // Se o CPF já foi pesquisado, é uma edição.
-            if (formCpfInput.readOnly) {
-                data.action = 'edit';
+            if (!cpf || accessLevel === 'no_access') {
+                alert('CPF e Nível de Acesso são obrigatórios.');
+                return;
             }
+
+            const action = saveUserButton.textContent === 'Adicionar Novo Usuário' ? 'add' : 'edit';
+            const data = { action: action, cpf: cpf, access_level: accessLevel };
+            
+            if(action === 'add') {
+                if (formCpfInput.value === '') {
+                    alert('Por favor, insira o CPF para o novo usuário.');
+                    return;
+                }
+            }
+
 
             try {
                 const response = await fetch('/admin/manage_user', {
@@ -1586,14 +1781,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert(result.message);
                 if (result.success) {
                     resetUserForm();
-                    loadAllDatalists();
+                    loadAllDatalistsOptimized();
+                    fetchResults('usuarios');
                 }
             } catch (error) {
                 console.error('ERRO JS: Erro ao salvar usuário:', error);
-                alert('Erro ao salvar o usuário.');
+                alert('Erro ao salvar o usuário. Tente novamente.');
             }
         });
     }
+
 
     if (deleteUserButton) {
         deleteUserButton.addEventListener('click', async () => {
@@ -1609,7 +1806,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert(result.message);
                     if (result.success) {
                         resetUserForm();
-                        loadAllDatalists();
+                        loadAllDatalistsOptimized();
+                        fetchResults('usuarios');
                     }
                 } catch (error) {
                     console.error('ERRO JS: Erro ao excluir usuário:', error);
@@ -1691,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert(result.message);
                     uploadStatus.textContent = result.message;
                     uploadBaseForm.reset();
-                    loadAllDatalists();
+                    loadAllDatalistsOptimized();
                 } else {
                     alert('Erro no upload: ' + result.message);
                     uploadStatus.textContent = 'Erro: ' + result.message;
@@ -1700,6 +1898,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('ERRO JS: Erro ao fazer upload da base:', error);
                 alert('Erro ao conectar com o servidor para fazer upload da base.');
                 uploadStatus.textContent = 'Erro ao conectar com o servidor.';
+            }
+        });
+    }
+
+    // NOVO: Lógica para o formulário de gerenciamento de visibilidade
+    const visibilityForm = document.getElementById('visibilityForm');
+    if (visibilityForm) {
+        visibilityForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const elementId = document.getElementById('element-select').value;
+            const isHidden = document.getElementById('visibility-status').value === 'true';
+
+            try {
+                const response = await fetch('/admin/toggle_visibility', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ element_id: elementId, is_hidden: isHidden })
+                });
+                const result = await response.json();
+                alert(result.message);
+                if (result.success) {
+                    location.reload(); // Recarrega a página para aplicar as mudanças
+                }
+            } catch (error) {
+                console.error('ERRO JS: Erro ao alterar a visibilidade:', error);
+                alert('Erro ao alterar a visibilidade.');
             }
         });
     }
@@ -2081,15 +2305,96 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAccessLevel = data.access_level;
             console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
 
+            // Carrega a visibilidade dos elementos antes de exibir a interface
+            const visibilityResponse = await fetch('/get_visibility');
+            const visibilityData = await visibilityResponse.json();
+            const hiddenElements = visibilityData.hidden_elements || {};
+            console.log('DEBUG JS: Elementos ocultos:', hiddenElements);
+
+            // Oculta todas as seções e botões por padrão
             document.querySelectorAll('.section').forEach(section => {
                 section.style.display = 'none';
             });
-            document.getElementById('aviso-modal').style.display = 'none';
-
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.style.display = 'none';
-                button.removeEventListener('click', handleTabClick);
-                button.addEventListener('click', handleTabClick);
+            });
+            document.getElementById('aviso-modal').style.display = 'none';
+
+            // Lógica para exibir abas com base no nível de acesso
+            switch (currentAccessLevel) {
+                case 'basic_access':
+                    // PM e CM
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'formador_access':
+                    // FORMADOR
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'efape_access':
+                    // EFAPE
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'intermediate_access':
+                    // PEC
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
+                    document.getElementById('tab-form-demandas').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-avaliacao').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-demandas').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-painel-bi').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    document.getElementById('tab-links-visitacoes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'super_admin':
+                    // ADM
+                    document.querySelectorAll('.tab-button').forEach(button => {
+                        button.style.display = 'inline-block';
+                    });
+                    document.getElementById('tab-admin-tools').style.display = 'inline-block';
+                    window.showSection('admin-tools');
+                    break;
+                default:
+                    console.warn("DEBUG JS: Nível de acesso desconhecido ou 'none'. Redirecionando para login.");
+                    window.location.href = '/login';
+                    return;
+            }
+
+            // Lógica para esconder elementos se o admin marcou como oculto
+            document.querySelectorAll('.tab-button').forEach(button => {
+                const elementId = button.dataset.sectionId || button.id;
+                // Apenas oculta se não for super_admin E o elemento estiver marcado como oculto
+                if (currentAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
+                    button.style.display = 'none';
+                    const sectionId = button.dataset.sectionId;
+                    const section = document.getElementById(sectionId);
+                    if (section) {
+                        section.style.display = 'none';
+                    }
+                }
+                 button.removeEventListener('click', handleTabClick);
+                 button.addEventListener('click', handleTabClick);
             });
 
             function handleTabClick(event) {
@@ -2098,58 +2403,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const tableId = button.dataset.tableId;
                 window.showSection(sectionId, tableId);
             }
-
-            const isIntermediateOrHigher = ['intermediate_access', 'full_access', 'super_admin'].includes(currentAccessLevel);
-            const isEfapeOrHigher = ['efape_access', 'intermediate_access', 'full_access', 'super_admin'].includes(currentAccessLevel);
-            const isBasic = currentAccessLevel === 'basic_access';
-            const isEfape = currentAccessLevel === 'efape_access';
-
-            loadAllDatalists();
-            loadSpecificDatalists();
-            fetchAviso();
-
+            
+            // Lógicas específicas de carregamento para o admin
             if (currentAccessLevel === 'super_admin') {
-                document.querySelectorAll('.tab-button').forEach(button => {
-                    button.style.display = 'inline-block';
-                });
-                window.showSection('admin-tools');
                 loadLinksAdmin();
                 fetchAvisoDataForAdmin();
+                fetchResults('usuarios');
                 console.log("DEBUG JS: UI configurada para acesso Super Admin.");
-            } else if (isIntermediateOrHigher) {
-                document.querySelector('.tab-button[data-section-id="form-presenca"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="form-acompanhamento"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="form-avaliacao"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="form-demandas"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-presenca"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-acompanhamento"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-avaliacao"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-demandas"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="controle-ateste"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="painel-bi"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="links-importantes"]').style.display = 'inline-block';
-                window.showSection('form-presenca');
-                console.log("DEBUG JS: UI configurada para acesso intermediário.");
-            } else if (isEfape) {
-                document.querySelector('.tab-button[data-section-id="form-presenca"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="form-acompanhamento"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-presenca"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-acompanhamento"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="controle-ateste"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="painel-bi"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="links-importantes"]').style.display = 'inline-block';
-                window.showSection('form-presenca');
-                console.log("DEBUG JS: UI configurada para acesso Formador EFAPE.");
-            } else if (isBasic) {
-                document.querySelector('.tab-button[data-section-id="form-presenca"]').style.display = 'inline-block';
-                document.querySelector('.tab-button[data-section-id="resultados-presenca"]').style.display = 'inline-block';
-                window.showSection('form-presenca');
-                console.log("DEBUG JS: UI configurada para acesso básico (somente formulário de presença e resultados).");
-            } else {
-                console.warn("DEBUG JS: Nível de acesso desconhecido ou 'none'. Redirecionando para login.");
-                window.location.href = '/login';
-                return;
             }
+
+            loadAllDatalistsOptimized();
+            fetchAviso();
 
             const headerContent = document.querySelector('.header-content');
             if (headerContent) {

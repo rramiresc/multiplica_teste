@@ -359,7 +359,11 @@ button[type="button"]:active {
 }
 
 .filters label {
-    display: none; /* Esconde a label e usa o placeholder */
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+    text-align: left;
 }
 
 .filters input, .filters select {

@@ -19,18 +19,19 @@
 </header>
 
 <div class="navigation-tabs">
-    <button class="tab-button active" data-section-id="form-presenca" data-table-id="presenca">Registro de Presença</button>
-    <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento">Acompanhamento de Encontros (Visitações)</button>
-    <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao">Formulário de Avaliação</button>
-    <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas">Registro de Demandas</button>
-    <button class="tab-button" data-section-id="resultados-presenca" data-table-id="presenca">Resultados de Presença</button>
-    <button class="tab-button" data-section-id="resultados-acompanhamento" data-table-id="acompanhamento">Resultados Acompanhamento</button>
-    <button class="tab-button" data-section-id="resultados-avaliacao" data-table-id="avaliacao">Resultados de Avaliação</button>
-    <button class="tab-button" data-section-id="resultados-demandas" data-table-id="demandas">Resultados de Demandas</button>
-    <button class="tab-button" data-section-id="controle-ateste" data-table-id="ateste">Controle para ATESTE</button>
-    <button class="tab-button" data-section-id="painel-bi">Painel BI</button>
-    <button class="tab-button" data-section-id="links-importantes">Links Importantes</button>
-    <button class="tab-button" data-section-id="admin-tools">Ferramentas Admin</button>
+    <button class="tab-button active" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
+    <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros (Visitações)</button>
+    <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao" id="tab-form-avaliacao">Formulário de Avaliação</button>
+    <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas" id="tab-form-demandas">Registro de Demandas</button>
+    <button class="tab-button" data-section-id="links-visitacoes" data-table-id="visitas" id="tab-links-visitacoes">Links para Visitações</button>
+    <button class="tab-button" data-section-id="resultados-presenca" data-table-id="presenca" id="tab-resultados-presenca">Resultados de Presença</button>
+    <button class="tab-button" data-section-id="resultados-acompanhamento" data-table-id="acompanhamento" id="tab-resultados-acompanhamento">Resultados Acompanhamento</button>
+    <button class="tab-button" data-section-id="resultados-avaliacao" data-table-id="avaliacao" id="tab-resultados-avaliacao">Resultados de Avaliação</button>
+    <button class="tab-button" data-section-id="resultados-demandas" data-table-id="demandas" id="tab-resultados-demandas">Resultados de Demandas</button>
+    <button class="tab-button" data-section-id="controle-ateste" data-table-id="ateste" id="tab-controle-ateste">Controle para ATESTE</button>
+    <button class="tab-button" data-section-id="painel-bi" id="tab-painel-bi">Painel BI</button>
+    <button class="tab-button" data-section-id="links-importantes" id="tab-links-importantes">Links Importantes</button>
+    <button class="tab-button" data-section-id="admin-tools" data-table-id="usuarios" id="tab-admin-tools">Ferramentas Admin</button>
 </div>
 
 <div id="form-presenca" class="section active">
@@ -40,20 +41,20 @@
         <input type="text" id="diretoria_presenca" name="diretoria_presenca" list="diretorias-list" required>
         <datalist id="diretorias-list"></datalist>
 
-        <label for="responsavel_presenca">Responsável pelo Preenchimento: (quando estiver substituindo colocar o nome do responsável pelo turma, seu nome vai no campo de substituto)</label>
+        <label for="responsavel_presenca">Responsável pela Turma:</label>
         <input type="text" id="responsavel_presenca" name="responsavel_presenca" list="responsaveis-list" required>
         <datalist id="responsaveis-list"></datalist>
 
-        <label>Ocorreu substituição?</label>
-        <div class="radio-group" onchange="toggleSubstituicaoPresenca(this)">
-            <label><input type="radio" name="substituicao_ocorreu" value="Não" checked required> Não</label>
-            <label><input type="radio" name="substituicao_ocorreu" value="Sim"> Sim</label>
-        </div>
-        
-        <div id="substituto-presenca-container" style="display:none;">
-            <label for="nome_substituto_presenca">Nome do substituto:</label>
-            <input type="text" id="nome_substituto_presenca" name="nome_substituto" list="responsaveis-list">
-        </div>
+        <label for="substituicao_ocorreu">Ocorreu substituição?</label>
+<div id="substituicao-ocorreu-radio-group" class="radio-group">
+    <label><input type="radio" name="substituicao_ocorreu" value="Não" checked> Não</label>
+    <label><input type="radio" name="substituicao_ocorreu" value="Sim"> Sim</label>
+</div>
+
+<div id="substituto-presenca-container" style="display:none;">
+    <label for="nome_substituto_presenca">Nome do substituto:</label>
+    <input type="text" id="nome_substituto_presenca" name="nome_substituto" list="responsaveis-list">
+</div>
 
         <label for="tema_presenca">Tema:</label>
         <input type="text" id="tema_presenca" name="tema_presenca" list="temas-list-presenca" required>
@@ -198,7 +199,7 @@
                 <option value="Turma sem inscritos">Turma sem inscritos</option>
                 <option value="Turma sem Formador e sem inscritos">Turma sem Formador e sem inscritos</option>
                 <option value="Turma remanejada para outro dia">Turma remanejada para outro dia</option>
-                <option value="Turma remanejada para outro dia">Ausência de cursistas e formador</option>
+                <option value="Ausência de cursistas e formador">Ausência de cursistas e formador</option>
             </select>
         </div>
 
@@ -297,8 +298,7 @@
             {% for pergunta, nome_pergunta in perguntas %}
             <p>{{ pergunta }}</p>
             <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Plenamente" required> Atende Plenamente</label>
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende Parcialmente"> Atende Parcialmente</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende" required> Atende</label>
                 <label><input type="radio" name="{{ nome_pergunta }}" value="Não Atende"> Não Atende</label>
             </div>
             {% endfor %}
@@ -326,12 +326,17 @@
     <form id="formDemandas">
         <div class="form-section">
             <h3>Identificação e Referência</h3>
+            <label for="cpf_pec_demandas">CPF do PEC Multiplica:</label>
+            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required>
+            <datalist id="cpfs-list"></datalist>
+
             <label for="pec_demandas">PEC Multiplica responsável:</label>
             <input type="text" id="pec_demandas" name="pec_demandas" list="pecs-list" required>
             <datalist id="pecs-list"></datalist>
 
-            <label for="cpf_pec_demandas">CPF do PEC Multiplica:</label>
-            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" readonly>
+            <label for="diretoria_demandas">Indique a sua Diretoria de Ensino:</label>
+            <input type="text" id="diretoria_demandas" name="diretoria_demandas" list="diretorias-list" required>
+            <datalist id="diretorias-list"></datalist>
 
             <label for="semana_demandas">Semana de Referência das demandas:</label>
             <input type="week" id="semana_demandas" name="semana_demandas" required>
@@ -339,29 +344,18 @@
             <label for="caff_demandas">Indique seu CAFF responsável:</label>
             <input type="text" id="caff_demandas" name="caff_demandas" list="caffs-list" required>
             <datalist id="caffs-list"></datalist>
-
-            <label for="diretoria_demandas">Indique a sua Diretoria de Ensino:</label>
-            <input type="text" id="diretoria_demandas" name="diretoria_demandas" list="diretorias-list" required>
-            <datalist id="diretorias-list"></datalist>
         </div>
 
         <div class="form-section">
             <h3>Relatório de Atividades</h3>
             <label for="formacoes_realizadas_demandas">Quantas Formações das Turmas com Professores Multiplicadores foram realizadas na semana indicada? (somente números)</label>
-            <input type="number" id="formacoes_realizadas_demandas" name="formacoes_realizadas_demandas" required>
+            <input type="number" id="formacoes_realizadas_demandas" name="formacoes_realizadas_demandas">
             
             <label>Participou de forma SÍNCRONA do Alinhamento Semanal?</label>
             <div class="radio-group">
                 <label><input type="radio" name="alinhamento_semanal_demandas" value="Sim" required> Sim</label>
                 <label><input type="radio" name="alinhamento_semanal_demandas" value="Não"> Não</label>
                 <label><input type="radio" name="alinhamento_semanal_demandas" value="Não se aplica"> Não se aplica</label>
-            </div>
-
-            <label>Participou de forma SÍNCRONA do Alinhamento Geral?</label>
-            <div class="radio-group">
-                <label><input type="radio" name="alinhamento_geral_demandas" value="Sim" required> Sim</label>
-                <label><input type="radio" name="alinhamento_geral_demandas" value="Não"> Não</label>
-                <label><input type="radio" name="alinhamento_geral_demandas" value="Não se aplica"> Não se aplica</label>
             </div>
             
             <label>Visitou Escola na semana indicada?</label>
@@ -374,14 +368,16 @@
                 <label>Selecione as escolas visitadas:</label>
                 <div id="escolas-checkbox-container" class="checkbox-container">
                     </div>
+                <label for="pm_orientados_esperado_demandas">Quantos Professores Multiplicadores tem na Unidade Escolar?</label>
+                <input type="number" id="pm_orientados_esperado_demandas" name="pm_orientados_esperado" readonly>
+                <label for="pm_orientados_demandas">Quantos Professores Multiplicadores foram realmente orientados na semana?</label>
+                <input type="number" id="pm_orientados_demandas" name="pm_orientados">
+                <label for="cursistas_orientados_esperado_demandas">Quantos Cursistas tem na Unidade Escolar?</label>
+                <input type="number" id="cursistas_orientados_esperado_demandas" name="cursistas_orientados_esperado" readonly>
+                <label for="cursistas_orientados_demandas">Quantos Cursistas foram realmente orientados na semana?</label>
+                <input type="number" id="cursistas_orientados_demandas" name="cursistas_orientados">
             </div>
             
-            <label for="pm_orientados_demandas">Quantos Professores Multiplicadores foram orientados individualmente ou em grupo na semana?</label>
-            <input type="number" id="pm_orientados_demandas" name="pm_orientados_demandas" readonly>
-
-            <label for="cursistas_orientados_demandas">Quantos Cursistas foram orientados individualmente ou em grupo na semana?</label>
-            <input type="number" id="cursistas_orientados_demandas" name="cursistas_orientados_demandas" readonly>
-
             <label for="rubricas_preenchidas_demandas">Quantas rubricas foram preenchidas na semana?</label>
             <input type="number" id="rubricas_preenchidas_demandas" name="rubricas_preenchidas_demandas">
             
@@ -426,9 +422,70 @@
                 <label><input type="checkbox" name="engajamento_demandas" value="Nenhuma"> Nenhuma</label>
                 <label><input type="checkbox" name="engajamento_demandas" value="Outra"> Outra: <input type="text" name="outra_acao_demandas" style="width: auto;"></label>
             </div>
+            <label for="observacao_demandas">Observação (opcional):</label>
+            <textarea id="observacao_demandas" name="observacao_demandas" rows="3"></textarea>
         </div>
         <button type="submit">Enviar</button>
     </form>
+</div>
+
+<div id="links-visitacoes" class="section" style="display:none;">
+    <h2>Links para Visitações</h2>
+    <div class="filters">
+        <h3>Filtros de Busca</h3>
+        <form id="filterFormVisitas">
+            <input type="text" name="tema" placeholder="Tema" list="temas-list-visitas" value="">
+            <datalist id="temas-list-visitas"></datalist>
+            
+            <input type="text" name="turma" placeholder="Turma" list="turmas-list-visitas" value="">
+            <datalist id="turmas-list-visitas"></datalist>
+            
+            <input type="text" name="dia_da_semana" placeholder="Dia da Semana" list="dias-semana-list" value="">
+            <datalist id="dias-semana-list"></datalist>
+
+            <input type="text" name="dia_do_mes" placeholder="Dia do Mês" list="dias-mes-list" value="">
+            <datalist id="dias-mes-list"></datalist>
+
+            <input type="text" name="responsavel_pela_visita" placeholder="Responsável pela Visitação" list="responsaveis-visita-list" value="">
+            <datalist id="responsaveis-visita-list"></datalist>
+
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="sem_responsavel_pela_visita" name="sem_responsavel_pela_visita"> Sem Responsável pela visitação</label>
+            </div>
+
+            <div class="button-group">
+                <button type="submit">Aplicar Filtros</button>
+                <button type="button" id="clearFiltersVisitas">Limpar Filtros</button>
+                <button type="button" id="exportCsvVisitas">Exportar para CSV</button>
+                <button type="button" id="exportXlsxVisitas">Exportar para XLSX</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="metrics" id="metrics-visitas">
+        <h3>Métricas</h3>
+        <div class="metrics-grid">
+            <p>Total de Formações: <span id="visitas-total-formacoes">0</span></p>
+            <p>Formações Visitadas: <span id="visitas-formacoes-visitadas">0</span></p>
+            <p>Formações com Problemas: <span id="visitas-formacoes-problemas">0</span></p>
+            <p>% de Visitação: <span id="visitas-pct-visitacao">0%</span></p>
+        </div>
+    </div>
+
+    <div id="table-visitas">
+        <h3>Tabela de Resultados</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+        <div class="pagination-container" id="pagination-visitas"></div>
+    </div>
 </div>
 
 <div id="resultados-presenca" class="section" style="display:none;">
@@ -475,6 +532,7 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersPresenca">Limpar Filtros</button>
                 <button type="button" id="exportCsvPresenca">Exportar para CSV</button>
+                <button type="button" id="exportXlsxPresenca">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -523,6 +581,7 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersAcompanhamento">Limpar Filtros</button>
                 <button type="button" id="exportCsvAcompanhamento">Exportar para CSV</button>
+                <button type="button" id="exportXlsxAcompanhamento">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -576,6 +635,7 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersAvaliacao">Limpar Filtros</button>
                 <button type="button" id="exportCsvAvaliacao">Exportar para CSV</button>
+                <button type="button" id="exportXlsxAvaliacao">Exportar para XLSX</button>
             </div>
         </div>
     </form>
@@ -623,6 +683,7 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersDemandas">Limpar Filtros</button>
                 <button type="button" id="exportCsvDemandas">Exportar para CSV</button>
+                <button type="button" id="exportXlsxDemandas">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -632,8 +693,8 @@
         <div class="metrics-grid">
             <p>Formulários Enviados: <span id="demandas-num_formularios">0</span></p>
             <p>Escolas Visitadas (únicas): <span id="demandas-num_escolas_visitadas_unicas">0</span></p>
-            <p>PMs Orientados: <span id="demandas-total_pms_orientados">0</span></p>
-            <p>Cursistas Orientados: <span id="demandas-total_cursistas_orientados">0</span></p>
+            <p>PMs Orientados: <span id="demandas-total_pms_orientados">0</span> / <span id="demandas-total_pms_esperados">0</span></p>
+            <p>Cursistas Orientados: <span id="demandas-total_cursistas_orientados">0</span> / <span id="demandas-total_cursistas_esperados">0</span></p>
         </div>
     </div>
 
@@ -677,6 +738,7 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersAteste">Limpar Filtros</button>
                 <button type="button" id="exportCsvAteste">Exportar para CSV</button>
+                <button type="button" id="exportXlsxAteste">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -722,54 +784,26 @@
     <h2>Ferramentas de Administração</h2>
 
     <div class="form-section">
-        <h3>Gerenciar Usuário e Participante</h3>
-        <p>Pesquise por um CPF para adicionar, editar ou remover um participante da base de dados e seu nível de acesso. Campos marcados com * são obrigatórios para novos usuários.</p>
+        <h3>Gerenciar Usuários (Simplificado)</h3>
+        <p>Pesquise por um CPF para ver o status do usuário. Se o usuário existir, você pode editar o nível de acesso. Se não existir, você pode adicioná-lo ao sistema.</p>
         <form id="manageUserForm">
             <div class="user-search-container">
-                <label for="search-cpf">Pesquisar por CPF:</label>
+                <label for="search-cpf">Pesquisar ou Adicionar CPF:</label>
                 <input type="text" id="search-cpf" name="search_cpf" placeholder="Digite o CPF">
                 <button type="button" id="search-button">Pesquisar</button>
             </div>
-            <br>
+            
             <div id="user-details-form" style="display:none;">
                 <input type="hidden" id="user-id">
                 
-                <label for="user-cpf">CPF: *</label>
-                <input type="text" id="user-cpf" name="cpf" readonly required>
-
-                <label for="user-nome">Nome Completo: *</label>
-                <input type="text" id="user-nome" name="nome" required>
-
-                <label for="user-escola">Escola:</label>
-                <input type="text" id="user-escola" name="escola">
-
-                <label for="user-de">Diretoria de Ensino:</label>
-                <input type="text" id="user-de" name="diretoria_de_ensino">
-
-                <label for="user-tema">Tema:</label>
-                <input type="text" id="user-tema" name="tema">
-
-                <label for="user-responsavel">Responsável:</label>
-                <input type="text" id="user-responsavel" name="responsavel">
-
-                <label for="user-turma">Turma:</label>
-                <input type="text" id="user-turma" name="turma">
-
-                <label for="user-etapa">Etapa:</label>
-                <input type="text" id="user-etapa" name="etapa">
-                
-                <label for="user-di">DI:</label>
-                <input type="text" id="user-di" name="di">
-                
-                <label for="user-pei">PEI:</label>
-                <input type="text" id="user-pei" name="pei">
-                
-                <label for="user-declinou">Declinou:</label>
-                <input type="text" id="user-declinou" name="declinou">
-                
                 <hr>
 
-                <label for="user-access-level">Nível de Acesso: *</label>
+                <p><b>Dados do Usuário</b></p>
+
+                <label for="user-cpf">CPF:</label>
+                <input type="text" id="user-cpf" name="cpf" required>
+                
+                <label for="user-access-level">Nível de Acesso:</label>
                 <select id="user-access-level" name="access_level" required>
                     <option value="no_access">Sem Acesso</option>
                     <option value="basic_access">Basic Access (PM/PC)</option>
@@ -779,12 +813,28 @@
                 </select>
                 
                 <div class="button-group">
-                    <button type="submit" id="save-user-button">Salvar</button>
+                    <button type="submit" id="save-user-button">Adicionar Novo Usuário</button>
                     <button type="button" id="delete-user-button" class="red-button">Excluir</button>
                     <button type="button" id="new-user-button">Limpar Formulário</button>
                 </div>
             </div>
         </form>
+    </div>
+
+    <div id="resultados-usuarios" class="section" style="display:block;">
+        <h2>Resultados - Usuários</h2>
+        <div id="table-usuarios">
+            <h3>Tabela de Usuários</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="pagination-container" id="pagination-usuarios"></div>
+        </div>
     </div>
     
     <div class="form-section">
@@ -796,6 +846,42 @@
             <button type="submit">Fazer Upload e Atualizar</button>
         </form>
         <div id="uploadStatus" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+    <div class="form-section">
+        <h3>Gerenciar Visibilidade de Elementos</h3>
+        <p>Selecione um elemento para ocultar ou mostrar. Elementos ocultados não serão visíveis para os usuários com níveis de acesso abaixo de Super Admin.</p>
+        <form id="visibilityForm">
+            <label for="element-select">Elemento:</label>
+            <select id="element-select" required>
+                <option value="">Selecione um elemento</option>
+                <optgroup label="Formulários">
+                    <option value="form-presenca">Registro de Presença</option>
+                    <option value="form-acompanhamento">Acompanhamento de Encontros</option>
+                    <option value="form-avaliacao">Formulário de Avaliação</option>
+                    <option value="form-demandas">Registro de Demandas</option>
+                </optgroup>
+                <optgroup label="Resultados">
+                    <option value="resultados-presenca">Resultados de Presença</option>
+                    <option value="resultados-acompanhamento">Resultados Acompanhamento</option>
+                    <option value="resultados-avaliacao">Resultados de Avaliação</option>
+                    <option value="resultados-demandas">Resultados de Demandas</option>
+                    <option value="controle-ateste">Controle para Ateste</option>
+                    <option value="links-visitacoes">Links para Visitações</option>
+                </optgroup>
+                <optgroup label="Outros">
+                    <option value="painel-bi">Painel BI</option>
+                    <option value="links-importantes">Links Importantes</option>
+                </optgroup>
+            </select>
+            <label for="visibility-status">Status:</label>
+            <select id="visibility-status" required>
+                <option value="false">Visível</option>
+                <option value="true">Oculto</option>
+            </select>
+            <button type="submit">Salvar Visibilidade</button>
+        </form>
+        <div id="visibility-status-message"></div>
     </div>
 
 
