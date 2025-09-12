@@ -43,6 +43,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'xlsx'}
 app.config['DOWNLOAD_FOLDER'] = 'downloads'
+app.config['APP_VERSION'] = '1.0.0'
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
@@ -619,7 +620,8 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
+        # Correção aqui: Converte os valores para int e depois para string, ignorando nulos.
+        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique() if pd.notna(d)])
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -688,7 +690,7 @@ def get_turmas_by_tema_and_responsavel_basic():
     if responsavel and tema and PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
         filtered_turmas = PARTICIPANTES_DF[
             (PARTICIPANTES_DF['responsavel'] == responsavel) & 
-            (PARTICIPANTES_DF['tema'] == tema)
+            (PARTIPANTES_DF['tema'] == tema)
         ]['turma'].dropna().unique()
         return jsonify(sorted(list(filtered_turmas)))
     return jsonify([])
@@ -1398,7 +1400,7 @@ def get_results(table_name):
                         df_merged = df_merged[df_merged[key].astype(str).str.contains(value, case=False, na=False)]
                     elif key == 'dia_do_mes':
                         # CORREÇÃO APLICADA AQUI: Garante que a coluna 'dia_do_mes' é string antes de comparar
-                        df_merged = df_merged[df_merged[key].astype(str) == value]
+                        df_merged = df_merged[df_merged[key].astype(str).replace(r'\.0$', '', regex=True) == str(value)]
                     elif key == 'sem_responsavel_pela_visita' and value == 'true':
                         df_merged = df_merged[df_merged['responsavel_visita'].isnull() | (df_merged['responsavel_visita'] == '')]
                         
