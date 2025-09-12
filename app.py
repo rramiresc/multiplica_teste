@@ -99,7 +99,7 @@ def format_date(d):
 def format_time(t):
     if isinstance(t, datetime):
         return t.astimezone(SAO_PAULO_TIMEZONE).strftime('%H:%M')
-    return t
+    return dt
 
 # Criptografar senha
 def hash_password(password):
@@ -313,7 +313,11 @@ def load_links_base():
         LINKS_DF = pd.read_excel(file_path)
         LINKS_DF.columns = LINKS_DF.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('á', 'a').str.replace('ã', 'a').str.replace('ç', 'c').str.replace('ê', 'e').str.replace('ô', 'o')
         LINKS_DF.rename(columns={'nome_turma': 'turma', 'url': 'url_formacao'}, inplace=True)
-        LINKS_DF['dia_do_mes'] = LINKS_DF['dia_do_mes'].astype(str) # Força a conversão para string
+        # Garante que a coluna 'dia_do_mes' existe e é do tipo string
+        if 'dia_do_mes' in LINKS_DF.columns:
+             LINKS_DF['dia_do_mes'] = LINKS_DF['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+        else:
+             LINKS_DF['dia_do_mes'] = None
         LINKS_DF.replace({np.nan: None}, inplace=True)
         print("Base de links de visitação carregada com sucesso!")
         return True
@@ -617,7 +621,14 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
+        
+        # AQUI FOI CORRIGIDO: Conversão para string e remoção de nulos
+        if 'dia_do_mes' in all_links.columns:
+            all_links['dia_do_mes'] = all_links['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique()])
+        else:
+            data['visitas_dias_mes'] = []
+
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -1364,11 +1375,19 @@ def get_results(table_name):
             visitas_db = Visita.query.all()
             visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
             visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
-            visitas_df['dia_do_mes'] = visitas_df['dia_do_mes'].astype(str)
+            
+            # Garante que a coluna 'url_formacao' está presente em ambos os dataframes antes do merge
+            if 'url_formacao' not in visitas_df.columns:
+                 visitas_df['url_formacao'] = None
+            if 'url_formacao' not in df_links.columns:
+                 df_links['url_formacao'] = None
 
-            # Unindo os dataframes
             df_merged = pd.merge(df_links, visitas_df, on='url_formacao', how='left')
             df_merged.replace({np.nan: None}, inplace=True)
+            
+            # Converte a coluna `dia_do_mes` para string e remove nulos antes de filtrar
+            if 'dia_do_mes' in df_merged.columns:
+                 df_merged['dia_do_mes'] = df_merged['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
             
             # Aplicando os filtros da URL
             filters = request.args.to_dict()
@@ -1379,7 +1398,6 @@ def get_results(table_name):
                     if key in ['tema', 'turma', 'dia_da_semana', 'responsavel_visita', 'responsavel_pela_visita']:
                         df_merged = df_merged[df_merged[key].astype(str).str.contains(value, case=False, na=False)]
                     elif key == 'dia_do_mes':
-                        # CORREÇÃO APLICADA AQUI: Garante que a coluna 'dia_do_mes' é string antes de comparar
                         df_merged = df_merged[df_merged[key].astype(str) == value]
                     elif key == 'sem_responsavel_pela_visita' and value == 'true':
                         df_merged = df_merged[df_merged['responsavel_visita'].isnull() | (df_merged['responsavel_visita'] == '')]
