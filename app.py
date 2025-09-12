@@ -620,8 +620,12 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        # Correção aqui: Converte os valores para int e depois para string, ignorando nulos.
-        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique() if pd.notna(d)])
+        # CORREÇÃO AQUI: Garante que apenas valores numéricos são convertidos para int e depois para string.
+        if 'dia_do_mes' in all_links.columns:
+            data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique() if pd.notna(d)])
+        else:
+            data['visitas_dias_mes'] = []
+
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -690,7 +694,7 @@ def get_turmas_by_tema_and_responsavel_basic():
     if responsavel and tema and PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
         filtered_turmas = PARTICIPANTES_DF[
             (PARTICIPANTES_DF['responsavel'] == responsavel) & 
-            (PARTIPANTES_DF['tema'] == tema)
+            (PARTICIPANTES_DF['tema'] == tema)
         ]['turma'].dropna().unique()
         return jsonify(sorted(list(filtered_turmas)))
     return jsonify([])
