@@ -937,20 +937,17 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             let url;
             let record;
-            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios') {
-                url = `/get_record/${tableId}/${recordId}`;
-            } else if (tableId === 'visitas') {
-                // CORREÇÃO: Usa a rota de path para a URL
+            if (tableId === 'visitas') {
                 url = `/get_record/${tableId}/${encodeURIComponent(recordId)}`;
             } else {
                 url = `/get_record/${tableId}/${recordId}`;
             }
             const response = await fetch(url);
     
+            // CORRIGIDO: Lógica aprimorada para lidar com o 404 de registros de visitação
             if (!response.ok) {
-                // CORREÇÃO: Trata o 404 para permitir a criação de um novo registro de visita
                 if (response.status === 404 && tableId === 'visitas') {
-                    // Prepara o modal para um novo registro
+                    // O registro não existe no BD, então o modal será para criar um novo.
                     const userResponse = await fetch('/get_user_info');
                     const userData = await userResponse.json();
                     userAccessLevel = userData.access_level;
@@ -998,29 +995,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 canEdit = true;
             } else {
                  switch (tableId) {
-                    case 'presenca':
-                        canEdit = record.cpf_participante === userCpf || record.responsavel === userName || record.nome_substituto === userName;
-                        break;
-                    case 'acompanhamento':
-                        canEdit = record.responsavel_acompanhamento === userName;
-                        break;
-                    case 'avaliacao':
-                        canEdit = record.observador === userName;
-                        break;
-                    case 'demandas':
-                        canEdit = record.cpf_pec === userCpf;
-                        break;
-                    case 'ateste':
-                        canEdit = record.cpf === userCpf;
-                        break;
-                    case 'usuarios':
-                        canEdit = record.cpf === userCpf;
-                        break;
                     case 'visitas':
                         canEdit = (record.cpf_responsavel_visita && record.cpf_responsavel_visita === userCpf) || (!record.cpf_responsavel_visita);
                         break;
                     default:
-                        canEdit = false;
+                        // Para outras tabelas, a lógica de checagem do proprietário é mais simples
+                        canEdit = record.cpf_participante === userCpf || record.responsavel === userName || record.observador === userName || record.cpf_pec === userCpf || record.cpf === userCpf;
+                        break;
                 }
             }
 
@@ -1305,14 +1286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const recordIdentifier = tableId === 'participantes_base_editavel' || tableId === 'usuarios' ? docData.cpf : (tableId === 'visitas' ? docData.url_formacao : docData.id);
 
                         const editButton = document.createElement('button');
-                        
-                        // CORREÇÃO: Altera o texto do botão para "Reservar" se o registro não tiver responsável
-                        if (tableId === 'visitas' && !docData.responsavel_visita) {
-                            editButton.textContent = 'Reservar';
-                        } else {
-                            editButton.textContent = 'Editar';
-                        }
-                        
+                        editButton.textContent = 'Editar';
                         editButton.classList.add('edit-button');
                         editButton.onclick = () => openEditModal(recordIdentifier, tableId);
                         
@@ -2282,156 +2256,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cancelEditLinkButton').style.display = 'none';
         });
     }
-
-    async function loadLinksPage() {
-        const linksContainer = document.getElementById('links-container');
-        try {
-            const response = await fetch('/get_links');
-            const links = await response.json();
-            linksContainer.innerHTML = '';
-            if (links.length > 0) {
-                links.forEach(link => {
-                    const linkCard = document.createElement('div');
-                    linkCard.classList.add('link-card');
-                    linkCard.innerHTML = `
-                        <div class="link-info">
-                            <h3><a href="${link.url}" target="_blank">${link.titulo}</a></h3>
-                            <p>${link.descricao}</p>
-                        </div>
-                        <div class="link-image-container">
-                            <img src="${link.imagem_url}" alt="${link.titulo}" class="link-image">
-                        </div>
-                    `;
-                    linksContainer.appendChild(linkCard);
-                });
-            } else {
-                linksContainer.innerHTML = '<p>Nenhum link importante cadastrado no momento.</p>';
-            }
-        } catch (error) {
-            console.error('ERRO JS: Erro ao carregar links:', error);
-            linksContainer.innerHTML = '<p>Ocorreu um erro ao carregar os links.</p>';
-        }
-    }
-
-
-    const clearAllDataButton = document.getElementById('clearAllDataButton');
-    if (clearAllDataButton) {
-        clearAllDataButton.addEventListener('click', async () => {
-            if (confirm('ATENÇÃO: Esta ação é irreversível. Tem certeza que deseja apagar TODOS os dados dos formulários?')) {
-                try {
-                    const response = await fetch('/admin_tools', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ action: 'clear_all' })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        window.location.reload();
-                    } else {
-                        alert('Erro ao limpar os dados: ' + result.message);
-                    }
-                } catch (error) {
-                    console.error('ERRO JS: Erro ao limpar os dados:', error);
-                    alert('Ocorreu um erro ao tentar limpar os dados.');
-                }
-            }
-        });
-    }
-
-    const downloadAllReportsButton = document.getElementById('downloadAllReportsButton');
-    const downloadStatus = document.getElementById('downloadStatus');
-
-    if (downloadAllReportsButton) {
-        downloadAllReportsButton.addEventListener('click', async () => {
-            downloadAllReportsButton.disabled = true;
-            downloadAllReportsButton.textContent = 'Gerando Relatórios...';
-            downloadStatus.textContent = 'A geração do relatório foi iniciada. Aguarde, o download começará em breve.';
-
-            try {
-                // Rota corrigida para iniciar o processo assíncrono
-                const response = await fetch('/download_all_reports_async');
-                const result = await response.json();
-
-                if (result.success) {
-                    const checkStatusInterval = setInterval(async () => {
-                        try {
-                            const statusResponse = await fetch('/check_download_status');
-                            const statusResult = await statusResponse.json();
-
-                            if (statusResult.status === 'ready') {
-                                clearInterval(checkStatusInterval);
-                                downloadStatus.textContent = 'Relatório pronto! O download irá começar...';
-                                // Dispara o download do arquivo
-                                window.location.href = `/download_file/${statusResult.filename}`;
-                                
-                                // Resetar o estado do botão após um pequeno atraso
-                                setTimeout(() => {
-                                    downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                                    downloadAllReportsButton.disabled = false;
-                                    downloadStatus.textContent = '';
-                                }, 3000);
-
-                            } else {
-                                downloadStatus.textContent += '.';
-                            }
-                        } catch (statusError) {
-                            clearInterval(checkStatusInterval);
-                            console.error('ERRO JS: Erro ao verificar o status do download:', statusError);
-                            downloadStatus.textContent = 'Erro ao verificar o status do download. Tente novamente mais tarde.';
-                            downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                            downloadAllReportsButton.disabled = false;
-                        }
-                    }, 5000); // Verifica a cada 5 segundos
-
-                } else {
-                    alert('Erro ao iniciar a geração dos relatórios: ' + result.message);
-                    downloadStatus.textContent = 'Erro: ' + result.message;
-                    downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                    downloadAllReportsButton.disabled = false;
-                }
-            } catch (error) {
-                console.error('ERRO JS: Erro ao iniciar a requisição de download:', error);
-                alert('Ocorreu um erro na requisição. Tente novamente.');
-                downloadStatus.textContent = 'Erro ao conectar com o servidor.';
-                downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
-                downloadAllReportsButton.disabled = false;
-            }
-        });
-    }
-
-    const toggleFormResultButtons = document.querySelectorAll('.toggle-form-result');
-    toggleFormResultButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const formId = this.dataset.formId;
-            const resultId = this.dataset.resultId;
-
-            const formSection = document.getElementById(formId);
-            const resultSection = document.getElementById(resultId);
-
-            if (formSection && resultSection) {
-                const isFormVisible = formSection.style.display === 'block';
-                if (isFormVisible) {
-                    formSection.style.display = 'none';
-                    resultSection.style.display = 'block';
-                    if (resultId === 'controle-ateste') {
-                        fetchResults('ateste');
-                    } else {
-                        const tableId = resultId.split('-')[1];
-                        currentPage[tableId] = 1;
-                        fetchResults(tableId, 1);
-                    }
-                    this.textContent = 'Exibir Formulário';
-                } else {
-                    formSection.style.display = 'block';
-                    resultSection.style.display = 'none';
-                    this.textContent = 'Ocultar Resultado';
-                }
-            }
-        });
-    });
 
 
     // ====================================================================
