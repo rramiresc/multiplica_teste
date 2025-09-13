@@ -1373,7 +1373,7 @@ def get_results(table_name):
             metrics_query = db.session.query(
                 func.count(distinct(tuple_(Ateste.nome_quem_preencheu, Ateste.tema, Ateste.turma, Ateste.data_formacao))).label('num_formacoes_unicas'),
                 func.sum(Ateste.valor_formacao).label('total_pagar')
-            ).filter(Ateste.id.in_(subquery_for_metrics)).first()
+            ).filter(Model.id.in_(subquery_for_metrics)).first()
             
             metrics = {
                 'num_formacoes_unicas': metrics_query.num_formacoes_unicas or 0,
@@ -2062,92 +2062,6 @@ def edit_record(table_name):
         app.logger.error(f"Erro ao editar registro: {e}")
         return jsonify({'success': False, 'message': f'Erro ao atualizar registro: {e}'}), 500
 
-@app.route('/get_record/<table_name>/<path:record_id>', methods=['GET'])
-@login_required('basic_access')
-def get_record(table_name, record_id):
-    if table_name not in MODEL_MAP:
-        return jsonify({'error': 'Tabela não encontrada.'}), 404
-
-    Model = MODEL_MAP[table_name]
-
-    if table_name == 'usuarios':
-        record = Model.query.filter_by(cpf=record_id).first()
-    elif table_name == 'visitas':
-        record = Model.query.filter_by(url_formacao=record_id).first()
-        if not record:
-            return jsonify({'error': 'Registro não encontrado.'}), 404
-    else:
-        try:
-            record = Model.query.get(int(record_id))
-        except (ValueError, TypeError):
-            return jsonify({'error': 'ID de registro inválido.'}), 400
-
-    if not record:
-        return jsonify({'error': 'Registro não encontrado.'}), 404
-    
-    user_access_level = session.get('access_level')
-    user_cpf = session.get('user_cpf')
-
-    if user_access_level != 'super_admin':
-        is_owner = False
-        
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
-        user_name = user_info[0].get('nome') if user_info else None
-
-        if table_name == 'presenca':
-            is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
-        elif table_name == 'acompanhamento':
-            is_owner = record.responsavel_acompanhamento == user_name
-        elif table_name == 'avaliacao':
-            is_owner = record.observador == user_name
-        elif table_name == 'demandas':
-            is_owner = record.cpf_pec == user_cpf
-        elif table_name == 'ateste':
-            is_owner = record.cpf == user_cpf
-        elif table_name == 'usuarios':
-            is_owner = record.cpf == user_cpf
-        elif table_name == 'visitas':
-            is_owner = (record.cpf_responsavel_visita and record.cpf_responsavel_visita == user_cpf) or not record.cpf_responsavel_visita
-        
-        if not is_owner:
-             return jsonify({'success': False, 'message': 'Acesso negado. Você só pode ver seus próprios registros.'}), 403
-
-    data = {}
-    for column in inspect(Model).c:
-        value = getattr(record, column.name)
-        if isinstance(value, (datetime, date)):
-            data[column.name] = value.isoformat()
-        else:
-            data[column.name] = value
-    
-    return jsonify(data)
-
-
-@app.route('/admin/toggle_visibility', methods=['POST'])
-@login_required('super_admin')
-def toggle_visibility():
-    data = request.json
-    element_id = data.get('element_id')
-    is_hidden = data.get('is_hidden')
-
-    if not element_id:
-        return jsonify({'success': False, 'message': 'ID do elemento não fornecido.'}), 400
-
-    try:
-        element = HiddenElement.query.filter_by(element_id=element_id).first()
-        if element:
-            element.is_hidden = is_hidden
-        else:
-            element = HiddenElement(element_id=element_id, is_hidden=is_hidden)
-            db.session.add(element)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Visibilidade alterada com sucesso.'})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
-        return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
-
-# CORRIGIDO: Agora a rota usa o conversor 'path' para URLs complexas
 @app.route('/get_record/<table_name>/<path:record_id>', methods=['GET'])
 @login_required('basic_access')
 def get_record(table_name, record_id):
