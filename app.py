@@ -511,9 +511,10 @@ def register():
         if user_in_data:
             etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
             access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
+            
             if access_levels_found:
                 highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
-            
+        
         new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=highest_access_level)
         try:
             db.session.add(new_user)
@@ -1373,7 +1374,7 @@ def get_results(table_name):
             metrics_query = db.session.query(
                 func.count(distinct(tuple_(Ateste.nome_quem_preencheu, Ateste.tema, Ateste.turma, Ateste.data_formacao))).label('num_formacoes_unicas'),
                 func.sum(Ateste.valor_formacao).label('total_pagar')
-            ).filter(Ateste.id.in_(subquery_for_metrics)).first()
+            ).filter(Model.id.in_(subquery_for_metrics)).first()
             
             metrics = {
                 'num_formacoes_unicas': metrics_query.num_formacoes_unicas or 0,
@@ -1499,13 +1500,25 @@ def upload_base():
     
     return jsonify({'success': False, 'message': 'Formato de arquivo não permitido. Apenas .xlsx é aceito.'}), 400
 
+@app.route('/download_all_reports_async', methods=['GET'])
+@login_required("super_admin")
+def download_all_reports_async():
+    try:
+        user_cpf = session.get('user_cpf')
+        thread = Thread(target=generate_and_save_reports, args=(user_cpf,))
+        thread.start()
+        return jsonify({'success': True, 'message': 'A geração do relatório foi iniciada em segundo plano. O download começará em breve.'})
+    except Exception as e:
+        app.logger.error(f"Erro ao iniciar a thread de exportação: {e}")
+        return jsonify({'success': False, 'message': 'Erro ao iniciar a geração dos relatórios.'}), 500
+
 def generate_and_save_reports(user_cpf):
     """
     Função para gerar o arquivo zip de relatórios em segundo plano.
     """
     with app.app_context():
         try:
-            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos']
+            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos', 'visitas']
             zip_filename = f'todos_relatorios_{now_sp().strftime("%Y%m%d%H%M%S")}.zip'
             zip_path = os.path.join(app.config['DOWNLOAD_FOLDER'], zip_filename)
 
@@ -1564,18 +1577,6 @@ def generate_and_save_reports(user_cpf):
         except Exception as e:
             app.logger.error(f"Erro ao gerar o zip de relatórios em segundo plano para {user_cpf}: {e}")
             
-@app.route('/download_all_reports_async', methods=['GET'])
-@login_required("super_admin")
-def download_all_reports_async():
-    try:
-        user_cpf = session.get('user_cpf')
-        thread = Thread(target=generate_and_save_reports, args=(user_cpf,))
-        thread.start()
-        return jsonify({'success': True, 'message': 'A geração do relatório foi iniciada. Você será notificado quando o download estiver pronto.'})
-    except Exception as e:
-        app.logger.error(f"Erro ao iniciar a thread de exportação: {e}")
-        return jsonify({'success': False, 'message': 'Erro ao iniciar a geração dos relatórios.'}), 500
-
 @app.route('/check_download_status', methods=['GET'])
 @login_required("super_admin")
 def check_download_status():
@@ -2062,7 +2063,6 @@ def edit_record(table_name):
         app.logger.error(f"Erro ao editar registro: {e}")
         return jsonify({'success': False, 'message': f'Erro ao atualizar registro: {e}'}), 500
 
-# CORRIGIDO: Agora a rota usa o conversor 'path' para URLs complexas
 @app.route('/get_record/<table_name>/<path:record_id>', methods=['GET'])
 @login_required('basic_access')
 def get_record(table_name, record_id):
@@ -2070,11 +2070,13 @@ def get_record(table_name, record_id):
         return jsonify({'error': 'Tabela não encontrada.'}), 404
 
     Model = MODEL_MAP[table_name]
-    
+
     if table_name == 'usuarios':
         record = Model.query.filter_by(cpf=record_id).first()
     elif table_name == 'visitas':
         record = Model.query.filter_by(url_formacao=record_id).first()
+        if not record:
+            return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
         try:
             record = Model.query.get(int(record_id))
