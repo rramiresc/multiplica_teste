@@ -424,7 +424,7 @@
             </div>
             <label for="observacao_demandas">Observação (opcional):</label>
             <textarea id="observacao_demandas" name="observacao_demandas" rows="3"></textarea>
-        </div>
+
         <button type="submit">Enviar</button>
     </form>
 </div>
@@ -434,7 +434,6 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormVisitas">
-            
             <input type="text" id="tema_visitas" name="tema" placeholder="Tema" list="temas-list-visitas" value="">
             <datalist id="temas-list-visitas"></datalist>
             
@@ -572,13 +571,10 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAcompanhamento">
-            <label for="responsavel_acompanhamento_filtro">Responsável pelo Acompanhamento:</label>
             <input type="text" id="responsavel_acompanhamento_filtro" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
             
-            <label for="formador_assistido_filtro">Responsável pela Formação:</label>
             <input type="text" id="formador_assistido_filtro" name="formador_assistido" placeholder="Responsável pela Formação" value="">
             
-            <label for="semana_acompanhamento_filtro">Semana (Domingo a Sábado):</label>
             <input type="week" id="semana_acompanhamento_filtro" name="semana" placeholder="Semana (Domingo a Sábado)" value="">
 
             <div class="button-group">

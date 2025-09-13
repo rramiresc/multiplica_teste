@@ -93,7 +93,7 @@ def format_datetime(dt):
 
 def format_date(d):
     if isinstance(d, datetime):
-        return d.astimezone(SAO_PAUL_TIMEZONE).strftime('%d/%m/%Y')
+        return d.astimezone(SAO_PAULO_TIMEZONE).strftime('%d/%m/%Y')
     return d
 
 def format_time(t):
@@ -507,14 +507,14 @@ def register():
 
         # Determinar nível de acesso a partir da base de participantes
         user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
-        access_level_to_assign = 'no_access'
+        highest_access_level = "no_access"
         if user_in_data:
             etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
             access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
             if access_levels_found:
-                access_level_to_assign = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
+                highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
             
-        new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=access_level_to_assign)
+        new_user = Usuario(cpf=cpf, password_hash=hashed_password, access_level=highest_access_level)
         try:
             db.session.add(new_user)
             db.session.commit()
@@ -621,7 +621,14 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
+        
+        # AQUI FOI CORRIGIDO: Conversão para string e remoção de nulos
+        if 'dia_do_mes' in all_links.columns:
+            all_links['dia_do_mes'] = all_links['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique()])
+        else:
+            data['visitas_dias_mes'] = []
+
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -1492,7 +1499,6 @@ def upload_base():
     
     return jsonify({'success': False, 'message': 'Formato de arquivo não permitido. Apenas .xlsx é aceito.'}), 400
 
-# CORRIGIDO: Rota de exportação assíncrona
 @app.route('/download_all_reports_async', methods=['GET'])
 @login_required("super_admin")
 def download_all_reports_async():
@@ -2056,7 +2062,6 @@ def edit_record(table_name):
         app.logger.error(f"Erro ao editar registro: {e}")
         return jsonify({'success': False, 'message': f'Erro ao atualizar registro: {e}'}), 500
 
-# CORRIGIDO: Agora a rota usa o conversor 'path' para URLs complexas
 @app.route('/get_record/<table_name>/<path:record_id>', methods=['GET'])
 @login_required('basic_access')
 def get_record(table_name, record_id):
@@ -2064,13 +2069,13 @@ def get_record(table_name, record_id):
         return jsonify({'error': 'Tabela não encontrada.'}), 404
 
     Model = MODEL_MAP[table_name]
-    
+
     if table_name == 'usuarios':
         record = Model.query.filter_by(cpf=record_id).first()
     elif table_name == 'visitas':
         record = Model.query.filter_by(url_formacao=record_id).first()
         if not record:
-             return jsonify({'error': 'Registro não encontrado.'}), 404
+            return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
         try:
             record = Model.query.get(int(record_id))
