@@ -621,7 +621,14 @@ def get_all_datalists():
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
-        data['visitas_dias_mes'] = sorted([str(int(d)) for d in all_links['dia_do_mes'].dropna().unique()])
+        
+        # AQUI FOI CORRIGIDO: Conversão para string e remoção de nulos
+        if 'dia_do_mes' in all_links.columns:
+            all_links['dia_do_mes'] = all_links['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique()])
+        else:
+            data['visitas_dias_mes'] = []
+
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
         return jsonify(data)
@@ -2067,6 +2074,8 @@ def get_record(table_name, record_id):
         record = Model.query.filter_by(cpf=record_id).first()
     elif table_name == 'visitas':
         record = Model.query.filter_by(url_formacao=record_id).first()
+        if not record:
+            return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
         try:
             record = Model.query.get(int(record_id))
