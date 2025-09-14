@@ -1407,6 +1407,13 @@ def get_results(table_name):
                  df_links['url_formacao'] = None
 
             df_merged = pd.merge(df_links, visitas_df, on='url_formacao', how='left')
+            
+            # Garante que as colunas do banco de dados existem antes de acessá-las
+            db_cols = [c.name for c in Visita.__table__.columns]
+            for col in db_cols:
+                if col not in df_merged.columns:
+                    df_merged[col] = None
+
             df_merged.replace({np.nan: None}, inplace=True)
             
             # Converte a coluna `dia_do_mes` para string e remove nulos antes de filtrar
@@ -1465,22 +1472,29 @@ def get_results(table_name):
                 'metrics': metrics
             })
 
-
-        total_items = filtered_query.count()
-        paginated_query = filtered_query.paginate(page=page, per_page=per_page, error_out=False)
-        
+        # Adicionar a lógica para a nova exibição da semana nas tabelas de Presença e Acompanhamento
+        results_list = filtered_query.all()
         results = []
-        for obj in paginated_query.items:
+        for obj in results_list:
             data = {}
             for column in inspect(Model).c:
                 value = getattr(obj, column.name)
                 if isinstance(value, (datetime, date)):
                     data[column.name] = value.isoformat()
+                elif column.name == 'semana':
+                    try:
+                        year, week = map(int, value.split('-W'))
+                        start_date = get_sunday_of_week(year, week)
+                        end_date = get_saturday_of_week(year, week)
+                        data[column.name] = f"de {start_date.strftime('%d/%m')} a {end_date.strftime('%d/%m')}"
+                    except (ValueError, TypeError):
+                        data[column.name] = value # Mantém o formato original se houver erro
                 else:
                     data[column.name] = value
             results.append(data)
         
         columns = [column.key for column in Model.__table__.columns]
+        total_items = filtered_query.count()
         
         return jsonify({
             'results': results,
@@ -1492,7 +1506,7 @@ def get_results(table_name):
 
     except Exception as e:
         app.logger.error(f"Erro em /get_results/{table_name}: {e}")
-        return jsonify({'error': f'Erro ao buscar dados: {e}'}), 500
+        return jsonify({'error': f"Erro ao buscar dados: {e}"}), 500
 
 @app.route('/upload_base', methods=['POST'])
 @login_required('super_admin')
@@ -1861,6 +1875,12 @@ def get_export_data_token(table_name):
             if 'dia_do_mes' in df.columns:
                  df['dia_do_mes'] = df['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
             
+            # Garante que as colunas do banco de dados existem antes de acessá-las
+            db_cols = [c.name for c in Visita.__table__.columns]
+            for col in db_cols:
+                if col not in df.columns:
+                    df[col] = None
+
             for key, value in filters.items():
                 if value:
                     if key in ['tema', 'turma', 'dia_da_semana', 'responsavel_visita', 'responsavel_pela_visita']:
@@ -1878,6 +1898,14 @@ def get_export_data_token(table_name):
         results = query.all()
         df = pd.DataFrame([obj.__dict__ for obj in results])
         df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
+
+        # Adicionar a lógica para a nova exibição da semana nas tabelas de Presença e Acompanhamento
+        if table_name in ['presenca', 'acompanhamento', 'demandas']:
+            if 'semana' in df.columns:
+                 df['semana'] = df['semana'].apply(
+                    lambda x: f"de {get_sunday_of_week(int(x.split('-W')[0]), int(x.split('-W')[1])).strftime('%d/%m')} a {get_saturday_of_week(int(x.split('-W')[0]), int(x.split('-W')[1])).strftime('%d/%m')}"
+                    if x and '-W' in x else x
+                )
 
         # Converte o DataFrame para o formato de JSON de registros
         json_records = df.to_json(orient='records', date_format='iso')
