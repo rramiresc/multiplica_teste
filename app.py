@@ -368,7 +368,7 @@ def login_required(access_level_required):
             
             return fn(*args, **kwargs)
         return decorated_view
-    return decorated_view
+    return wrapper
     
 def allowed_file(filename):
     return '.' in filename and \
@@ -1843,6 +1843,11 @@ def get_export_data(table_name):
 
 
         return df.to_json(orient='records', date_format='iso')
+    
+    # Adicionando o bloco `except` e `finally` para corrigir o SyntaxError
+    except Exception as e:
+        app.logger.error(f"Erro ao gerar dados para exportação: {e}")
+        return jsonify({'error': f'Erro ao gerar dados: {e}'}), 500
 
 @app.route('/export_csv/<table_name>', methods=['GET'])
 @login_required("basic_access")
