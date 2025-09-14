@@ -368,7 +368,7 @@ def login_required(access_level_required):
             
             return fn(*args, **kwargs)
         return decorated_view
-    return wrapper
+    return decorated_view
     
 def allowed_file(filename):
     return '.' in filename and \
@@ -1701,38 +1701,73 @@ def search_user():
 
     return jsonify(result)
 
-@app.route('/export_csv/<table_name>', methods=['GET'])
+@app.route('/export_iqy/<table_name>')
 @login_required("basic_access")
-def export_csv(table_name):
+def export_iqy(table_name):
+    """Gera um arquivo .iqy para download que puxa os dados de uma rota da API."""
+    if table_name not in MODEL_MAP and table_name != 'participantes_base_editavel':
+        return jsonify({'error': 'Tabela não encontrada.'}), 404
+
+    # Pega os filtros da requisição GET
+    filters = request.args.to_dict()
+    filter_params = '&'.join([f'{key}={value}' for key, value in filters.items()])
+
+    # A URL que o Excel vai chamar para obter os dados em formato JSON
+    # A rota de exportação agora não precisa de paginação, pois o Excel vai consumir todos os dados de uma vez
+    export_url = url_for('get_export_data', table_name=table_name, _external=True)
+    if filter_params:
+        export_url += '?' + filter_params
+
+    # Conteúdo do arquivo .iqy
+    iqy_content = f"""
+WEB
+1
+{export_url}
+    
+Selection=All
+Headers=False
+    """
+    
+    response = app.make_response(iqy_content)
+    response.headers["Content-Disposition"] = f"attachment; filename={table_name}_dados.iqy"
+    response.headers["Content-type"] = "application/x-ms-iqy"
+    return response
+
+@app.route('/get_export_data/<table_name>')
+@login_required("basic_access")
+def get_export_data(table_name):
+    """
+    Rota interna para retornar todos os dados filtrados em formato JSON, sem paginação.
+    Usada pelo arquivo .iqy.
+    """
     try:
         global PARTICIPANTES_DF
+        global LINKS_DF
+        
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
-
-        # === LÓGICA DE CONTROLE DE ACESSO A NÍVEL DE ROTA PARA EXPORTAÇÃO ===
+        
+        # Lógica de controle de acesso (mesma das outras rotas)
         if user_access_level == 'basic_access':
             if table_name not in ['presenca', 'visitas']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+                return jsonify({'error': 'Acesso negado.'}), 403
         elif user_access_level == 'full_access':
              if table_name not in ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'visitas']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-                
+                return jsonify({'error': 'Acesso negado.'}), 403
+
+        # Lógica de exportação completa para a base de participantes
         if table_name == 'participantes_base_editavel':
             if PARTICIPANTES_DF is None or PARTICIPANTES_DF.empty:
                 return jsonify({'error': 'A base de participantes está vazia.'}), 404
-
+            
             df = PARTICIPANTES_DF.copy()
             filters = request.args.to_dict()
             for key, value in filters.items():
                 if value:
                     if key in df.columns:
                         df = df[df[key].astype(str).str.contains(value, case=False, na=False)]
-
-            csv_buffer = BytesIO()
-            df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-            csv_buffer.seek(0)
             
-            return send_file(csv_buffer, download_name=f'{table_name}_relatorio.csv', as_attachment=True, mimetype='text/csv')
+            return df.to_json(orient='records', date_format='iso')
 
         if table_name not in MODEL_MAP:
             return jsonify({'error': 'Tabela não encontrada.'}), 404
@@ -1740,17 +1775,15 @@ def export_csv(table_name):
         Model = MODEL_MAP[table_name]
         query = Model.query
         
-        # LÓGICA ADICIONAL DE FILTRO POR USUÁRIO (se necessário)
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
-        if user_info:
-            if user_access_level == 'basic_access' and table_name == 'presenca':
-                 query = query.filter(or_(
-                    Presenca.responsavel == user_info[0].get('responsavel'),
-                    Presenca.nome_substituto == user_info[0].get('nome')
-                ))
-            elif user_access_level == 'full_access':
-                # Usuários com full_access podem ver tudo, sem restrições
-                pass
+        # Lógica de filtro por usuário
+        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
+        user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
+        
+        if user_access_level == 'basic_access' and table_name == 'presenca':
+            query = query.filter(or_(
+                Presenca.responsavel == user_name,
+                Presenca.nome_substituto == user_name
+            ))
 
         filters = request.args.to_dict()
         for key, value in filters.items():
@@ -1768,7 +1801,6 @@ def export_csv(table_name):
                             elif table_name == 'acompanhamento':
                                  query = query.filter(Acompanhamento.data_encontro.between(start_date, end_date))
                         except (ValueError, TypeError):
-                            app.logger.warning(f"Formato de semana inválido: {value}")
                             continue
                 elif key in ['start_date', 'end_date'] and table_name == 'ateste':
                     start_date_str = filters.get('start_date')
@@ -1782,44 +1814,45 @@ def export_csv(table_name):
                 elif hasattr(Model, key):
                     query = query.filter(cast(getattr(Model, key), String).ilike(f'%{value}%'))
         
-        df = pd.DataFrame([obj.__dict__ for obj in query.all()])
+        results = query.all()
+        df = pd.DataFrame([obj.__dict__ for obj in results])
         df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
-
-        csv_buffer = BytesIO()
-        df.to_csv(csv_buffer, index=False, encoding='utf-8-sig')
-        csv_buffer.seek(0)
         
-        return send_file(csv_buffer, download_name=f'{table_name}_relatorio.csv', as_attachment=True, mimetype='text/csv')
-    except Exception as e:
-        app.logger.error(f"Erro ao exportar CSV para a tabela {table_name}: {e}")
-        return jsonify({'error': f'Erro ao exportar CSV: {e}'}), 500
+        # Se a tabela for 'visitas', mescla com a base de links
+        if table_name == 'visitas':
+            if LINKS_DF is None:
+                return jsonify({'error': 'Base de links de visitação não carregada.'}), 500
+            
+            visitas_db = Visita.query.all()
+            visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
+            visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
+
+            df = pd.merge(LINKS_DF.copy(), visitas_df, on='url_formacao', how='left')
+            df.replace({np.nan: None}, inplace=True)
+            df['dia_do_mes'] = df['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            
+            # Re-aplica os filtros ao DataFrame mesclado
+            for key, value in filters.items():
+                if value:
+                    if key in ['tema', 'turma', 'dia_da_semana', 'responsavel_visita', 'responsavel_pela_visita']:
+                        df = df[df[key].astype(str).str.contains(value, case=False, na=False)]
+                    elif key == 'dia_do_mes':
+                        df = df[df[key].astype(str) == value]
+                    elif key == 'sem_responsavel_pela_visita' and value == 'true':
+                        df = df[df['responsavel_visita'].isnull() | (df['responsavel_visita'] == '')]
+
+
+        return df.to_json(orient='records', date_format='iso')
+
+@app.route('/export_csv/<table_name>', methods=['GET'])
+@login_required("basic_access")
+def export_csv_deprecated(table_name):
+    return redirect(url_for('export_iqy', table_name=table_name, **request.args.to_dict()))
 
 @app.route('/export_xlsx/<table_name>', methods=['GET'])
 @login_required("basic_access")
-def export_xlsx(table_name):
-    try:
-        if table_name not in MODEL_MAP:
-            return jsonify({'error': 'Tabela não encontrada.'}), 404
-
-        Model = MODEL_MAP[table_name]
-        query = Model.query.all()
-        df = pd.DataFrame([obj.__dict__ for obj in query])
-        df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
-
-        excel_buffer = BytesIO()
-        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name=table_name)
-        excel_buffer.seek(0)
-
-        return send_file(
-            excel_buffer,
-            download_name=f'{table_name}_relatorio.xlsx',
-            as_attachment=True,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-    except Exception as e:
-        app.logger.error(f"Erro ao exportar XLSX para a tabela {table_name}: {e}")
-        return jsonify({'error': f'Erro ao exportar XLSX: {e}'}), 500
+def export_xlsx_deprecated(table_name):
+    return redirect(url_for('export_iqy', table_name=table_name, **request.args.to_dict()))
 
 @app.route('/')
 @login_required("basic_access")
@@ -2104,8 +2137,6 @@ def get_record(table_name, record_id):
         elif table_name == 'demandas':
             is_owner = record.cpf_pec == user_cpf
         elif table_name == 'ateste':
-            is_owner = record.cpf == user_cpf
-        elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf
         elif table_name == 'visitas':
             is_owner = (record.cpf_responsavel_visita and record.cpf_responsavel_visita == user_cpf) or not record.cpf_responsavel_visita

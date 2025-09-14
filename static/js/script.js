@@ -880,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const actionButtonHtml = canEdit 
                 ? `
                     <div class="button-group">
-                        <button type="submit" class="modal-save-button">Salvar</button>
+                        <button type="submit" class="modal-save-button">${isReserved ? 'Salvar' : 'Reservar'}</button>
                         <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
                     </div>`
                 : `<p class="error-message">Este registro já foi preenchido por ${record.responsavel_visita} e não pode ser alterado.</p>`;
@@ -1666,48 +1666,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Botões de Exportar para CSV (gerais)
-    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Visitas'];
+    // Botões de Exportar para CSV (agora geram .iqy)
+    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'Visitas'];
     exportCsvButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`exportCsv${tableIdCapitalized}`);
         if (button) {
-            button.addEventListener('click', () => exportTableToCsv(tableIdCapitalized.toLowerCase()));
+            button.addEventListener('click', () => exportTableToIqy(tableIdCapitalized.toLowerCase()));
         }
     });
 
-    // Botões de Exportar para XLSX (gerais)
-    const exportXlsxButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Visitas'];
+    // Botões de Exportar para XLSX (agora geram .iqy)
+    const exportXlsxButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'Visitas'];
     exportXlsxButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`exportXlsx${tableIdCapitalized}`);
         if (button) {
-            button.addEventListener('click', () => exportTableToXlsx(tableIdCapitalized.toLowerCase()));
+            button.addEventListener('click', () => exportTableToIqy(tableIdCapitalized.toLowerCase()));
         }
     });
 
-    function exportTableToCsv(tableId) {
+    function exportTableToIqy(tableId) {
         let queryParams = new URLSearchParams(currentFilters[tableId]);
-
-        const url = `/export_csv/${tableId}?${queryParams.toString()}`;
-        console.log(`DEBUG JS: Exportando dados da tabela '${tableId}' da URL: ${url}`);
-
-        // Usar um link invisível para disparar o download
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', '');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-    
-    function exportTableToXlsx(tableId) {
-        let queryParams = new URLSearchParams(currentFilters[tableId]);
-        
-        const url = `/export_xlsx/${tableId}?${queryParams.toString()}`;
-        console.log(`DEBUG JS: Exportando dados da tabela '${tableId}' da URL: ${url}`);
+        const url = `/export_iqy/${tableId}?${queryParams.toString()}`;
+        console.log(`DEBUG JS: Gerando arquivo .iqy para a tabela '${tableId}' da URL: ${url}`);
         
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', '');
+        link.setAttribute('download', `${tableId}_relatorio.iqy`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
