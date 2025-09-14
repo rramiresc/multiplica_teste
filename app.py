@@ -57,6 +57,7 @@ def serve_static(filename):
 # Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
 LINKS_DF = None
+EXPORT_TOKENS = {}
 
 # Definir o fuso horário de São Paulo
 SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
@@ -624,10 +625,9 @@ def get_all_datalists():
         
         # AQUI FOI CORRIGIDO: Conversão para string e remoção de nulos
         if 'dia_do_mes' in all_links.columns:
-            all_links['dia_do_mes'] = all_links['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
-            data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique()])
+             data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique() if d])
         else:
-            data['visitas_dias_mes'] = []
+             data['visitas_dias_mes'] = []
 
         data['visitas_responsaveis_visita'] = sorted(list(all_participants['nome'].dropna().unique()))
 
@@ -1100,6 +1100,8 @@ def submit_visita():
         user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else 'Usuário Desconhecido'
 
         visita = Visita.query.filter_by(url_formacao=url_formacao).first()
+        
+        is_reserve_action = 'encontro_aconteceu' not in data
 
         if visita:
             if visita.cpf_responsavel_visita and visita.cpf_responsavel_visita != user_cpf and session.get('access_level') != 'super_admin':
@@ -1107,27 +1109,34 @@ def submit_visita():
             
             visita.responsavel_visita = user_name
             visita.cpf_responsavel_visita = user_cpf
-            visita.encontro_aconteceu = data.get('encontro_aconteceu')
-            visita.motivo_nao_aconteceu = data.get('motivo_nao_aconteceu')
-            visita.observacao = data.get('observacao')
             visita.data_registro = now_sp().date()
-            
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Registro de visitação atualizado com sucesso!'})
+
+            # Se for uma reserva, apenas atualiza o responsavel_visita e o cpf
+            if is_reserve_action:
+                 db.session.commit()
+                 return jsonify({'success': True, 'message': 'Visitação reservada com sucesso!'})
+            else:
+                # Se for uma edição, atualiza os outros campos
+                visita.encontro_aconteceu = data.get('encontro_aconteceu')
+                visita.motivo_nao_aconteceu = data.get('motivo_nao_aconteceu')
+                visita.observacao = data.get('observacao')
+                db.session.commit()
+                return jsonify({'success': True, 'message': 'Registro de visitação atualizado com sucesso!'})
 
         else:
             new_visita = Visita(
                 url_formacao=url_formacao,
                 responsavel_visita=user_name,
                 cpf_responsavel_visita=user_cpf,
-                encontro_aconteceu=data.get('encontro_aconteceu'),
-                motivo_nao_aconteceu=data.get('motivo_nao_aconteceu'),
-                observacao=data.get('observacao'),
+                encontro_aconteceu=data.get('encontro_aconteceu') if not is_reserve_action else None,
+                motivo_nao_aconteceu=data.get('motivo_nao_aconteceu') if not is_reserve_action else None,
+                observacao=data.get('observacao') if not is_reserve_action else None,
                 data_registro=now_sp().date()
             )
             db.session.add(new_visita)
             db.session.commit()
-            return jsonify({'success': True, 'message': 'Registro de visitação salvo com sucesso!'})
+            message = 'Visitação reservada com sucesso!' if is_reserve_action else 'Registro de visitação salvo com sucesso!'
+            return jsonify({'success': True, 'message': message})
 
     except Exception as e:
         db.session.rollback()
@@ -1435,12 +1444,25 @@ def get_results(table_name):
             base_columns = df_links.columns.tolist()
             all_columns = list(set(base_columns + visitas_columns))
             
+            # Métricas para a página de visitas
+            total_formacoes = len(df_merged)
+            formacoes_visitadas = len(df_merged[df_merged['encontro_aconteceu'] == 'Sim'])
+            formacoes_problemas = len(df_merged[df_merged['encontro_aconteceu'] == 'Não'])
+            pct_visitacao = (formacoes_visitadas / total_formacoes) * 100 if total_formacoes > 0 else 0
+            
+            metrics = {
+                'total_formacoes': total_formacoes,
+                'formacoes_visitadas': formacoes_visitadas,
+                'formacoes_problemas': formacoes_problemas,
+                'pct_visitacao': f'{pct_visitacao:.2f}%'
+            }
+
             return jsonify({
                 'results': results,
                 'columns': all_columns,
                 'total_items': total_items,
                 'per_page': per_page,
-                'metrics': {}
+                'metrics': metrics
             })
 
 
@@ -1557,7 +1579,7 @@ def generate_and_save_reports(user_cpf):
                     
                     zipf.writestr(f'{table_name}.xlsx', excel_file.read())
 
-            app.logger.info(f"Arquivo de relatórios para {user_cpf} gerado com sucesso: {zip_path}")
+            app.logger.info(f"Arquivo de relatórios para {user_cpf} gerado com sucesso.")
             with open(os.path.join(app.config['DOWNLOAD_FOLDER'], f'{user_cpf}_latest_download.txt'), 'w') as f:
                 f.write(zip_path)
 
@@ -1701,24 +1723,28 @@ def search_user():
 
     return jsonify(result)
 
-@app.route('/export_iqy/<table_name>')
+@app.route('/get_export_token/<table_name>')
 @login_required("basic_access")
-def export_iqy(table_name):
-    """Gera um arquivo .iqy para download que puxa os dados de uma rota da API."""
-    if table_name not in MODEL_MAP and table_name != 'participantes_base_editavel':
-        return jsonify({'error': 'Tabela não encontrada.'}), 404
-
-    # Pega os filtros da requisição GET
+def get_export_token(table_name):
+    """
+    Gera um token temporário e retorna a URL para o arquivo .iqy.
+    """
+    token = hashlib.sha256(os.urandom(24)).hexdigest()
     filters = request.args.to_dict()
-    filter_params = '&'.join([f'{key}={value}' for key, value in filters.items()])
+    # Adiciona o token e os filtros à memória para validação posterior
+    EXPORT_TOKENS[token] = {
+        'table': table_name,
+        'filters': filters,
+        'timestamp': now_sp(),
+        'user_cpf': session.get('user_cpf', None),
+        'access_level': session.get('access_level', 'no_access')
+    }
 
     # A URL que o Excel vai chamar para obter os dados em formato JSON
-    # A rota de exportação agora não precisa de paginação, pois o Excel vai consumir todos os dados de uma vez
-    export_url = url_for('get_export_data', table_name=table_name, _external=True)
-    if filter_params:
-        export_url += '?' + filter_params
-
-    # Conteúdo do arquivo .iqy
+    export_url = url_for('get_export_data_token', table_name=table_name, token=token, _external=True)
+    if filters:
+        export_url += '&' + '&'.join([f'{key}={value}' for key, value in filters.items()])
+    
     iqy_content = f"""
 WEB
 1
@@ -1733,21 +1759,36 @@ Headers=False
     response.headers["Content-type"] = "application/x-ms-iqy"
     return response
 
-@app.route('/get_export_data/<table_name>')
-@login_required("basic_access")
-def get_export_data(table_name):
+@app.route('/get_export_data_token/<table_name>')
+def get_export_data_token(table_name):
     """
-    Rota interna para retornar todos os dados filtrados em formato JSON, sem paginação.
-    Usada pelo arquivo .iqy.
+    Rota interna para retornar todos os dados filtrados em formato JSON, sem autenticação de sessão.
+    Valida a requisição usando um token temporário.
     """
+    token = request.args.get('token')
+    if not token or token not in EXPORT_TOKENS:
+        return jsonify({'error': 'Token inválido ou expirado.'}), 403
+
+    token_data = EXPORT_TOKENS.get(token)
+    if not token_data or (now_sp() - token_data['timestamp']).seconds > 300: # Token expira em 5 minutos
+        if token in EXPORT_TOKENS:
+            del EXPORT_TOKENS[token]
+        return jsonify({'error': 'Token expirado.'}), 403
+
+    # Extrai os filtros do token e os aplica à requisição
+    filters = token_data['filters']
+    
+    # Simula o contexto de usuário para a lógica de filtro de dados
+    user_access_level = token_data.get('access_level', 'no_access')
+    user_cpf = token_data.get('user_cpf', None)
+
     try:
         global PARTICIPANTES_DF
         global LINKS_DF
-        
-        user_access_level = session.get('access_level', 'none')
-        user_cpf = session.get('user_cpf')
-        
-        # Lógica de controle de acesso (mesma das outras rotas)
+
+        if table_name not in MODEL_MAP and table_name != 'participantes_base_editavel':
+            return jsonify({'error': 'Tabela não encontrada.'}), 404
+
         if user_access_level == 'basic_access':
             if table_name not in ['presenca', 'visitas']:
                 return jsonify({'error': 'Acesso negado.'}), 403
@@ -1761,21 +1802,15 @@ def get_export_data(table_name):
                 return jsonify({'error': 'A base de participantes está vazia.'}), 404
             
             df = PARTICIPANTES_DF.copy()
-            filters = request.args.to_dict()
             for key, value in filters.items():
-                if value:
-                    if key in df.columns:
-                        df = df[df[key].astype(str).str.contains(value, case=False, na=False)]
+                if value and key in df.columns:
+                    df = df[df[key].astype(str).str.contains(value, case=False, na=False)]
             
             return df.to_json(orient='records', date_format='iso')
-
-        if table_name not in MODEL_MAP:
-            return jsonify({'error': 'Tabela não encontrada.'}), 404
 
         Model = MODEL_MAP[table_name]
         query = Model.query
         
-        # Lógica de filtro por usuário
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
         user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
         
@@ -1785,7 +1820,6 @@ def get_export_data(table_name):
                 Presenca.nome_substituto == user_name
             ))
 
-        filters = request.args.to_dict()
         for key, value in filters.items():
             if value:
                 if key == 'semana':
@@ -1814,11 +1848,6 @@ def get_export_data(table_name):
                 elif hasattr(Model, key):
                     query = query.filter(cast(getattr(Model, key), String).ilike(f'%{value}%'))
         
-        results = query.all()
-        df = pd.DataFrame([obj.__dict__ for obj in results])
-        df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
-        
-        # Se a tabela for 'visitas', mescla com a base de links
         if table_name == 'visitas':
             if LINKS_DF is None:
                 return jsonify({'error': 'Base de links de visitação não carregada.'}), 500
@@ -1829,9 +1858,9 @@ def get_export_data(table_name):
 
             df = pd.merge(LINKS_DF.copy(), visitas_df, on='url_formacao', how='left')
             df.replace({np.nan: None}, inplace=True)
-            df['dia_do_mes'] = df['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            if 'dia_do_mes' in df.columns:
+                 df['dia_do_mes'] = df['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
             
-            # Re-aplica os filtros ao DataFrame mesclado
             for key, value in filters.items():
                 if value:
                     if key in ['tema', 'turma', 'dia_da_semana', 'responsavel_visita', 'responsavel_pela_visita']:
@@ -1840,14 +1869,58 @@ def get_export_data(table_name):
                         df = df[df[key].astype(str) == value]
                     elif key == 'sem_responsavel_pela_visita' and value == 'true':
                         df = df[df['responsavel_visita'].isnull() | (df['responsavel_visita'] == '')]
+            
+            # Converte o DataFrame para o formato de JSON de registros
+            json_records = df.to_json(orient='records', date_format='iso')
+            del EXPORT_TOKENS[token] # Remove o token após o uso
+            return json_records
 
+        results = query.all()
+        df = pd.DataFrame([obj.__dict__ for obj in results])
+        df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
 
-        return df.to_json(orient='records', date_format='iso')
-    
-    # Adicionando o bloco `except` e `finally` para corrigir o SyntaxError
+        # Converte o DataFrame para o formato de JSON de registros
+        json_records = df.to_json(orient='records', date_format='iso')
+        del EXPORT_TOKENS[token] # Remove o token após o uso
+        return json_records
+
     except Exception as e:
         app.logger.error(f"Erro ao gerar dados para exportação: {e}")
         return jsonify({'error': f'Erro ao gerar dados: {e}'}), 500
+
+@app.route('/export_iqy/<table_name>', methods=['GET'])
+@login_required("basic_access")
+def export_iqy(table_name):
+    """
+    Gera um arquivo .iqy para download que aponta para a rota de exportação.
+    """
+    token = hashlib.sha256(os.urandom(24)).hexdigest()
+    filters = request.args.to_dict()
+
+    EXPORT_TOKENS[token] = {
+        'table': table_name,
+        'filters': filters,
+        'timestamp': now_sp(),
+        'user_cpf': session.get('user_cpf', None),
+        'access_level': session.get('access_level', 'no_access')
+    }
+
+    # A URL para a rota que realmente exporta os dados
+    export_url = url_for('get_export_data_token', table_name=table_name, token=token, _external=True)
+
+    iqy_content = f"""
+WEB
+1
+{export_url}
+    
+Selection=All
+Headers=False
+    """
+
+    response = app.make_response(iqy_content)
+    response.headers["Content-Disposition"] = f"attachment; filename={table_name}_dados.iqy"
+    response.headers["Content-type"] = "application/x-ms-iqy"
+    return response
 
 @app.route('/export_csv/<table_name>', methods=['GET'])
 @login_required("basic_access")

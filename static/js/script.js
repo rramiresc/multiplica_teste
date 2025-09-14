@@ -1412,6 +1412,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     const totalAPagar = metricsContainer.querySelector(`#ateste-total_a_pagar`);
                     if (totalAPagar) totalAPagar.textContent = data.metrics.total_a_pagar || "0,00";
                 }
+                 else if (tableId === 'visitas') {
+                    const totalFormacoes = metricsContainer.querySelector(`#visitas-total-formacoes`);
+                    if (totalFormacoes) totalFormacoes.textContent = data.metrics.total_formacoes || 0;
+                    const formacoesVisitadas = metricsContainer.querySelector(`#visitas-formacoes-visitadas`);
+                    if (formacoesVisitadas) formacoesVisitadas.textContent = data.metrics.formacoes_visitadas || 0;
+                    const formacoesProblemas = metricsContainer.querySelector(`#visitas-formacoes-problemas`);
+                    if (formacoesProblemas) formacoesProblemas.textContent = data.metrics.formacoes_problemas || 0;
+                    const pctVisitacao = metricsContainer.querySelector(`#visitas-pct-visitacao`);
+                    if (pctVisitacao) pctVisitacao.textContent = data.metrics.pct_visitacao || "0.00%";
+                }
             }
         } catch (error) {
             console.error(`ERRO JS: Erro ao carregar resultados para ${tableId}:`, error);
