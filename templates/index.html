@@ -264,46 +264,100 @@
             <input type="url" id="link_gravacao_avaliacao" name="link_gravacao_avaliacao" required>
         </div>
 
-        {% set dimensoes = [
-            ('Dimensão 1: Ambiente e Ética (Peso 1)', [
-                ('1.1 - Promove um ambiente virtual seguro, respeitoso e acolhedor, prevenindo condutas inadequadas e incentivando a observância da ética nas interações, em conformidade com as diretrizes do Programa.', 'q1_1'),
-                ('1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.', 'q1_2'),
-                ('1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.', 'q1_3')
-            ]),
-            ('Dimensão 2: Gerenciamento do Tempo (Peso 2)', [
-                ('2.1 - Inicia a formação no horário determinado.', 'q2_1'),
-                ('2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.', 'q2_2'),
-                ('2.3 - Encerra a formação no horário estipulado.', 'q2_3')
-            ]),
-            ('Dimensão 3: Técnicas e Estratégias (Peso 2)', [
-                ('3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.', 'q3_1'),
-                ('3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.', 'q3_2'),
-                ('3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.', 'q3_3')
-            ]),
-            ('Dimensão 4: Vocabulário e Conteúdo (Peso 2)', [
-                ('4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.', 'q4_1'),
-                ('4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.', 'q4_2'),
-                ('4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.', 'q4_3')
-            ]),
-            ('Dimensão 5: Domínio e Progressão (Peso 2)', [
-                ('5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.', 'q5_1'),
-                ('5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.', 'q5_2'),
-                ('5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.', 'q5_3')
-            ])
-        ] %}
-
-        {% for titulo, perguntas in dimensoes %}
         <div class="form-section">
-            <h3>{{ titulo }}</h3>
-            {% for pergunta, nome_pergunta in perguntas %}
-            <p>{{ pergunta }}</p>
+            <h3>Dimensão 1: Ambiente e Ética (Peso 1)</h3>
+            <p>1.1 - Promove um ambiente virtual seguro, respeitoso e acolhedor, prevenindo condutas inadequadas e incentivando a observância da ética nas interações, em conformidade com as diretrizes do Programa.</p>
             <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende" required> Atende</label>
-                <label><input type="radio" name="{{ nome_pergunta }}" value="Não Atende"> Não Atende</label>
+                <label><input type="radio" name="q1_1" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q1_1" value="Não Atende"> Não Atende</label>
             </div>
-            {% endfor %}
+            <p>1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q1_2" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q1_2" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q1_3" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q1_3" value="Não Atende"> Não Atende</label>
+            </div>
         </div>
-        {% endfor %}
+        
+        <div class="form-section">
+            <h3>Dimensão 2: Gerenciamento do Tempo (Peso 2)</h3>
+            <p>2.1 - Inicia a formação no horário determinado.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q2_1" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q2_1" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q2_2" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q2_2" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>2.3 - Encerra a formação no horário estipulado.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q2_3" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q2_3" value="Não Atende"> Não Atende</label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Dimensão 3: Técnicas e Estratégias (Peso 2)</h3>
+            <p>3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q3_1" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q3_1" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q3_2" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q3_2" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q3_3" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q3_3" value="Não Atende"> Não Atende</label>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Dimensão 4: Vocabulário e Conteúdo (Peso 2)</h3>
+            <p>4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q4_1" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q4_1" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q4_2" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q4_2" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q4_3" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q4_3" value="Não Atende"> Não Atende</label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Dimensão 5: Domínio e Progressão (Peso 2)</h3>
+            <p>5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q5_1" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q5_1" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q5_2" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q5_2" value="Não Atende"> Não Atende</label>
+            </div>
+            <p>5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.</p>
+            <div class="radio-group" onchange="calculateScore()">
+                <label><input type="radio" name="q5_3" value="Atende" required> Atende</label>
+                <label><input type="radio" name="q5_3" value="Não Atende"> Não Atende</label>
+            </div>
+        </div>
 
         <div class="form-section">
             <h3>Feedback</h3>
@@ -501,46 +555,36 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormPresenca">
-            <label for="diretoria_presenca_filtro">Diretoria do Responsável:</label>
             <input type="text" id="diretoria_presenca_filtro" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
             
-            <label for="responsavel_filtro">Nome do Responsável:</label>
             <input type="text" id="responsavel_filtro" name="responsavel" placeholder="Nome do Responsável" value="">
             
-            <label for="de_participante_filtro">DE do Participante:</label>
             <input type="text" id="de_participante_filtro" name="de_participante" placeholder="DE do Participante" value="">
 
-            <label for="escola_participante_filtro">Escola do Participante:</label>
             <input type="text" id="escola_participante_filtro" name="escola_participante" placeholder="Escola do Participante" value="">
 
-            <label for="presenca_filtro">Presença:</label>
             <select id="presenca_filtro" name="presenca">
                 <option value="">Presença (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
-            <label for="camera_filtro">Câmera:</label>
             <select id="camera_filtro" name="camera">
                 <option value="">Câmera (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
             
-            <label for="tema_presenca_filtro">Tema:</label>
             <input type="text" id="tema_presenca_filtro" name="tema" placeholder="Tema" value="">
             
-            <label for="turma_presenca_filtro">Turma:</label>
             <input type="text" id="turma_presenca_filtro" name="turma" placeholder="Turma" value="">
 
-            <label for="declinou_participante_filtro">Declinou:</label>
             <select id="declinou_participante_filtro" name="declinou_participante">
                 <option value="">Declinou (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
-            <label for="semana_presenca_filtro">Semana:</label>
             <input type="week" id="semana_presenca_filtro" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
@@ -586,13 +630,10 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAcompanhamento">
-            <label for="responsavel_acompanhamento_filtro">Responsável pelo Acompanhamento:</label>
             <input type="text" id="responsavel_acompanhamento_filtro" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
             
-            <label for="formador_assistido_filtro">Responsável pela Formação:</label>
             <input type="text" id="formador_assistido_filtro" name="formador_assistido" placeholder="Responsável pela Formação" value="">
             
-            <label for="semana_acompanhamento_filtro">Semana (Domingo a Sábado):</label>
             <input type="week" id="semana_acompanhamento_filtro" name="semana" placeholder="Semana (Domingo a Sábado)" value="">
 
             <div class="button-group">
@@ -639,19 +680,14 @@
     <form id="filterFormAvaliacao">
         <div class="filters">
             <h3>Filtros de Busca</h3>
-            <label for="diretoria_de_ensino_avaliacao_filtro">Diretoria de Ensino:</label>
             <input type="text" id="diretoria_de_ensino_avaliacao_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <label for="observado_filtro">Nome do Observado:</label>
             <input type="text" id="observado_filtro" name="observado" placeholder="Nome do Observado" value="">
             
-            <label for="escola_avaliacao_filtro">Escola:</label>
             <input type="text" id="escola_avaliacao_filtro" name="escola" placeholder="Escola" value="">
             
-            <label for="tema_observado_avaliacao_filtro">Tema:</label>
             <input type="text" id="tema_observado_avaliacao_filtro" name="tema_observado" placeholder="Tema" value="">
             
-            <label for="codigo_turma_avaliacao_filtro">Turma:</label>
             <input type="text" id="codigo_turma_avaliacao_filtro" name="codigo_turma" placeholder="Turma" value="">
 
             <div class="button-group">
@@ -694,16 +730,12 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormDemandas">
-            <label for="pec_filtro">PEC Multiplica responsável:</label>
             <input type="text" id="pec_filtro" name="pec" placeholder="PEC Multiplica responsável" value="">
             
-            <label for="caff_filtro">CAFF responsável:</label>
             <input type="text" id="caff_filtro" name="caff" placeholder="CAFF responsável" value="">
             
-            <label for="diretoria_de_ensino_demanda_filtro">Diretoria de Ensino:</label>
             <input type="text" id="diretoria_de_ensino_demanda_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <label for="semana_demandas_filtro_resultados">Semana:</label>
             <input type="week" id="semana_demandas_filtro_resultados" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
@@ -752,15 +784,12 @@
             <label for="end_date_ateste">Período: Data de Fim</label>
             <input type="date" id="end_date_ateste" name="end_date" value="">
 
-            <label for="responsavel_ateste">Responsável (Base de Dados):</label>
             <input type="text" id="responsavel_ateste" name="responsavel_base" list="responsaveis-list-ateste" placeholder="Responsável (Base de Dados)" value="">
             <datalist id="responsaveis-list-ateste"></datalist>
             
-            <label for="nome_ateste">Nome (Quem Preencheu):</label>
             <input type="text" id="nome_ateste" name="nome_quem_preencheu" list="nomes-list-ateste" placeholder="Nome (Quem Preencheu)" value="">
             <datalist id="nomes-list-ateste"></datalist>
 
-            <label for="tema_ateste_filtro">Tema:</label>
             <input type="text" id="tema_ateste_filtro" name="tema" list="temas-list-ateste" placeholder="Tema" value="">
             <datalist id="temas-list-ateste"></datalist>
 
