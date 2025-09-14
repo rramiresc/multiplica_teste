@@ -1846,12 +1846,12 @@ def get_export_data(table_name):
 
 @app.route('/export_csv/<table_name>', methods=['GET'])
 @login_required("basic_access")
-def export_csv_deprecated(table_name):
+def export_csv(table_name):
     return redirect(url_for('export_iqy', table_name=table_name, **request.args.to_dict()))
 
 @app.route('/export_xlsx/<table_name>', methods=['GET'])
 @login_required("basic_access")
-def export_xlsx_deprecated(table_name):
+def export_xlsx(table_name):
     return redirect(url_for('export_iqy', table_name=table_name, **request.args.to_dict()))
 
 @app.route('/')
