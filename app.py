@@ -31,7 +31,15 @@ CORS(app)
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set.")
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+
+# --- INÍCIO DA CORREÇÃO PARA O ERRO DO BANCO DE DADOS ---
+# Força o uso de SSL/TLS com o PostgreSQL, que é o padrão no Render
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL + "?sslmode=require"
+# --- FIM DA CORREÇÃO ---
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
