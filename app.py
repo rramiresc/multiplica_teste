@@ -21,9 +21,11 @@ from threading import Thread
 import base64
 from flask import send_from_directory
 import openpyxl
+from flask_cors import CORS
 
 # Inicializar o Flask
 app = Flask(__name__)
+CORS(app)
 
 # Configuração do SQLAlchemy com a string de conexão do Render
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -526,8 +528,6 @@ def register():
         session['user_cpf'] = new_user.cpf
         session['access_level'] = new_user.access_level
         return redirect(url_for('index'))
-
-    return render_template('register.html', cpf=cpf, error=None)
 
 @app.route('/logout')
 def logout():
@@ -1585,6 +1585,13 @@ def generate_and_save_reports(user_cpf):
                     if table_name in column_order:
                         existing_cols = [col for col in column_order[table_name] if col in df.columns]
                         df = df[existing_cols]
+
+                    # NOVO: Tratamento especial para a coluna 'semana' antes da exportação
+                    if table_name in ['presenca', 'acompanhamento', 'demandas'] and 'semana' in df.columns:
+                        df['semana'] = df['semana'].apply(
+                            lambda x: f"de {get_sunday_of_week(int(x.split('-W')[0]), int(x.split('-W')[1])).strftime('%d/%m')} a {get_saturday_of_week(int(x.split('-W')[0]), int(x.split('-W')[1])).strftime('%d/%m')}"
+                            if x and '-W' in x else x
+                        )
 
                     excel_file = BytesIO()
                     with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:

@@ -1325,10 +1325,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             cellValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cellValue);
                         } else if (Array.isArray(cellValue)) {
                             td.textContent = cellValue.join(', ');
-                        } else if (col.includes('data_')) {
-                            const dateObj = new Date(cellValue);
-                            const formattedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000).toLocaleDateString('pt-BR');
-                            td.textContent = formattedDate;
+                        } else if (col.includes('data_') || col.includes('data_')) {
+                            if (cellValue) {
+                                const dateObj = new Date(cellValue);
+                                const formattedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000).toLocaleDateString('pt-BR');
+                                td.textContent = formattedDate;
+                            } else {
+                                td.textContent = '';
+                            }
                         } else {
                             td.textContent = cellValue !== undefined && cellValue !== null ? cellValue : '';
                         }
@@ -2397,4 +2401,5 @@ document.addEventListener('DOMContentLoaded', function() {
     handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
     handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
     handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
+    handleFormSubmit('formVisitas', '/submit_visita', 'Registro de visitação salvo com sucesso!');
 });
