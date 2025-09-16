@@ -362,7 +362,7 @@ def login_required(access_level_required):
             
             return fn(*args, **kwargs)
         return decorated_view
-    return decorated_view
+    return wrapper
     
 def allowed_file(filename):
     return '.' in filename and \
