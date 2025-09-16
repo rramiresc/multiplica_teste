@@ -17,7 +17,6 @@ import glob
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from threading import Thread
-import base64
 
 # Inicializar o Flask
 app = Flask(__name__)
@@ -556,6 +555,7 @@ def get_user_info():
             'cpf': user_info.get('cpf', 'N/A'),
             'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
             'etapa': user_info.get('etapa', 'N/A'),
+            'email': user_info.get('email', 'N/A'),
             'access_level': session.get('access_level'),
             'responsavel': user_info.get('responsavel', 'N/A')
         })
@@ -567,6 +567,7 @@ def get_user_info():
                 'cpf': user_in_db.cpf,
                 'diretoria_de_ensino': 'N/A',
                 'etapa': 'N/A',
+                'email': 'N/A',
                 'access_level': user_in_db.access_level
             })
         return jsonify({'error': 'Informações do usuário não encontradas na base de dados'}), 404
@@ -1357,6 +1358,7 @@ def get_results(table_name):
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
         user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
         user_de = user_info_df['diretoria_de_ensino'].iloc[0] if not user_info_df.empty else None
+        user_email = user_info_df['email'].iloc[0] if not user_info_df.empty else None
 
         if user_access_level == 'basic_access':
             if table_name == 'presenca':
@@ -1366,7 +1368,7 @@ def get_results(table_name):
                     Presenca.cpf_participante == user_cpf
                 ))
             elif table_name == 'ocorrencias':
-                 query = query.filter_by(email=user_info_df['email'].iloc[0])
+                 query = query.filter_by(email=user_email)
 
         elif user_access_level == 'formador_access':
             if table_name == 'presenca':
@@ -1375,10 +1377,16 @@ def get_results(table_name):
                     Presenca.nome_substituto == user_name,
                     Presenca.cpf_participante == user_cpf
                 ))
-            elif table_name in ['acompanhamento', 'ateste']:
+            elif table_name == 'acompanhamento':
                  query = query.filter_by(responsavel_acompanhamento=user_name)
+            elif table_name == 'ateste':
+                 query = query.filter_by(cpf=user_cpf)
         
-        elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+        elif user_access_level == 'efape_access':
+            if table_name == 'visitas':
+                query = query.filter_by(responsavel_visitacao=user_name)
+
+        elif user_access_level == 'intermediate_access':
             if user_de:
                 if table_name == 'presenca':
                     query = query.filter_by(diretoria_de_ensino_resp=user_de)
@@ -1792,6 +1800,11 @@ def export_csv(table_name):
         global PARTICIPANTES_DF
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
+        
+        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
+        user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
+        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if not user_info_df.empty else None
+        user_email = user_info_df['email'].iloc[0] if not user_info_df.empty else None
 
         if user_access_level == 'basic_access':
             if table_name not in ['presenca', 'ocorrencias']:
@@ -1829,30 +1842,31 @@ def export_csv(table_name):
         Model = MODEL_MAP[table_name]
         query = Model.query
         
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
-        if user_info:
-            if user_access_level == 'basic_access':
-                 if table_name == 'presenca':
-                     query = query.filter(or_(
-                        Presenca.responsavel == user_info[0].get('responsavel'),
-                        Presenca.nome_substituto == user_info[0].get('nome'),
-                        Presenca.cpf_participante == user_cpf
-                     ))
-                 elif table_name == 'ocorrencias':
-                     query = query.filter_by(email=user_info[0].get('email'))
-            elif user_access_level == 'formador_access':
-                 if table_name == 'presenca':
-                    query = query.filter(or_(
-                        Presenca.responsavel == user_info[0].get('responsavel'),
-                        Presenca.nome_substituto == user_info[0].get('nome'),
-                        Presenca.cpf_participante == user_cpf
-                    ))
-                 elif table_name in ['acompanhamento', 'ateste']:
-                    query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
-            elif user_access_level == 'efape_access' and table_name in ['visitas']:
-                 query = query.filter_by(responsavel_visitacao=user_info[0].get('nome'))
-            elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
-                query = query.filter_by(diretoria_de_ensino=user_info[0].get('diretoria_de_ensino'))
+        if user_access_level == 'basic_access':
+             if table_name == 'presenca':
+                 query = query.filter(or_(
+                    Presenca.responsavel == user_name,
+                    Presenca.nome_substituto == user_name,
+                    Presenca.cpf_participante == user_cpf
+                 ))
+             elif table_name == 'ocorrencias':
+                 query = query.filter_by(email=user_email)
+        elif user_access_level == 'formador_access':
+             if table_name == 'presenca':
+                query = query.filter(or_(
+                    Presenca.responsavel == user_name,
+                    Presenca.nome_substituto == user_name,
+                    Presenca.cpf_participante == user_cpf
+                ))
+             elif table_name == 'acompanhamento':
+                query = query.filter_by(responsavel_acompanhamento=user_name)
+             elif table_name == 'ateste':
+                query = query.filter_by(cpf=user_cpf)
+        elif user_access_level == 'efape_access' and table_name in ['visitas']:
+             query = query.filter_by(responsavel_visitacao=user_name)
+        elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+            if user_de:
+                query = query.filter_by(diretoria_de_ensino=user_de)
 
         filters = request.args.to_dict()
         for key, value in filters.items():
@@ -2093,6 +2107,7 @@ def edit_record(table_name):
         
         user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
         user_name = user_info[0].get('nome') if user_info else None
+        user_email = user_info[0].get('email') if user_info else None
 
         if table_name == 'presenca':
             is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
@@ -2105,7 +2120,7 @@ def edit_record(table_name):
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
         elif table_name == 'ocorrencias':
-            is_owner = record.email == user_info[0].get('email')
+            is_owner = record.email == user_email
         elif table_name == 'visitas':
             is_owner = record.responsavel_visitacao == user_name
 
@@ -2115,7 +2130,12 @@ def edit_record(table_name):
     try:
         for key, value in data.items():
             if hasattr(record, key):
-                setattr(record, key, value)
+                if key in ['data_acompanhamento_avaliacao', 'data_feedback_avaliacao', 'data_formacao', 'data_encontro']:
+                    setattr(record, key, datetime.strptime(value, '%Y-%m-%d').date())
+                elif key == 'data_horario':
+                    setattr(record, key, datetime.fromisoformat(value))
+                else:
+                    setattr(record, key, value)
         
         db.session.commit()
         return jsonify({'success': True, 'message': 'Registro atualizado com sucesso!'})
@@ -2148,6 +2168,7 @@ def get_record(table_name, record_id):
         
         user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
         user_name = user_info[0].get('nome') if user_info else None
+        user_email = user_info[0].get('email') if user_info else None
 
         if table_name == 'presenca':
             is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
@@ -2162,7 +2183,7 @@ def get_record(table_name, record_id):
         elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf
         elif table_name == 'ocorrencias':
-            is_owner = record.email == user_info[0].get('email')
+            is_owner = record.email == user_email
         elif table_name == 'visitas':
             is_owner = record.responsavel_visitacao == user_name
         

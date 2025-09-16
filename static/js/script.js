@@ -1221,6 +1221,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const userAccessLevel = userData.access_level;
             const userCpf = userData.cpf;
             const userName = userData.nome;
+            const userEmail = userData.email;
 
             const columnDisplayNames = {
                 'id': 'ID',
@@ -1388,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     canEdit = docData.cpf === userCpf;
                                     break;
                                 case 'ocorrencias':
-                                    canEdit = docData.email === userData.email;
+                                    canEdit = docData.email === userEmail;
                                     break;
                                 case 'visitas':
                                     canEdit = docData.responsavel_visitacao === userName;

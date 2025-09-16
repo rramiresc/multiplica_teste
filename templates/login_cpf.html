@@ -80,10 +80,11 @@
     <div class="login-container">
         <h1>Acesso ao Sistema</h1>
         <form method="POST" action="/login">
-            <label for="cpf">CPF: (digitar somente números, sem o zero do início)</label>
-            <input type="text" id="cpf" name="cpf" required>
-            <label for="password">Senha: (para o primeiro acesso use a senha simbólica 123)</label>
-            <input type="password" id="password" name="password" required>
+            <label for="cpf">CPF:</label>
+            <input type="text" id="cpf" name="cpf" required placeholder="Digite somente números" autocomplete="username" inputmode="numeric">
+            <small>Apenas números, sem o zero do início.</small>
+            <label for="password">Senha: <small>(para o primeiro acesso use a senha simbólica 123)</small></label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
             <button type="submit">Entrar</button>
         </form>
         {% if error %}

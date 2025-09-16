@@ -329,7 +329,7 @@
         <div class="form-section">
             <h3>Identificação e Referência</h3>
             <label for="cpf_pec_demandas">CPF do PEC Multiplica:</label>
-            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required>
+            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required placeholder="Apenas números">
             <datalist id="cpfs-list"></datalist>
 
             <label for="pec_demandas">PEC Multiplica responsável:</label>
@@ -439,13 +439,13 @@
         <div class="form-section">
             <h3>Dados do Relator</h3>
             <label for="nome_ocorrencia">Nome completo:</label>
-            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" required>
+            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" required autocomplete="name">
 
             <label for="email_ocorrencia">E-mail:</label>
-            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required>
+            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required autocomplete="email">
 
             <label for="telefone_ocorrencia">Telefone (opcional):</label>
-            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia">
+            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" autocomplete="tel">
         </div>
 
         <div class="form-section">
