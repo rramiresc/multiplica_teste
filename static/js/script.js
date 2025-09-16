@@ -860,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `,
         'visitas': (record) => `
             <h3>Editar Reserva de Visitação</h3>
-            <form id="editForm">
+            <form id="editVisitaForm">
                 <input type="hidden" name="id" value="${record.id}">
                 <p><strong>Turma:</strong> ${record.turma}</p>
                 <p><strong>Data:</strong> ${record.data_formacao}</p>
@@ -2417,8 +2417,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch('/get_access_level');
             if (!response.ok) {
-                console.warn(`DEBUG JS: Falha ao obter nível de acesso (${response.status}). Redirecionando para login.`);
-                window.location.href = '/login';
+                // Se o servidor retornar um erro (e.g., 401 Unauthorized), o Flask já deve ter redirecionado
+                // para a página de login. Não há necessidade de redirecionar aqui.
+                console.warn(`DEBUG JS: Falha ao obter nível de acesso (${response.status}).`);
                 return;
             }
             const data = await response.json();
@@ -2516,7 +2517,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('ERRO JS: Erro ao verificar o nível de acesso ou inicializar a UI:', error);
-            window.location.href = '/login';
+            // Aqui o redirecionamento é removido, permitindo que o servidor controle o fluxo.
         }
     }
 
