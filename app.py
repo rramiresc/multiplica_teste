@@ -2217,6 +2217,28 @@ def index():
     hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
     return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements=hidden_elements)
 
+@app.route('/admin_tools', methods=['POST'])
+@login_required('super_admin')
+def admin_tools():
+    data = request.json
+    action = data.get('action')
+    if action == 'clear_all':
+        try:
+            with db.session.begin():
+                db.session.query(Acompanhamento).delete()
+                db.session.query(Presenca).delete()
+                db.session.query(Avaliacao).delete()
+                db.session.query(Demanda).delete()
+                db.session.query(Ateste).delete()
+                db.session.query(Ocorrencia).delete()
+                db.session.query(Visita).delete()
+                db.session.commit()
+            return jsonify({'success': True, 'message': 'Todos os dados dos formulários foram excluídos com sucesso!'})
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Erro ao limpar todos os dados: {e}")
+            return jsonify({'success': False, 'message': f'Erro ao limpar todos os dados: {e}'}), 500
+    return jsonify({'success': False, 'message': 'Ação inválida.'}), 400
 
 if __name__ == '__main__':
     with app.app_context():
