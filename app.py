@@ -346,6 +346,9 @@ def login_required(access_level_required):
     def wrapper(fn):
         @functools.wraps(fn)
         def decorated_view(*args, **kwargs):
+            if request.path in ['/login', '/register', '/forgot_password', '/reset_password']:
+                return fn(*args, **kwargs)
+
             if 'user_cpf' not in session:
                 return redirect(url_for('login'))
             
