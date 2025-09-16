@@ -1103,7 +1103,6 @@ def get_visitas():
             if 'Data da Formação' not in row or 'Horário' not in row or 'Turma' not in row:
                 continue
             
-            # Formatando a data de acordo com o padrão ISO
             data_formacao_iso = row.get('Data da Formação').strftime('%Y-%m-%d')
             record_key = (str(row.get('Turma')), data_formacao_iso, str(row.get('Horário')))
             
@@ -1155,16 +1154,12 @@ def get_visitas():
             
             results.append(record)
 
-        # Métrica: Total de Formações
         total_formacoes = len(links_df)
         
-        # Métrica: Formações Visitadas (com base no banco de dados)
         formacoes_visitadas = db.session.query(Visita).filter(Visita.encontro_aconteceu.in_(['Sim', 'Não'])).count()
 
-        # Métrica: Formações com Problemas
         formacoes_com_problemas = db.session.query(Visita).filter(Visita.encontro_aconteceu == 'Não').count()
         
-        # Métrica: % de Visitação
         pct_visitacao = (formacoes_visitadas / total_formacoes) * 100 if total_formacoes > 0 else 0
 
         metrics = {
@@ -1174,7 +1169,6 @@ def get_visitas():
             'pct_visitacao': f'{pct_visitacao:.2f}%'
         }
 
-        # Aplicar filtros
         filters = request.args.to_dict()
         filtered_results = results
         
@@ -1534,22 +1528,6 @@ def get_results(table_name):
                 'num_ocorrencias': metrics_query.num_ocorrencias or 0,
                 'ocorrencias_ativas': metrics_query.ocorrencias_ativas or 0
             }
-        
-        elif table_name == 'visitas':
-            metrics_query = db.session.query(
-                func.count(Model.id).label('num_visitas'),
-                func.sum(case((Model.encontro_aconteceu.in_(['Sim', 'Não']), 1), else_=0)).label('visitas_concluidas')
-            ).filter(Model.id.in_(subquery_for_metrics)).first()
-            
-            total_agendamentos = db.session.query(Visita).count()
-
-            metrics = {
-                'num_visitas': metrics_query.num_visitas or 0,
-                'visitas_concluidas': metrics_query.visitas_concluidas or 0,
-                'total_agendamentos': total_agendamentos,
-                'pct_visitas_concluidas': f'{(metrics_query.visitas_concluidas / total_agendamentos) * 100:.2f}%' if total_agendamentos > 0 else '0.00%'
-            }
-
 
         total_items = filtered_query.count()
         paginated_query = filtered_query.paginate(page=page, per_page=per_page, error_out=False)
@@ -1871,6 +1849,8 @@ def export_csv(table_name):
                     ))
                  elif table_name in ['acompanhamento', 'ateste']:
                     query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
+            elif user_access_level == 'efape_access' and table_name in ['visitas']:
+                 query = query.filter_by(responsavel_visitacao=user_info[0].get('nome'))
             elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
                 query = query.filter_by(diretoria_de_ensino=user_info[0].get('diretoria_de_ensino'))
 
@@ -2223,6 +2203,7 @@ def toggle_visibility():
         db.session.rollback()
         app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
         return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
+
 
 @app.route('/')
 @login_required("basic_access")
