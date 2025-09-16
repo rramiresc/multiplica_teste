@@ -362,7 +362,7 @@ def login_required(access_level_required):
             
             return fn(*args, **kwargs)
         return decorated_view
-    return login_required
+    return wrapper
     
 def allowed_file(filename):
     return '.' in filename and \
@@ -530,6 +530,7 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/get_access_level')
+@login_required('basic_access')
 def get_access_level():
     current_level = session.get('access_level', 'none')
     return jsonify({'access_level': current_level})
@@ -2206,6 +2207,15 @@ def toggle_visibility():
         db.session.rollback()
         app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
         return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
+
+
+@app.route('/')
+@login_required("basic_access")
+def index():
+    aviso = Aviso.query.first()
+    links = Link.query.all()
+    hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
+    return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements=hidden_elements)
 
 
 if __name__ == '__main__':
