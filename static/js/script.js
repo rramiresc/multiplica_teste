@@ -10,17 +10,17 @@ document.addEventListener('DOMContentLoaded', function() {
         'q1_2': '1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.',
         'q1_3': '1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.',
         'q2_1': '2.1 - Inicia a formação no horário determinado.',
-        'q2_2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
+        '2.2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
         'q2_3': '2.3 - Encerra a formação no horário estipulado.',
         'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
         'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
         'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
         'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
-        'q4_2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
-        'q4_3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
+        '4.2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
+        '4.3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
         'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
-        'q5_2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
-        'q5_3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
+        '5.2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
+        '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
     };
 
     // Variáveis de estado para paginação
@@ -51,8 +51,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // A função loadSpecificDatalists será mesclada em loadAllDatalists para evitar o erro.
-    // O código abaixo é a nova implementação otimizada.
     async function loadAllDatalistsOptimized() {
         console.log("DEBUG JS: Carregando todas as datalists de uma vez...");
         try {
@@ -80,6 +78,10 @@ document.addEventListener('DOMContentLoaded', function() {
             populateDatalist(responsaveisForPresencaData, 'responsaveis-list');
             populateDatalist(allDatalistsData.nomes, 'nomes-list-avaliacao');
             populateDatalist(allDatalistsData.cpfs, 'cpfs-list');
+            
+            // Novos campos para Ocorrências
+            populateDatalist(allDatalistsData.turmas, 'turmas-ocorrencia-list');
+            populateDatalist(allDatalistsData.temas, 'temas-ocorrencia-list');
 
         } catch (error) {
             console.error('ERRO JS: Erro ao carregar datalists:', error);
@@ -112,14 +114,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (sectionId === 'links-importantes') {
             loadLinksPage();
-        } else if (sectionId === 'links-visitações') {
-            fetchVisitasResults();
+        } else if (sectionId === 'visitas-encontros') {
+            fetchVisitas();
         } else if (tableId) {
             currentPage[tableId] = 1;
             fetchResults(tableId, 1);
         }
     };
-    
+
     // ====================================================================
     // Lógica para o Formulário de Registro de Presença
     // ====================================================================
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('ERRO JS: Erro ao carregar turmas por tema e responsável:', error);
                 }
             } else if (responsavel) {
+                console.log("DEBUG JS: Tema limpo, recarregando todas as turmas para o responsável.");
                 const response = await fetch(`/get_turmas_by_responsavel?responsavel=${encodeURIComponent(responsavel)}`);
                 if (response.ok) {
                     const data = await response.json();
@@ -275,7 +278,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                             }
                                         } else {
                                             cameraRadio.disabled = false;
-                                            // Se a presença é 'SIM', marca a câmera como 'SIM' automaticamente
                                             if (cameraRadio.value === 'SIM') {
                                                 cameraRadio.checked = true;
                                             }
@@ -310,13 +312,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const substitutoContainer = document.getElementById('substituto-container');
     const nomeSubstitutoInput = document.getElementById('nome_substituto');
 
-    // Ação em cascata: quando a turma muda, preenche o tema e o formador
+    window.toggleSubstituto = function(radioGroup) {
+        const selectedValue = radioGroup.querySelector('input:checked')?.value;
+        if (selectedValue === 'nao_se_aplica') {
+            formadorAssistidoInput.value = 'Não se aplica';
+            formadorAssistidoInput.readOnly = true;
+            substitutoContainer.style.display = 'block';
+            nomeSubstitutoInput.required = true;
+        } else {
+            formadorAssistidoInput.readOnly = false;
+            substitutoContainer.style.display = 'none';
+            nomeSubstitutoInput.required = false;
+            const turmaInput = document.getElementById('turma_acompanhamento');
+            if (turmaInput.value) {
+                turmaInput.dispatchEvent(new Event('change'));
+            }
+        }
+    };
+
     if (turmaAcompanhamentoInput) {
         turmaAcompanhamentoInput.addEventListener('change', async function() {
             const turma = this.value;
             if (turma) {
                 try {
-                    // 1. Preenche o nome do formador (responsável pela turma)
                     const formadorResponse = await fetch(`/get_formador_assistido?turma=${encodeURIComponent(turma)}`);
                     if (!formadorResponse.ok) {
                         const errorText = await formadorResponse.text();
@@ -329,7 +347,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         formadorAssistidoInput.value = '';
                     }
 
-                    // 2. Preenche o tema com base na turma
                     const temaResponse = await fetch(`/get_tema_by_turma?turma=${encodeURIComponent(turma)}`);
                     if (!temaResponse.ok) {
                         const errorText = await temaResponse.text();
@@ -342,7 +359,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         temaAcompanhamentoInput.value = '';
                     }
 
-                    // 3. Conta o número de participantes para o campo 'esperado_participantes'
                     const participantesResponse = await fetch(`/get_participantes_by_turma?turma=${encodeURIComponent(turma)}`);
                     if (!participantesResponse.ok) {
                         const errorText = await participantesResponse.text();
@@ -584,6 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+
     window.toggleSchoolSelection = function(radioGroup) {
         const selectedValue = radioGroup.querySelector('input:checked')?.value;
         console.log(`DEBUG JS: Visitas às escolas: ${selectedValue}`);
@@ -674,6 +691,173 @@ document.addEventListener('DOMContentLoaded', function() {
             if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
         }
     };
+    
+    // ====================================================================
+    // Lógica para o Formulário de Ocorrências (NOVO)
+    // ====================================================================
+    const tipoOcorrenciaSelect = document.getElementById('tipo_ocorrencia');
+    const outraOcorrenciaContainer = document.getElementById('outra_ocorrencia_desc_container');
+    const outraOcorrenciaInput = document.getElementById('outra_ocorrencia_desc');
+
+    if (tipoOcorrenciaSelect) {
+        tipoOcorrenciaSelect.addEventListener('change', function() {
+            if (this.value === 'Outra') {
+                outraOcorrenciaContainer.style.display = 'block';
+                outraOcorrenciaInput.required = true;
+            } else {
+                outraOcorrenciaContainer.style.display = 'none';
+                outraOcorrenciaInput.required = false;
+                outraOcorrenciaInput.value = '';
+            }
+        });
+    }
+
+    // ====================================================================
+    // Lógica para a Tabela de Visitações (NOVO)
+    // ====================================================================
+    const visitasTableBody = document.getElementById('visitas-table-body');
+    
+    async function fetchVisitas() {
+        console.log("DEBUG JS: Buscando dados de visitação...");
+        if (!visitasTableBody) return;
+    
+        visitasTableBody.innerHTML = '<tr><td colspan="8">Carregando dados...</td></tr>';
+    
+        try {
+            const userResponse = await fetch('/get_user_info');
+            const userData = await userResponse.json();
+            const userAccessLevel = userData.access_level;
+            const userName = userData.nome;
+    
+            const filterForm = document.getElementById('filterFormVisitas');
+            const formData = new FormData(filterForm);
+            const queryParams = new URLSearchParams(formData).toString();
+    
+            const response = await fetch(`/get_visitas?${queryParams}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log("DEBUG JS: Dados de visitação recebidos:", data);
+    
+            visitasTableBody.innerHTML = '';
+            if (data.results.length > 0) {
+                data.results.forEach(record => {
+                    const tr = document.createElement('tr');
+                    
+                    let actionsHtml = '';
+                    if (record.responsavel_visitacao) {
+                        const isEditable = record.responsavel_visitacao === userName || userAccessLevel === 'super_admin';
+                        const isCaff = userData.etapa === 'CAFF';
+                        
+                        if (isEditable) {
+                            actionsHtml = `<button class="edit-visita-button" data-id="${record.id}">Editar</button>
+                                           <button class="delete-visita-button red-button" data-id="${record.id}">Cancelar</button>`;
+                        } else if (isCaff) {
+                            actionsHtml = `<span>Reservado por ${record.responsavel_visitacao}</span>`;
+                        } else {
+                            actionsHtml = `<span>Reservado</span>`;
+                        }
+                    } else {
+                        actionsHtml = `<button class="reserve-visita-button" data-turma="${record.turma}" data-data="${record.data_formacao}" data-horario="${record.horario}" data-tema="${record.tema}">Reservar</button>`;
+                    }
+    
+                    tr.innerHTML = `
+                        <td>${actionsHtml}</td>
+                        <td>${record.responsavel_visitacao || 'Não Reservado'}</td>
+                        <td>${record.encontro_aconteceu}</td>
+                        <td>${record.turma || 'N/A'}</td>
+                        <td>${record.tema || 'N/A'}</td>
+                        <td>${record.data_formacao ? new Date(record.data_formacao).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                        <td>${record.horario || 'N/A'}</td>
+                        <td><a href="${record.url}" target="_blank">Acessar</a></td>
+                    `;
+                    visitasTableBody.appendChild(tr);
+                });
+            } else {
+                visitasTableBody.innerHTML = '<tr><td colspan="8">Nenhum encontro disponível para visitação.</td></tr>';
+            }
+    
+            const metricsContainer = document.getElementById('metrics-visitas');
+            if (metricsContainer) {
+                metricsContainer.querySelector('#visitas-total_formacoes').textContent = data.metrics.total_formacoes || 0;
+                metricsContainer.querySelector('#visitas-formacoes_visitadas').textContent = data.metrics.formacoes_visitadas || 0;
+                metricsContainer.querySelector('#visitas-formacoes_com_problemas').textContent = data.metrics.formacoes_com_problemas || 0;
+                metricsContainer.querySelector('#visitas-pct_visitacao').textContent = data.metrics.pct_visitacao || '0.00%';
+            }
+    
+        } catch (error) {
+            console.error('ERRO JS: Erro ao carregar visitações:', error);
+            visitasTableBody.innerHTML = `<tr><td colspan="8" style="color:red;">Erro ao carregar dados: ${error.message}</td></tr>`;
+        }
+    }
+    
+    // Event Listeners para botões da tabela de visitas
+    if (visitasTableBody) {
+        visitasTableBody.addEventListener('click', async (event) => {
+            const target = event.target;
+            if (target.classList.contains('reserve-visita-button')) {
+                const data = {
+                    turma: target.dataset.turma,
+                    data_formacao: target.dataset.data,
+                    horario: target.dataset.horario,
+                    tema: target.dataset.tema
+                };
+                if (confirm(`Deseja reservar a visita para a turma ${data.turma} em ${data.data_formacao}?`)) {
+                    try {
+                        const response = await fetch('/reserve_visita', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        const result = await response.json();
+                        alert(result.message);
+                        if (result.success) fetchVisitas();
+                    } catch (error) {
+                        alert('Erro ao reservar visita.');
+                        console.error(error);
+                    }
+                }
+            } else if (target.classList.contains('edit-visita-button')) {
+                const recordId = target.dataset.id;
+                openEditModal(recordId, 'visitas');
+            } else if (target.classList.contains('delete-visita-button')) {
+                const recordId = target.dataset.id;
+                if (confirm('Tem certeza que deseja cancelar esta reserva de visita?')) {
+                    try {
+                        const response = await fetch(`/delete_visita/${recordId}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        const result = await response.json();
+                        alert(result.message);
+                        if (result.success) fetchVisitas();
+                    } catch (error) {
+                        alert('Erro ao cancelar a reserva.');
+                        console.error(error);
+                    }
+                }
+            }
+        });
+    }
+
+    // Filtros de Visitação
+    const filterFormVisitas = document.getElementById('filterFormVisitas');
+    if (filterFormVisitas) {
+        filterFormVisitas.addEventListener('submit', function(event) {
+            event.preventDefault();
+            fetchVisitas();
+        });
+    }
+
+    const clearFiltersVisitasButton = document.getElementById('clearFiltersVisitas');
+    if (clearFiltersVisitasButton) {
+        clearFiltersVisitasButton.addEventListener('click', () => {
+            filterFormVisitas.reset();
+            fetchVisitas();
+        });
+    }
     
     // ====================================================================
     // Lógica para o modal de edição (ATUALIZADO)
@@ -836,22 +1020,20 @@ document.addEventListener('DOMContentLoaded', function() {
             <h3>Editar Registro de Ocorrência</h3>
             <form id="editForm">
                 <input type="hidden" name="id" value="${record.id}">
-                <p><strong>Ocorrência ID:</strong> ${record.id}</p>
+                <p><strong>Relator:</strong> ${record.nome}</p>
                 <p><strong>Turma:</strong> ${record.turma}</p>
-                <p><strong>Tipo:</strong> ${record.tipo_ocorrencia}</p>
-                <label>A ocorrência ainda ocorre agora?</label>
+                <p><strong>Data/Hora:</strong> ${new Date(record.data_horario).toLocaleDateString()} ${new Date(record.data_horario).toLocaleTimeString()}</p>
+                <label for="tipo_ocorrencia">Tipo de Ocorrência:</label>
+                <input type="text" name="tipo_ocorrencia" value="${record.tipo_ocorrencia || ''}">
+                <label for="outra_ocorrencia_desc">Descrição do Outro Tipo:</label>
+                <textarea name="outra_ocorrencia_desc" rows="2">${record.outra_ocorrencia_desc || ''}</textarea>
+                <label for="descricao_problema">Descrição do Problema:</label>
+                <textarea name="descricao_problema" rows="4">${record.descricao_problema || ''}</textarea>
+                <label for="ocorrencia_ainda_ocorre">Ocorrência ainda ocorre?</label>
                 <div class="radio-group">
                     <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" ${record.ocorrencia_ainda_ocorre === 'Sim' ? 'checked' : ''}> Sim</label>
-                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'Não' ? 'checked' : ''}> Não (foi resolvido)</label>
+                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'Não' ? 'checked' : ''}> Não</label>
                 </div>
-                <label>Nível de impacto:</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="nivel_impacto" value="Baixo" ${record.nivel_impacto === 'Baixo' ? 'checked' : ''}> Baixo</label>
-                    <label><input type="radio" name="nivel_impacto" value="Médio" ${record.nivel_impacto === 'Médio' ? 'checked' : ''}> Médio</label>
-                    <label><input type="radio" name="nivel_impacto" value="Alto" ${record.nivel_impacto === 'Alto' ? 'checked' : ''}> Alto</label>
-                </div>
-                <label for="descricao_problema">Descrição do problema:</label>
-                <textarea name="descricao_problema" rows="4">${record.descricao_problema || ''}</textarea>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
@@ -859,33 +1041,46 @@ document.addEventListener('DOMContentLoaded', function() {
             </form>
         `,
         'visitas': (record) => `
-            <h3>Editar Reserva de Visitação</h3>
-            <form id="editVisitaForm">
+            <h3>Editar Registro de Visitação</h3>
+            <form id="editForm">
                 <input type="hidden" name="id" value="${record.id}">
+                <p><strong>Responsável:</strong> ${record.responsavel_visitacao}</p>
                 <p><strong>Turma:</strong> ${record.turma}</p>
                 <p><strong>Data:</strong> ${record.data_formacao}</p>
-                
-                <label>Encontro Aconteceu?:</label>
+                <p><strong>Horário:</strong> ${record.horario}</p>
+
+                <label for="encontro_aconteceu">Encontro Aconteceu?:</label>
                 <div class="radio-group">
                     <label><input type="radio" name="encontro_aconteceu" value="Sim" ${record.encontro_aconteceu === 'Sim' ? 'checked' : ''}> Sim</label>
                     <label><input type="radio" name="encontro_aconteceu" value="Não" ${record.encontro_aconteceu === 'Não' ? 'checked' : ''}> Não</label>
-                    <label><input type="radio" name="encontro_aconteceu" value="Não visitado" ${record.encontro_aconteceu === 'Não visitado' ? 'checked' : ''}> Não visitado</label>
                 </div>
-                
-                <label for="motivo_nao_aconteceu">Motivo Não Aconteceu:</label>
-                <select id="motivo_nao_aconteceu" name="motivo_nao_aconteceu">
-                    <option value="">Selecione...</option>
-                    <option value="Sem PEC" ${record.motivo_nao_aconteceu === 'Sem PEC' ? 'selected' : ''}>Sem PEC</option>
-                    <option value="Sem PM" ${record.motivo_nao_aconteceu === 'Sem PM' ? 'selected' : ''}>Sem PM</option>
-                    <option value="Turma excluída" ${record.motivo_nao_aconteceu === 'Turma excluída' ? 'selected' : ''}>Turma excluída</option>
-                    <option value="Houve problemas técnicos" ${record.motivo_nao_aconteceu === 'Houve problemas técnicos' ? 'selected' : ''}>Houve problemas técnicos</option>
-                    <option value="Sem formador" ${record.motivo_nao_aconteceu === 'Sem formador' ? 'selected' : ''}>Sem formador</option>
-                    <option value="Turma sem inscritos" ${record.motivo_nao_aconteceu === 'Turma sem inscritos' ? 'selected' : ''}>Turma sem inscritos</option>
-                </select>
-                
-                <label for="observacao_visita">Observação:</label>
-                <textarea id="observacao_visita" name="observacao_visita" rows="3">${record.observacao || ''}</textarea>
 
+                <label for="motivo_nao_aconteceu">Motivo (se não aconteceu):</label>
+                <textarea name="motivo_nao_aconteceu">${record.motivo_nao_aconteceu || ''}</textarea>
+
+                <label for="observacao_visita">Observação:</label>
+                <textarea name="observacao_visita" rows="4">${record.observacao || ''}</textarea>
+
+                <div class="button-group">
+                    <button type="submit" class="modal-save-button">Salvar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
+        `,
+        'usuarios': (record) => `
+            <h3>Editar Usuário</h3>
+            <form id="editForm">
+                <input type="hidden" name="cpf" value="${record.cpf}">
+                <p><strong>CPF:</strong> ${record.cpf}</p>
+                <label for="access_level">Nível de Acesso:</label>
+                <select id="access_level" name="access_level" required>
+                    <option value="no_access" ${record.access_level === 'no_access' ? 'selected' : ''}>Sem Acesso</option>
+                    <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC)</option>
+                    <option value="formador_access" ${record.access_level === 'formador_access' ? 'selected' : ''}>Formador Access (FORMADOR)</option>
+                    <option value="efape_access" ${record.access_level === 'efape_access' ? 'selected' : ''}>EFAPE Access (EFAPE)</option>
+                    <option value="intermediate_access" ${record.access_level === 'intermediate_access' ? 'selected' : ''}>Intermediate Access (PEC)</option>
+                    <option value="super_admin" ${record.access_level === 'super_admin' ? 'selected' : ''}>Super Admin (ADM)</option>
+                </select>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
@@ -903,14 +1098,25 @@ document.addEventListener('DOMContentLoaded', function() {
         editModalContent.innerHTML = 'Carregando...';
     
         try {
-            let url = `/get_record/${tableId}/${recordId}`;
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro ao carregar o registro.');
+            let url;
+            let record;
+            if (tableId === 'participantes_base_editavel' || tableId === 'usuarios') {
+                url = `/get_record/${tableId}/${recordId}`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao carregar o registro.');
+                }
+                record = await response.json();
+            } else {
+                url = `/get_record/${tableId}/${recordId}`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao carregar o registro.');
+                }
+                record = await response.json();
             }
-            const record = await response.json();
 
             if (!record) {
                 editModalContent.innerHTML = `<p style="color:red;">Registro não encontrado.</p>`;
@@ -944,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (result.success) {
                             window.closeModal();
                             if (tableId === 'visitas') {
-                                fetchVisitasResults();
+                                fetchVisitas();
                             } else {
                                 fetchResults(tableId, currentPage[tableId] || 1);
                             }
@@ -1062,7 +1268,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 'observacoes_gerais': 'Observações Gerais',
                 'pec': 'PEC Multiplica',
                 'cpf_pec': 'CPF do PEC',
-                'semana': 'Semana de Referência',
                 'caff': 'CAFF Responsável',
                 'formacoes_realizadas': 'Formações Realizadas',
                 'alinhamento_semanal': 'Alinhamento Semanal Síncrono',
@@ -1078,30 +1283,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 'substituicoes_realizadas': 'Substituições Realizadas',
                 'engajamento': 'Ações de Engajamento',
                 'valor_formacao': 'Valor da Formação',
-                'nome_ocorrencia': 'Nome',
-                'email_ocorrencia': 'Email',
-                'telefone_ocorrencia': 'Telefone',
-                'turma_ocorrencia': 'Turma',
-                'tema_ocorrencia': 'Tema',
-                'tipo_ocorrencia': 'Tipo',
-                'outra_ocorrencia_desc': 'Outra Ocorrência',
-                'descricao_problema': 'Descrição',
-                'ocorrencia_ainda_ocorre': 'Ocorrência Ativa?',
-                'nivel_impacto': 'Nível de Impacto',
-                'data_horario': 'Data/Hora',
-                // Colunas para a tabela de participantes
                 'nome': 'Nome',
                 'cpf': 'CPF',
-                'escola': 'Escola',
-                'diretoria_de_ensino': 'Diretoria de Ensino',
-                'responsavel': 'Responsável',
                 'etapa': 'Etapa',
                 'di': 'DI',
                 'pei': 'PEI',
                 'declinou': 'Declinou',
-                // Colunas para a tabela de usuários
                 'password_hash': 'Hash da Senha',
-                'access_level': 'Nível de Acesso'
+                'access_level': 'Nível de Acesso',
+                // Nomes de exibição para as novas tabelas
+                'tipo_ocorrencia': 'Tipo de Ocorrência',
+                'outra_ocorrencia_desc': 'Outra Ocorrência',
+                'descricao_problema': 'Descrição',
+                'ocorrencia_ainda_ocorre': 'Ainda ocorre?',
+                'nivel_impacto': 'Nível de Impacto',
+                'data_horario': 'Data/Hora',
+                'responsavel_visitacao': 'Responsável Visitação',
+                'encontro_aconteceu': 'Encontro Aconteceu?',
+                'motivo_nao_aconteceu': 'Motivo Não Aconteceu',
+                'url': 'URL do Encontro',
+                'tenant': 'Tenant',
+                'segmento': 'Segmento',
+                'nome_responsavel_base': 'Responsável Base',
+                'cpf_responsavel_base': 'CPF Responsável Base',
+                'email': 'E-mail',
+                'mes': 'Mês',
             };
 
 
@@ -1114,9 +1320,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 ],
                 'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'pm_orientados_esperado', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento', 'observacao'],
                 'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao'],
-                'ocorrencias': ['id', 'nome', 'email', 'telefone', 'turma', 'tema', 'tipo_ocorrencia', 'descricao_problema', 'ocorrencia_ainda_ocorre', 'nivel_impacto', 'data_horario'],
                 'participantes_base_editavel': ['cpf', 'nome', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'],
-                'usuarios': ['id', 'cpf', 'access_level']
+                'usuarios': ['id', 'cpf', 'access_level'],
+                'ocorrencias': ['id', 'nome', 'email', 'telefone', 'turma', 'tema', 'tipo_ocorrencia', 'outra_ocorrencia_desc', 'descricao_problema', 'ocorrencia_ainda_ocorre', 'nivel_impacto', 'data_horario'],
+                'visitas': ['id', 'responsavel_visitacao', 'encontro_aconteceu', 'turma', 'tema', 'data_formacao', 'horario', 'url', 'observacao']
             };
 
             let orderedColumns = [];
@@ -1132,8 +1339,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tableHead = document.querySelector(`#table-${tableId} thead tr`);
             tableHead.innerHTML = '';
-            
-            const isEditableTable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios', 'ocorrencias'].includes(tableId);
+            const isEditableTable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios', 'ocorrencias', 'visitas'].includes(tableId);
 
             if (isEditableTable) {
                 const thActions = document.createElement('th');
@@ -1182,8 +1388,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                     canEdit = docData.cpf === userCpf;
                                     break;
                                 case 'ocorrencias':
-                                     canEdit = docData.email === userData.email;
-                                     break;
+                                    canEdit = docData.email === userData.email;
+                                    break;
+                                case 'visitas':
+                                    canEdit = docData.responsavel_visitacao === userName;
+                                    break;
                             }
                         }
 
@@ -1191,7 +1400,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const editButton = document.createElement('button');
                             editButton.textContent = 'Editar';
                             editButton.classList.add('edit-button');
-                            const recordIdentifier = docData.id;
+                            const recordIdentifier = tableId === 'participantes_base_editavel' || tableId === 'usuarios' ? docData.cpf : docData.id;
                             editButton.onclick = () => openEditModal(recordIdentifier, tableId);
                             tdActions.appendChild(editButton);
 
@@ -1312,240 +1521,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
-    // ====================================================================
-    // Lógica para a Tabela de Links para Visitações (NOVA)
-    // ====================================================================
-    async function fetchVisitasResults() {
-        console.log("DEBUG JS: Buscando resultados para a tabela de Visitações.");
-        const resultsTableBody = document.querySelector(`#table-visitas tbody`);
-        const tableHeadRow = document.querySelector(`#table-visitas thead tr`);
-        const metricsContainer = document.querySelector(`#metrics-visitas`);
-        const filterForm = document.getElementById(`filterFormVisitas`);
-
-        if (!resultsTableBody || !tableHeadRow) {
-             console.error(`ERRO JS: Componentes de tabela para 'visitas' não encontrados.`);
-             return;
-        }
-
-        resultsTableBody.innerHTML = '<tr><td colspan="100%">Carregando dados...</td></tr>';
-        tableHeadRow.innerHTML = '';
-
-        let queryParams = new URLSearchParams(new FormData(filterForm));
-
-        try {
-            const response = await fetch(`/get_visitas?${queryParams.toString()}`);
-            if (!response.ok) {
-                if (response.status === 403) {
-                     resultsTableBody.innerHTML = `<tr><td colspan="100%">Acesso negado para este relatório.</td></tr>`;
-                     if (metricsContainer) metricsContainer.innerHTML = '';
-                     return;
-                }
-                throw new Error(`Falha na resposta da API: ${response.status}`);
-            }
-            const data = await response.json();
-            const results = data.results;
-            const metrics = data.metrics;
-            const userResponse = await fetch('/get_user_info');
-            const userData = await userResponse.json();
-            const userName = userData.nome;
-
-            const columns = [
-                'id', 'responsavel_visitacao', 'encontro_aconteceu', 'motivo_nao_aconteceu', 
-                'observacao', 'turma', 'tema', 'data_formacao', 'dia_mes', 'dia_semana', 
-                'horario', 'url', 'tenant', 'segmento', 'nome_responsavel_base', 'cpf_responsavel_base', 
-                'email', 'mes'
-            ];
-            
-            const columnDisplayNames = {
-                'id': 'ID', 'responsavel_visitacao': 'Responsável pela Visitação', 'encontro_aconteceu': 'Encontro Aconteceu?',
-                'motivo_nao_aconteceu': 'Motivo Não Aconteceu', 'observacao': 'Observação', 'turma': 'Turma',
-                'tema': 'Tema', 'data_formacao': 'Data da Formação', 'dia_mes': 'Dia do Mês',
-                'dia_semana': 'Dia da Semana', 'horario': 'Horário', 'url': 'URL', 'tenant': 'Tenant',
-                'segmento': 'Segmento', 'nome_responsavel_base': 'Nome do Responsável', 'cpf_responsavel_base': 'CPF do Responsável',
-                'email': 'E-mail', 'mes': 'Mês'
-            };
-
-            tableHeadRow.innerHTML = '<th>Ações</th>' + columns.map(col => `<th>${columnDisplayNames[col] || col}</th>`).join('');
-            resultsTableBody.innerHTML = '';
-            
-            if (results.length === 0) {
-                resultsTableBody.innerHTML = '<tr><td colspan="100%">Nenhum resultado encontrado.</td></tr>';
-            } else {
-                results.forEach(record => {
-                    const tr = document.createElement('tr');
-                    const tdActions = document.createElement('td');
-                    
-                    if (record.responsavel_visitacao) {
-                        if (record.is_editable) {
-                            const editButton = document.createElement('button');
-                            editButton.textContent = 'Editar';
-                            editButton.classList.add('edit-button');
-                            editButton.onclick = () => openEditVisitaModal(record);
-                            tdActions.appendChild(editButton);
-                            
-                            const deleteButton = document.createElement('button');
-                            deleteButton.textContent = 'Excluir';
-                            deleteButton.classList.add('delete-button', 'red-button');
-                            deleteButton.onclick = () => handleDeleteVisita(record.id);
-                            tdActions.appendChild(deleteButton);
-                        } else {
-                            tdActions.textContent = 'Reservado por outro';
-                        }
-                    } else {
-                        const reserveButton = document.createElement('button');
-                        reserveButton.textContent = 'Reservar';
-                        reserveButton.classList.add('reserve-button');
-                        reserveButton.onclick = () => handleReserveVisita(record, userName);
-                        tdActions.appendChild(reserveButton);
-                    }
-                    tr.appendChild(tdActions);
-
-                    columns.forEach(col => {
-                        const td = document.createElement('td');
-                        let cellValue = record[col];
-                         if (col === 'data_formacao' && cellValue) {
-                            const dateObj = new Date(cellValue);
-                            cellValue = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000).toLocaleDateString('pt-BR');
-                        }
-                        td.textContent = cellValue !== undefined && cellValue !== null ? cellValue : '';
-                        tr.appendChild(td);
-                    });
-                    resultsTableBody.appendChild(tr);
-                });
-            }
-            
-            if (metricsContainer) {
-                document.getElementById('visitas-total_formacoes').textContent = metrics.total_formacoes || 0;
-                document.getElementById('visitas-formacoes_visitadas').textContent = metrics.formacoes_visitadas || 0;
-                document.getElementById('visitas-formacoes_com_problemas').textContent = metrics.formacoes_com_problemas || 0;
-                document.getElementById('visitas-pct_visitacao').textContent = metrics.pct_visitacao || "0.00%";
-            }
-
-        } catch (error) {
-            console.error('ERRO JS: Erro ao carregar resultados para Visitações:', error);
-            resultsTableBody.innerHTML = `<tr><td colspan="100%">Erro ao carregar dados. Por favor, tente novamente.</td></tr>`;
-        }
-    }
-    
-    async function handleReserveVisita(record, userName) {
-        if (confirm(`Tem certeza que deseja reservar a formação da turma ${record.turma} em ${record.data_formacao}?`)) {
-            try {
-                const response = await fetch('/reserve_visita', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        turma: record.turma,
-                        data_formacao: record.data_formacao,
-                        horario: record.horario,
-                        tema: record.tema,
-                        dia_mes: record.dia_mes,
-                        dia_semana: record.dia_semana,
-                        url: record.url,
-                        tenant: record.tenant,
-                        segmento: record.segmento,
-                        nome_responsavel_base: record.nome_responsavel_base,
-                        cpf_responsavel_base: record.cpf_responsavel_base,
-                        email: record.email,
-                        mes: record.mes,
-                        responsavel_visitacao: userName
-                    })
-                });
-                const result = await response.json();
-                alert(result.message);
-                if (result.success) {
-                    fetchVisitasResults();
-                }
-            } catch (error) {
-                console.error('ERRO JS: Erro ao reservar visita:', error);
-                alert('Erro ao reservar visita. Tente novamente.');
-            }
-        }
-    }
-
-    function openEditVisitaModal(record) {
-        const editModal = document.getElementById('editModal');
-        const editModalContent = document.getElementById('editModalContent');
-
-        editModalContent.innerHTML = `
-            <h3>Editar Reserva de Visitação</h3>
-            <form id="editVisitaForm">
-                <input type="hidden" name="id" value="${record.id}">
-                <p><strong>Turma:</strong> ${record.turma}</p>
-                <p><strong>Data:</strong> ${record.data_formacao}</p>
-                
-                <label>Encontro Aconteceu?:</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="encontro_aconteceu" value="Sim" ${record.encontro_aconteceu === 'Sim' ? 'checked' : ''}> Sim</label>
-                    <label><input type="radio" name="encontro_aconteceu" value="Não" ${record.encontro_aconteceu === 'Não' ? 'checked' : ''}> Não</label>
-                    <label><input type="radio" name="encontro_aconteceu" value="Não visitado" ${record.encontro_aconteceu === 'Não visitado' ? 'checked' : ''}> Não visitado</label>
-                </div>
-                
-                <label for="motivo_nao_aconteceu">Motivo Não Aconteceu:</label>
-                <select id="motivo_nao_aconteceu" name="motivo_nao_aconteceu">
-                    <option value="">Selecione...</option>
-                    <option value="Sem PEC" ${record.motivo_nao_aconteceu === 'Sem PEC' ? 'selected' : ''}>Sem PEC</option>
-                    <option value="Sem PM" ${record.motivo_nao_aconteceu === 'Sem PM' ? 'selected' : ''}>Sem PM</option>
-                    <option value="Turma excluída" ${record.motivo_nao_aconteceu === 'Turma excluída' ? 'selected' : ''}>Turma excluída</option>
-                    <option value="Houve problemas técnicos" ${record.motivo_nao_aconteceu === 'Houve problemas técnicos' ? 'selected' : ''}>Houve problemas técnicos</option>
-                    <option value="Sem formador" ${record.motivo_nao_aconteceu === 'Sem formador' ? 'selected' : ''}>Sem formador</option>
-                    <option value="Turma sem inscritos" ${record.motivo_nao_aconteceu === 'Turma sem inscritos' ? 'selected' : ''}>Turma sem inscritos</option>
-                </select>
-                
-                <label for="observacao_visita">Observação:</label>
-                <textarea id="observacao_visita" name="observacao_visita" rows="3">${record.observacao || ''}</textarea>
-
-                <div class="button-group">
-                    <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
-                </div>
-            </form>
-        `;
-
-        const editForm = document.getElementById('editVisitaForm');
-        editForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const formData = new FormData(editForm);
-            const data = Object.fromEntries(formData.entries());
-            
-            try {
-                const response = await fetch(`/edit_visita/${record.id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                alert(result.message);
-                if (result.success) {
-                    closeModal();
-                    fetchVisitasResults();
-                }
-            } catch (error) {
-                console.error('ERRO JS: Erro ao salvar edição de visita:', error);
-                alert('Erro ao salvar a edição. Tente novamente.');
-            }
-        });
-
-        editModal.style.display = 'block';
-    }
-    
-    async function handleDeleteVisita(id) {
-        if (confirm(`Tem certeza que deseja excluir esta reserva de visitação? Esta ação é irreversível e irá liberar o horário para outro usuário.`)) {
-            try {
-                const response = await fetch(`/delete_visita/${id}`, {
-                    method: 'DELETE',
-                });
-                const result = await response.json();
-                alert(result.message);
-                if (result.success) {
-                    fetchVisitasResults();
-                }
-            } catch (error) {
-                console.error('ERRO JS: Erro ao excluir visita:', error);
-                alert('Erro ao excluir visita. Tente novamente.');
-            }
-        }
-    }
 
 
     function handleFormSubmit(formId, endpoint, successMessage) {
@@ -1655,7 +1630,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (result.success) {
                         alert(successMessage);
                         form.reset();
-                        
                         if (formId === 'formDemandas') {
                             if (escolasContainer) escolasContainer.style.display = 'none';
                             if (pmOrientadosInput) pmOrientadosInput.value = '';
@@ -1673,6 +1647,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.getElementById('encontro-realizado-nao').style.display = 'none';
                         }
     
+                        if (formId === 'formOcorrencia') {
+                            outraOcorrenciaContainer.style.display = 'none';
+                            outraOcorrenciaInput.value = '';
+                        }
+
                         loadAllDatalistsOptimized();
                         if (formId === 'formPresenca' && participantesContainer) {
                             participantesContainer.innerHTML = '';
@@ -1706,7 +1685,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const filterForms = ['Presenca', 'Avaliacao', 'Demandas', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Ocorrencias', 'Visitas'];
+    // Event Listeners para filtros de resultados (gerais)
+    const filterForms = ['Presenca', 'Avaliacao', 'Demandas', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Ocorrencias'];
     filterForms.forEach(formName => {
         const tableId = formName.toLowerCase();
         const form = document.getElementById(`filterForm${formName}`);
@@ -1715,18 +1695,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.preventDefault();
                 const formData = new FormData(this);
                 currentFilters[tableId] = Object.fromEntries(formData.entries());
-                
-                if(tableId === 'visitas') {
-                    fetchVisitasResults();
-                } else {
-                    fetchResults(tableId, 1);
-                }
+                fetchResults(tableId, 1);
             });
         }
         currentFilters[tableId] = {};
     });
 
-    const clearFilterButtons = ['Presenca', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Ocorrencias', 'Visitas'];
+    const clearFilterButtons = ['Presenca', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel', 'Ocorrencias'];
     clearFilterButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`clearFilters${tableIdCapitalized}`);
         if (button) {
@@ -1736,11 +1711,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     form.reset();
                     const tableId = tableIdCapitalized.toLowerCase();
                     currentFilters[tableId] = {};
-                    if(tableId === 'visitas') {
-                        fetchVisitasResults();
-                    } else {
-                        fetchResults(tableId, 1);
-                    }
+                    fetchResults(tableId, 1);
                 }
             });
         }
@@ -1756,8 +1727,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function exportTableToCsv(tableId) {
         let queryParams = new URLSearchParams(currentFilters[tableId]);
+
         const url = `/export_csv/${tableId}?${queryParams.toString()}`;
         console.log(`DEBUG JS: Exportando dados da tabela '${tableId}' da URL: ${url}`);
+
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', '');
@@ -1800,7 +1773,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 if (result.success) {
                     alert(result.message);
-                    fetchResults(table, currentPage[table] || 1);
+                    if (table === 'visitas') {
+                        fetchVisitas();
+                    } else {
+                        fetchResults(table, currentPage[table] || 1);
+                    }
                 } else {
                     alert(`Erro: ${result.message}`);
                 }
@@ -1811,6 +1788,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // ====================================================================
+    // Lógica para os novos botões de ferramentas administrativas (ATUALIZADO)
+    // ====================================================================
     const manageUserForm = document.getElementById('manageUserForm');
     const searchCpfInput = document.getElementById('search-cpf');
     const searchButton = document.getElementById('search-button');
@@ -1822,6 +1802,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const saveUserButton = document.getElementById('save-user-button');
     const uploadBaseForm = document.getElementById('uploadBaseForm');
     const uploadStatus = document.getElementById('uploadStatus');
+    const cleanReorganizeIdsForm = document.getElementById('cleanReorganizeIdsForm');
+
 
     const resetUserForm = () => {
         searchCpfInput.value = '';
@@ -1903,6 +1885,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+
             try {
                 const response = await fetch('/admin/manage_user', {
                     method: 'POST',
@@ -1922,6 +1905,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 
     if (deleteUserButton) {
         deleteUserButton.addEventListener('click', async () => {
@@ -1972,7 +1956,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         deleteEntryForm.reset();
                         const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
                         if (currentTableId === table) {
-                            fetchResults(table, currentPage[table] || 1);
+                            if (table === 'visitas') {
+                                fetchVisitas();
+                            } else {
+                                fetchResults(table, currentPage[table] || 1);
+                            }
                         }
                     }
                 } catch (error) {
@@ -2026,6 +2014,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('ERRO JS: Erro ao fazer upload da base:', error);
                 alert('Erro ao conectar com o servidor para fazer upload da base.');
                 uploadStatus.textContent = 'Erro ao conectar com o servidor.';
+            }
+        });
+    }
+
+    if (cleanReorganizeIdsForm) {
+        cleanReorganizeIdsForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const table_name = document.getElementById('clean-reorganize-table-select').value;
+            if (confirm(`Tem certeza que deseja limpar e reorganizar os IDs da tabela "${table_name}"?`)) {
+                 try {
+                    const response = await fetch('/admin/clean_and_reorganize_ids', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ table_name: table_name })
+                    });
+                    const result = await response.json();
+                    alert(result.message);
+                    if(result.success) {
+                        const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
+                        if(currentTableId === table_name) {
+                            fetchResults(table_name);
+                        }
+                    }
+                } catch (error) {
+                    console.error('ERRO JS: Erro ao limpar/reorganizar IDs:', error);
+                    alert('Ocorreu um erro ao tentar limpar e reorganizar os IDs.');
+                }
             }
         });
     }
@@ -2108,7 +2123,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('DEBUG JS: Erro ao carregar aviso para o admin (provavelmente não há aviso cadastrado):', error);
         }
     }
-
 
     async function fetchAviso() {
         const avisoModal = document.getElementById('aviso-modal');
@@ -2387,10 +2401,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isFormVisible) {
                     formSection.style.display = 'none';
                     resultSection.style.display = 'block';
-                    if (resultId === 'controle-ateste') {
-                        fetchResults('ateste');
-                    } else if (resultId === 'resultados-ocorrencias') {
-                        fetchResults('ocorrencias');
+                    if (resultId === 'visitas-encontros') {
+                        fetchVisitas();
                     } else {
                         const tableId = resultId.split('-')[1];
                         currentPage[tableId] = 1;
@@ -2417,9 +2429,8 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch('/get_access_level');
             if (!response.ok) {
-                // Se o servidor retornar um erro (e.g., 401 Unauthorized), o Flask já deve ter redirecionado
-                // para a página de login. Não há necessidade de redirecionar aqui.
-                console.warn(`DEBUG JS: Falha ao obter nível de acesso (${response.status}).`);
+                console.warn(`DEBUG JS: Falha ao obter nível de acesso (${response.status}). Redirecionando para login.`);
+                window.location.href = '/login';
                 return;
             }
             const data = await response.json();
@@ -2439,37 +2450,81 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             document.getElementById('aviso-modal').style.display = 'none';
 
-            const elementsToDisplay = {
-                'basic_access': ['form-presenca', 'form-ocorrencias', 'resultados-presenca', 'resultados-ocorrencias', 'links-importantes'],
-                'formador_access': ['form-presenca', 'form-ocorrencias', 'form-acompanhamento', 'resultados-presenca', 'resultados-ocorrencias', 'resultados-acompanhamento', 'controle-ateste', 'links-importantes'],
-                'efape_access': ['form-presenca', 'form-ocorrencias', 'form-acompanhamento', 'links-visitações', 'resultados-presenca', 'resultados-ocorrencias', 'resultados-acompanhamento', 'controle-ateste', 'links-importantes'],
-                'intermediate_access': ['form-presenca', 'form-acompanhamento', 'form-avaliacao', 'form-demandas', 'resultados-presenca', 'resultados-acompanhamento', 'resultados-avaliacao', 'resultados-demandas', 'controle-ateste', 'painel-bi', 'links-importantes'],
-                'super_admin': ['form-presenca', 'form-ocorrencias', 'form-acompanhamento', 'form-avaliacao', 'form-demandas', 'links-visitações', 'resultados-presenca', 'resultados-ocorrencias', 'resultados-acompanhamento', 'resultados-avaliacao', 'resultados-demandas', 'controle-ateste', 'painel-bi', 'links-importantes', 'admin-tools']
-            };
-
-            const sectionsToDisplay = elementsToDisplay[currentAccessLevel] || [];
-            
-            sectionsToDisplay.forEach(sectionId => {
-                const button = document.querySelector(`.tab-button[data-section-id="${sectionId}"]`);
-                if (button && !hiddenElements[sectionId]) {
-                    button.style.display = 'inline-block';
-                }
-            });
-            
-            // Exibe a primeira seção visível por padrão
-            const firstVisibleTab = document.querySelector('.tab-button[style="display: inline-block;"]');
-            if(firstVisibleTab) {
-                const sectionId = firstVisibleTab.dataset.sectionId;
-                const tableId = firstVisibleTab.dataset.tableId;
-                window.showSection(sectionId, tableId);
-                firstVisibleTab.classList.add('active');
-            } else {
-                 // Redireciona se não houver abas visíveis
-                window.location.href = '/login';
-                return;
+            switch (currentAccessLevel) {
+                case 'basic_access':
+                    // PM e CM
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'formador_access':
+                    // FORMADOR
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'efape_access':
+                    // EFAPE
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-visitas-encontros').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'intermediate_access':
+                    // PEC
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
+                    document.getElementById('tab-form-demandas').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-avaliacao').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-demandas').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-painel-bi').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'super_admin':
+                    // ADM
+                    document.querySelectorAll('.tab-button').forEach(button => {
+                        button.style.display = 'inline-block';
+                    });
+                    document.getElementById('tab-admin-tools').style.display = 'inline-block';
+                    window.showSection('admin-tools');
+                    break;
+                default:
+                    console.warn("DEBUG JS: Nível de acesso desconhecido ou 'none'. Redirecionando para login.");
+                    window.location.href = '/login';
+                    return;
             }
 
             document.querySelectorAll('.tab-button').forEach(button => {
+                const elementId = button.dataset.sectionId || button.id;
+                if (currentAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
+                    button.style.display = 'none';
+                    const sectionId = button.dataset.sectionId;
+                    const section = document.getElementById(sectionId);
+                    if (section) {
+                        section.style.display = 'none';
+                    }
+                }
                  button.removeEventListener('click', handleTabClick);
                  button.addEventListener('click', handleTabClick);
             });
@@ -2517,7 +2572,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('ERRO JS: Erro ao verificar o nível de acesso ou inicializar a UI:', error);
-            // Aqui o redirecionamento é removido, permitindo que o servidor controle o fluxo.
+            window.location.href = '/login';
         }
     }
 
@@ -2527,5 +2582,5 @@ document.addEventListener('DOMContentLoaded', function() {
     handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
     handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
     handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
-    handleFormSubmit('formOcorrencias', '/submit_ocorrencia', 'Ocorrência registrada com sucesso!');
+    handleFormSubmit('formOcorrencia', '/submit_ocorrencia', 'Ocorrência registrada com sucesso!');
 });

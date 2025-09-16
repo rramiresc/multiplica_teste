@@ -15,177 +15,25 @@
             <p>MULTIPLICA 2025.2</p>
             <p>(DESENVOLVIDO POR RAFAEL RAMIRES COSTA)</p>
         </h1>
-    </div>
+        </div>
 </header>
 
 <div class="navigation-tabs">
     <button class="tab-button active" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
-    <button class="tab-button" data-section-id="form-ocorrencias" data-table-id="ocorrencias" id="tab-form-ocorrencias">Ocorrências Internas</button>
-    <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros (Visitações)</button>
+    <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros</button>
     <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao" id="tab-form-avaliacao">Formulário de Avaliação</button>
     <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas" id="tab-form-demandas">Registro de Demandas</button>
-    <button class="tab-button" data-section-id="links-visitações" data-table-id="visitas" id="tab-links-visitações">Links para Visitações</button>
+    <button class="tab-button" data-section-id="form-ocorrencia" data-table-id="ocorrencias" id="tab-form-ocorrencia">Registro de Ocorrência</button>
+    <button class="tab-button" data-section-id="visitas-encontros" data-table-id="visitas" id="tab-visitas-encontros">Visitação de Encontros</button>
     <button class="tab-button" data-section-id="resultados-presenca" data-table-id="presenca" id="tab-resultados-presenca">Resultados de Presença</button>
     <button class="tab-button" data-section-id="resultados-acompanhamento" data-table-id="acompanhamento" id="tab-resultados-acompanhamento">Resultados Acompanhamento</button>
-    <button class="tab-button" data-section-id="resultados-ocorrencias" data-table-id="ocorrencias" id="tab-resultados-ocorrencias">Resultados de Ocorrências</button>
     <button class="tab-button" data-section-id="resultados-avaliacao" data-table-id="avaliacao" id="tab-resultados-avaliacao">Resultados de Avaliação</button>
     <button class="tab-button" data-section-id="resultados-demandas" data-table-id="demandas" id="tab-resultados-demandas">Resultados de Demandas</button>
+    <button class="tab-button" data-section-id="resultados-ocorrencias" data-table-id="ocorrencias" id="tab-resultados-ocorrencias">Resultados de Ocorrências</button>
     <button class="tab-button" data-section-id="controle-ateste" data-table-id="ateste" id="tab-controle-ateste">Controle para ATESTE</button>
     <button class="tab-button" data-section-id="painel-bi" id="tab-painel-bi">Painel BI</button>
     <button class="tab-button" data-section-id="links-importantes" id="tab-links-importantes">Links Importantes</button>
     <button class="tab-button" data-section-id="admin-tools" data-table-id="usuarios" id="tab-admin-tools">Ferramentas Admin</button>
-</div>
-
-<div id="form-ocorrencias" class="section" style="display:none;">
-    <h2>Registro de Ocorrências Internas</h2>
-    <form id="formOcorrencias">
-        <div class="form-section">
-            <h3>Dados de Contato</h3>
-            <label for="nome_ocorrencia">Nome:</label>
-            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" required>
-            <label for="email_ocorrencia">Email:</label>
-            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required>
-            <label for="telefone_ocorrencia">Telefone:</label>
-            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" required>
-        </div>
-
-        <div class="form-section">
-            <h3>Dados da Turma</h3>
-            <label for="turma_ocorrencia">Número da Turma:</label>
-            <input type="text" id="turma_ocorrencia" name="turma_ocorrencia" list="turmas-list" required>
-            <datalist id="turmas-list"></datalist>
-
-            <label for="tema_ocorrencia">Tema:</label>
-            <input type="text" id="tema_ocorrencia" name="tema_ocorrencia" list="temas-list-presenca" required>
-            <datalist id="temas-list-presenca"></datalist>
-        </div>
-
-        <div class="form-section">
-            <h3>Detalhes da Ocorrência</h3>
-            <label>Tipo de Ocorrência:</label>
-            <div class="radio-group">
-                <label><input type="radio" name="tipo_ocorrencia" value="Problema de acesso / login" required> Problema de acesso / login</label>
-                <label><input type="radio" name="tipo_ocorrencia" value="Link do Teams não corresponde a pauta"> Link do Teams não corresponde a pauta</label>
-                <label><input type="radio" name="tipo_ocorrencia" value="Botão de compartilhamento desabilitado"> Botão de compartilhamento desabilitado</label>
-                <label><input type="radio" name="tipo_ocorrencia" value="Lista de presença incompleta"> Lista de presença incompleta</label>
-                <label><input type="radio" name="tipo_ocorrencia" value="Dúvida de uso técnico"> Dúvida de uso técnico</label>
-                <label><input type="radio" name="tipo_ocorrencia" value="Outro"> Outro — especificar: <input type="text" name="outra_ocorrencia_desc" style="width: auto;"></label>
-            </div>
-
-            <label for="descricao_problema">Descrição do problema:</label>
-            <textarea id="descricao_problema" name="descricao_problema" rows="3" required></textarea>
-
-            <label>A ocorrência ainda ocorre agora?</label>
-            <div class="radio-group">
-                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" required> Sim</label>
-                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não"> Não (foi resolvido)</label>
-            </div>
-
-            <label>Nível de impacto:</label>
-            <div class="radio-group">
-                <label><input type="radio" name="nivel_impacto" value="Baixo" required> Baixo — não atrapalhou a aplicação da formação</label>
-                <label><input type="radio" name="nivel_impacto" value="Médio"> Médio — atrapalhou parcialmente a aplicação da formação</label>
-                <label><input type="radio" name="nivel_impacto" value="Alto"> Alto — impossibilitou uso da funcionalidade (formação não aconteceu)</label>
-            </div>
-        </div>
-        <button type="submit">Enviar Ocorrência</button>
-    </form>
-</div>
-
-<div id="links-visitações" class="section" style="display:none;">
-    <div class="result-header">
-        <h2>Links para Visitações</h2>
-    </div>
-    <div class="filters">
-        <h3>Filtros de Busca</h3>
-        <form id="filterFormVisitas">
-            <input type="text" name="tema" placeholder="Tema" value="">
-            <input type="text" name="turma" placeholder="Turma" value="">
-            <input type="text" name="dia_semana" placeholder="Dia da Semana" value="">
-            <input type="text" name="dia_mes" placeholder="Dia do Mês" value="">
-            <input type="text" name="responsavel_visitacao" placeholder="Responsável pela Visitação" value="">
-            <div class="checkbox-container">
-                <label><input type="checkbox" name="sem_responsavel" value="Sim"> Sem responsável</label>
-            </div>
-            <div class="button-group">
-                <button type="submit">Aplicar Filtros</button>
-                <button type="button" id="clearFiltersVisitas">Limpar Filtros</button>
-                <button type="button" id="exportCsvVisitas">Exportar para CSV</button>
-            </div>
-        </form>
-    </div>
-    
-    <div class="metrics" id="metrics-visitas">
-        <h3>Métricas</h3>
-        <div class="metrics-grid">
-            <p>Total de Formações: <span id="visitas-total_formacoes">0</span></p>
-            <p>Formações Visitadas: <span id="visitas-formacoes_visitadas">0</span></p>
-            <p>Formações com Problemas: <span id="visitas-formacoes_com_problemas">0</span></p>
-            <p>% de Visitação: <span id="visitas-pct_visitacao">0.00%</span></p>
-        </div>
-    </div>
-
-    <div id="table-visitas">
-        <h3>Tabela de Resultados</h3>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="pagination-container" id="pagination-visitas"></div>
-    </div>
-</div>
-
-<div id="resultados-ocorrencias" class="section" style="display:none;">
-    <div class="result-header">
-        <h2>Resultados - Ocorrências</h2>
-        <button class="toggle-form-result" data-form-id="form-ocorrencias" data-result-id="resultados-ocorrencias">Exibir Formulário</button>
-    </div>
-    <div class="filters">
-        <h3>Filtros de Busca</h3>
-        <form id="filterFormOcorrencias">
-            <input type="text" name="turma" placeholder="Número da Turma" value="">
-            <input type="text" name="tema" placeholder="Tema" value="">
-            <select name="tipo_ocorrencia">
-                <option value="">Tipo de Ocorrência (Todos)</option>
-                <option value="Problema de acesso / login">Problema de acesso / login</option>
-                <option value="Link do Teams não corresponde a pauta">Link do Teams não corresponde a pauta</option>
-                <option value="Botão de compartilhamento desabilitado">Botão de compartilhamento desabilitado</option>
-                <option value="Lista de presença incompleta">Lista de presença incompleta</option>
-                <option value="Dúvida de uso técnico">Dúvida de uso técnico</option>
-                <option value="Outro">Outro</option>
-            </select>
-            <div class="button-group">
-                <button type="submit">Aplicar Filtros</button>
-                <button type="button" id="clearFiltersOcorrencias">Limpar Filtros</button>
-                <button type="button" id="exportCsvOcorrencias">Exportar para CSV</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="metrics" id="metrics-ocorrencias">
-        <h3>Métricas</h3>
-        <div class="metrics-grid">
-            <p>Total de Ocorrências: <span id="ocorrencias-num_ocorrencias">0</span></p>
-            <p>Ocorrências Ativas: <span id="ocorrencias-ocorrencias_ativas">0</span></p>
-        </div>
-    </div>
-
-    <div id="table-ocorrencias">
-        <h3>Tabela de Resultados</h3>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <div class="pagination-container" id="pagination-ocorrencias"></div>
-    </div>
 </div>
 
 <div id="form-presenca" class="section active">
@@ -200,15 +48,15 @@
         <datalist id="responsaveis-list"></datalist>
 
         <label for="substituicao_ocorreu">Ocorreu substituição?</label>
-<div id="substituicao-ocorreu-radio-group" class="radio-group">
-    <label><input type="radio" name="substituicao_ocorreu" value="Não" checked> Não</label>
-    <label><input type="radio" name="substituicao_ocorreu" value="Sim"> Sim</label>
-</div>
+        <div id="substituicao-ocorreu-radio-group" class="radio-group">
+            <label><input type="radio" name="substituicao_ocorreu" value="Não" checked> Não</label>
+            <label><input type="radio" name="substituicao_ocorreu" value="Sim"> Sim</label>
+        </div>
 
-<div id="substituto-presenca-container" style="display:none;">
-    <label for="nome_substituto_presenca">Nome do substituto:</label>
-    <input type="text" id="nome_substituto_presenca" name="nome_substituto" list="responsaveis-list">
-</div>
+        <div id="substituto-presenca-container" style="display:none;">
+            <label for="nome_substituto_presenca">Nome do substituto:</label>
+            <input type="text" id="nome_substituto_presenca" name="nome_substituto" list="responsaveis-list">
+        </div>
 
         <label for="tema_presenca">Tema:</label>
         <input type="text" id="tema_presenca" name="tema_presenca" list="temas-list-presenca" required>
@@ -583,6 +431,118 @@
     </form>
 </div>
 
+<div id="form-ocorrencia" class="section" style="display:none;">
+    <h2>Registro de Ocorrência</h2>
+    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.
+    </p>
+    <form id="formOcorrencia">
+        <div class="form-section">
+            <h3>Dados do Relator</h3>
+            <label for="nome_ocorrencia">Nome completo:</label>
+            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" required>
+
+            <label for="email_ocorrencia">E-mail:</label>
+            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required>
+
+            <label for="telefone_ocorrencia">Telefone (opcional):</label>
+            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia">
+        </div>
+
+        <div class="form-section">
+            <h3>Detalhes da Ocorrência</h3>
+            <label for="turma_ocorrencia">Turma Afetada:</label>
+            <input type="text" id="turma_ocorrencia" name="turma_ocorrencia" list="turmas-list" required>
+            
+            <label for="tema_ocorrencia">Tema da Formação:</label>
+            <input type="text" id="tema_ocorrencia" name="tema_ocorrencia" list="temas-list-presenca" required>
+
+            <label for="tipo_ocorrencia">Tipo de Ocorrência:</label>
+            <select id="tipo_ocorrencia" name="tipo_ocorrencia" required>
+                <option value="">Selecione o tipo</option>
+                <option value="Problema com link de acesso">Problema com link de acesso</option>
+                <option value="Dificuldade de visualização/áudio">Dificuldade de visualização/áudio</option>
+                <option value="Conteúdo da pauta divergente">Conteúdo da pauta divergente</option>
+                <option value="Problema com a gravação">Problema com a gravação</option>
+                <option value="Desvio de conduta">Desvio de conduta</option>
+                <option value="Outra">Outra</option>
+            </select>
+            
+            <div id="outra_ocorrencia_desc_container" style="display:none;">
+                <label for="outra_ocorrencia_desc">Descreva a ocorrência:</label>
+                <textarea id="outra_ocorrencia_desc" name="outra_ocorrencia_desc"></textarea>
+            </div>
+
+            <label for="descricao_problema">Descreva o problema com detalhes:</label>
+            <textarea id="descricao_problema" name="descricao_problema" rows="5" required></textarea>
+
+            <label for="ocorrencia_ainda_ocorre">A ocorrência ainda está acontecendo?</label>
+            <div class="radio-group">
+                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" required> Sim</label>
+                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não"> Não</label>
+            </div>
+            
+            <label for="nivel_impacto">Nível de Impacto:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="nivel_impacto" value="Baixo" required> Baixo</label>
+                <label><input type="radio" name="nivel_impacto" value="Médio"> Médio</label>
+                <label><input type="radio" name="nivel_impacto" value="Alto"> Alto</label>
+            </div>
+        </div>
+
+        <button type="submit">Enviar Ocorrência</button>
+    </form>
+</div>
+
+<div id="visitas-encontros" class="section" style="display:none;">
+    <h2>Visitação de Encontros</h2>
+    <div class="filters">
+        <h3>Filtros e Ações</h3>
+        <form id="filterFormVisitas">
+            <input type="text" name="responsavel_visitacao" placeholder="Nome do responsável" value="">
+            <input type="text" name="turma" placeholder="Número da Turma" value="">
+            <input type="text" name="tema" placeholder="Tema da Formação" value="">
+            <input type="text" name="dia_semana" placeholder="Dia da Semana" value="">
+            <select name="sem_responsavel">
+                <option value="">Responsável (Todos)</option>
+                <option value="Sim">Sem responsável</option>
+            </select>
+            <div class="button-group">
+                <button type="submit">Aplicar Filtros</button>
+                <button type="button" id="clearFiltersVisitas">Limpar Filtros</button>
+            </div>
+        </form>
+    </div>
+    <div class="metrics" id="metrics-visitas">
+        <h3>Métricas</h3>
+        <div class="metrics-grid">
+            <p>Total de Formações Agendadas: <span id="visitas-total_formacoes">0</span></p>
+            <p>Formações Visitadas: <span id="visitas-formacoes_visitadas">0</span></p>
+            <p>Formações com Problemas: <span id="visitas-formacoes_com_problemas">0</span></p>
+            <p>% de Visitação: <span id="visitas-pct_visitacao">0.00%</span></p>
+        </div>
+    </div>
+    <div id="table-visitas">
+        <h3>Tabela de Visitações</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ações</th>
+                        <th>Responsável Visitação</th>
+                        <th>Encontro Aconteceu?</th>
+                        <th>Turma</th>
+                        <th>Tema</th>
+                        <th>Data Formação</th>
+                        <th>Horário</th>
+                        <th>URL</th>
+                    </tr>
+                </thead>
+                <tbody id="visitas-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div id="resultados-presenca" class="section" style="display:none;">
     <div class="result-header">
         <h2>Resultados - Presença</h2>
@@ -805,8 +765,58 @@
     </div>
 </div>
 
+<div id="resultados-ocorrencias" class="section" style="display:none;">
+    <div class="result-header">
+        <h2>Resultados - Ocorrências</h2>
+        <button class="toggle-form-result" data-form-id="form-ocorrencia" data-result-id="resultados-ocorrencias">Exibir Formulário</button>
+    </div>
+    <div class="filters">
+        <h3>Filtros de Busca</h3>
+        <form id="filterFormOcorrencias">
+            <input type="text" name="nome" placeholder="Nome do relator" value="">
+            <input type="text" name="email" placeholder="E-mail" value="">
+            <input type="text" name="turma" placeholder="Turma" value="">
+            <input type="text" name="tema" placeholder="Tema" value="">
+            <select name="ocorrencia_ainda_ocorre">
+                <option value="">Ocorrência ainda ocorre?</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+            <div class="button-group">
+                <button type="submit">Aplicar Filtros</button>
+                <button type="button" id="clearFiltersOcorrencias">Limpar Filtros</button>
+                <button type="button" id="exportCsvOcorrencias">Exportar para CSV</button>
+            </div>
+        </form>
+    </div>
+    <div class="metrics" id="metrics-ocorrencias">
+        <h3>Métricas</h3>
+        <div class="metrics-grid">
+            <p>Ocorrências Registradas: <span id="ocorrencias-num_ocorrencias">0</span></p>
+            <p>Ocorrências Ativas: <span id="ocorrencias-ocorrencias_ativas">0</span></p>
+        </div>
+    </div>
+    <div id="table-ocorrencias">
+        <h3>Tabela de Resultados</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+        <div class="pagination-container" id="pagination-ocorrencias"></div>
+    </div>
+</div>
+
 <div id="controle-ateste" class="section" style="display:none;">
     <h2>Controle para ATESTE</h2>
+    <div class="result-header">
+        <button class="toggle-form-result" data-form-id="form-acompanhamento" data-result-id="controle-ateste">Exibir Formulário</button>
+    </div>
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAteste">
@@ -950,12 +960,15 @@
                     <option value="form-acompanhamento">Acompanhamento de Encontros</option>
                     <option value="form-avaliacao">Formulário de Avaliação</option>
                     <option value="form-demandas">Registro de Demandas</option>
+                    <option value="form-ocorrencia">Registro de Ocorrência</option>
                 </optgroup>
                 <optgroup label="Resultados">
+                    <option value="visitas-encontros">Visitação de Encontros</option>
                     <option value="resultados-presenca">Resultados de Presença</option>
                     <option value="resultados-acompanhamento">Resultados Acompanhamento</option>
                     <option value="resultados-avaliacao">Resultados de Avaliação</option>
                     <option value="resultados-demandas">Resultados de Demandas</option>
+                    <option value="resultados-ocorrencias">Resultados de Ocorrências</option>
                     <option value="controle-ateste">Controle para Ateste</option>
                 </optgroup>
                 <optgroup label="Outros">
