@@ -346,6 +346,7 @@ def login_required(access_level_required):
     def wrapper(fn):
         @functools.wraps(fn)
         def decorated_view(*args, **kwargs):
+            # Adicione esta verificação para permitir acesso às rotas de autenticação sem redirecionar
             if request.path in ['/login', '/register', '/forgot_password', '/reset_password']:
                 return fn(*args, **kwargs)
 
