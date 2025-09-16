@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Multiplica 2025.2 - Coleta de Dados{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', _external=True, v=config['APP_VERSION']) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='img/multiplica_favicon.jpg') }}">
 </head>
 <body>
@@ -15,23 +15,177 @@
             <p>MULTIPLICA 2025.2</p>
             <p>(DESENVOLVIDO POR RAFAEL RAMIRES COSTA)</p>
         </h1>
-        </div>
+    </div>
 </header>
 
 <div class="navigation-tabs">
     <button class="tab-button active" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
+    <button class="tab-button" data-section-id="form-ocorrencias" data-table-id="ocorrencias" id="tab-form-ocorrencias">Ocorrências Internas</button>
     <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros (Visitações)</button>
     <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao" id="tab-form-avaliacao">Formulário de Avaliação</button>
     <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas" id="tab-form-demandas">Registro de Demandas</button>
-    <button class="tab-button" data-section-id="links-visitacoes" data-table-id="visitas" id="tab-links-visitacoes">Links para Visitações</button>
+    <button class="tab-button" data-section-id="links-visitações" data-table-id="visitas" id="tab-links-visitações">Links para Visitações</button>
     <button class="tab-button" data-section-id="resultados-presenca" data-table-id="presenca" id="tab-resultados-presenca">Resultados de Presença</button>
     <button class="tab-button" data-section-id="resultados-acompanhamento" data-table-id="acompanhamento" id="tab-resultados-acompanhamento">Resultados Acompanhamento</button>
+    <button class="tab-button" data-section-id="resultados-ocorrencias" data-table-id="ocorrencias" id="tab-resultados-ocorrencias">Resultados de Ocorrências</button>
     <button class="tab-button" data-section-id="resultados-avaliacao" data-table-id="avaliacao" id="tab-resultados-avaliacao">Resultados de Avaliação</button>
     <button class="tab-button" data-section-id="resultados-demandas" data-table-id="demandas" id="tab-resultados-demandas">Resultados de Demandas</button>
     <button class="tab-button" data-section-id="controle-ateste" data-table-id="ateste" id="tab-controle-ateste">Controle para ATESTE</button>
     <button class="tab-button" data-section-id="painel-bi" id="tab-painel-bi">Painel BI</button>
     <button class="tab-button" data-section-id="links-importantes" id="tab-links-importantes">Links Importantes</button>
     <button class="tab-button" data-section-id="admin-tools" data-table-id="usuarios" id="tab-admin-tools">Ferramentas Admin</button>
+</div>
+
+<div id="form-ocorrencias" class="section" style="display:none;">
+    <h2>Registro de Ocorrências Internas</h2>
+    <form id="formOcorrencias">
+        <div class="form-section">
+            <h3>Dados de Contato</h3>
+            <label for="nome_ocorrencia">Nome:</label>
+            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" required>
+            <label for="email_ocorrencia">Email:</label>
+            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required>
+            <label for="telefone_ocorrencia">Telefone:</label>
+            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" required>
+        </div>
+
+        <div class="form-section">
+            <h3>Dados da Turma</h3>
+            <label for="turma_ocorrencia">Número da Turma:</label>
+            <input type="text" id="turma_ocorrencia" name="turma_ocorrencia" list="turmas-list" required>
+            <datalist id="turmas-list"></datalist>
+
+            <label for="tema_ocorrencia">Tema:</label>
+            <input type="text" id="tema_ocorrencia" name="tema_ocorrencia" list="temas-list-presenca" required>
+            <datalist id="temas-list-presenca"></datalist>
+        </div>
+
+        <div class="form-section">
+            <h3>Detalhes da Ocorrência</h3>
+            <label>Tipo de Ocorrência:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="tipo_ocorrencia" value="Problema de acesso / login" required> Problema de acesso / login</label>
+                <label><input type="radio" name="tipo_ocorrencia" value="Link do Teams não corresponde a pauta"> Link do Teams não corresponde a pauta</label>
+                <label><input type="radio" name="tipo_ocorrencia" value="Botão de compartilhamento desabilitado"> Botão de compartilhamento desabilitado</label>
+                <label><input type="radio" name="tipo_ocorrencia" value="Lista de presença incompleta"> Lista de presença incompleta</label>
+                <label><input type="radio" name="tipo_ocorrencia" value="Dúvida de uso técnico"> Dúvida de uso técnico</label>
+                <label><input type="radio" name="tipo_ocorrencia" value="Outro"> Outro — especificar: <input type="text" name="outra_ocorrencia_desc" style="width: auto;"></label>
+            </div>
+
+            <label for="descricao_problema">Descrição do problema:</label>
+            <textarea id="descricao_problema" name="descricao_problema" rows="3" required></textarea>
+
+            <label>A ocorrência ainda ocorre agora?</label>
+            <div class="radio-group">
+                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" required> Sim</label>
+                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não"> Não (foi resolvido)</label>
+            </div>
+
+            <label>Nível de impacto:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="nivel_impacto" value="Baixo" required> Baixo — não atrapalhou a aplicação da formação</label>
+                <label><input type="radio" name="nivel_impacto" value="Médio"> Médio — atrapalhou parcialmente a aplicação da formação</label>
+                <label><input type="radio" name="nivel_impacto" value="Alto"> Alto — impossibilitou uso da funcionalidade (formação não aconteceu)</label>
+            </div>
+        </div>
+        <button type="submit">Enviar Ocorrência</button>
+    </form>
+</div>
+
+<div id="links-visitações" class="section" style="display:none;">
+    <div class="result-header">
+        <h2>Links para Visitações</h2>
+    </div>
+    <div class="filters">
+        <h3>Filtros de Busca</h3>
+        <form id="filterFormVisitas">
+            <input type="text" name="tema" placeholder="Tema" value="">
+            <input type="text" name="turma" placeholder="Turma" value="">
+            <input type="text" name="dia_semana" placeholder="Dia da Semana" value="">
+            <input type="text" name="dia_mes" placeholder="Dia do Mês" value="">
+            <input type="text" name="responsavel_visitacao" placeholder="Responsável pela Visitação" value="">
+            <div class="checkbox-container">
+                <label><input type="checkbox" name="sem_responsavel" value="Sim"> Sem responsável</label>
+            </div>
+            <div class="button-group">
+                <button type="submit">Aplicar Filtros</button>
+                <button type="button" id="clearFiltersVisitas">Limpar Filtros</button>
+                <button type="button" id="exportCsvVisitas">Exportar para CSV</button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="metrics" id="metrics-visitas">
+        <h3>Métricas</h3>
+        <div class="metrics-grid">
+            <p>Total de Formações: <span id="visitas-total_formacoes">0</span></p>
+            <p>Formações Visitadas: <span id="visitas-formacoes_visitadas">0</span></p>
+            <p>Formações com Problemas: <span id="visitas-formacoes_com_problemas">0</span></p>
+            <p>% de Visitação: <span id="visitas-pct_visitacao">0.00%</span></p>
+        </div>
+    </div>
+
+    <div id="table-visitas">
+        <h3>Tabela de Resultados</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="pagination-container" id="pagination-visitas"></div>
+    </div>
+</div>
+
+<div id="resultados-ocorrencias" class="section" style="display:none;">
+    <div class="result-header">
+        <h2>Resultados - Ocorrências</h2>
+        <button class="toggle-form-result" data-form-id="form-ocorrencias" data-result-id="resultados-ocorrencias">Exibir Formulário</button>
+    </div>
+    <div class="filters">
+        <h3>Filtros de Busca</h3>
+        <form id="filterFormOcorrencias">
+            <input type="text" name="turma" placeholder="Número da Turma" value="">
+            <input type="text" name="tema" placeholder="Tema" value="">
+            <select name="tipo_ocorrencia">
+                <option value="">Tipo de Ocorrência (Todos)</option>
+                <option value="Problema de acesso / login">Problema de acesso / login</option>
+                <option value="Link do Teams não corresponde a pauta">Link do Teams não corresponde a pauta</option>
+                <option value="Botão de compartilhamento desabilitado">Botão de compartilhamento desabilitado</option>
+                <option value="Lista de presença incompleta">Lista de presença incompleta</option>
+                <option value="Dúvida de uso técnico">Dúvida de uso técnico</option>
+                <option value="Outro">Outro</option>
+            </select>
+            <div class="button-group">
+                <button type="submit">Aplicar Filtros</button>
+                <button type="button" id="clearFiltersOcorrencias">Limpar Filtros</button>
+                <button type="button" id="exportCsvOcorrencias">Exportar para CSV</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="metrics" id="metrics-ocorrencias">
+        <h3>Métricas</h3>
+        <div class="metrics-grid">
+            <p>Total de Ocorrências: <span id="ocorrencias-num_ocorrencias">0</span></p>
+            <p>Ocorrências Ativas: <span id="ocorrencias-ocorrencias_ativas">0</span></p>
+        </div>
+    </div>
+
+    <div id="table-ocorrencias">
+        <h3>Tabela de Resultados</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="pagination-container" id="pagination-ocorrencias"></div>
+    </div>
 </div>
 
 <div id="form-presenca" class="section active">
@@ -264,100 +418,46 @@
             <input type="url" id="link_gravacao_avaliacao" name="link_gravacao_avaliacao" required>
         </div>
 
-        <div class="form-section">
-            <h3>Dimensão 1: Ambiente e Ética (Peso 1)</h3>
-            <p>1.1 - Promove um ambiente virtual seguro, respeitoso e acolhedor, prevenindo condutas inadequadas e incentivando a observância da ética nas interações, em conformidade com as diretrizes do Programa.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q1_1" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q1_1" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q1_2" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q1_2" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q1_3" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q1_3" value="Não Atende"> Não Atende</label>
-            </div>
-        </div>
-        
-        <div class="form-section">
-            <h3>Dimensão 2: Gerenciamento do Tempo (Peso 2)</h3>
-            <p>2.1 - Inicia a formação no horário determinado.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q2_1" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q2_1" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q2_2" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q2_2" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>2.3 - Encerra a formação no horário estipulado.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q2_3" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q2_3" value="Não Atende"> Não Atende</label>
-            </div>
-        </div>
+        {% set dimensoes = [
+            ('Dimensão 1: Ambiente e Ética (Peso 1)', [
+                ('1.1 - Promove um ambiente virtual seguro, respeitoso e acolhedor, prevenindo condutas inadequadas e incentivando a observância da ética nas interações, em conformidade com as diretrizes do Programa.', 'q1_1'),
+                ('1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.', 'q1_2'),
+                ('1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.', 'q1_3')
+            ]),
+            ('Dimensão 2: Gerenciamento do Tempo (Peso 2)', [
+                ('2.1 - Inicia a formação no horário determinado.', 'q2_1'),
+                ('2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.', 'q2_2'),
+                ('2.3 - Encerra a formação no horário estipulado.', 'q2_3')
+            ]),
+            ('Dimensão 3: Técnicas e Estratégias (Peso 2)', [
+                ('3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.', 'q3_1'),
+                ('3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.', 'q3_2'),
+                ('3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.', 'q3_3')
+            ]),
+            ('Dimensão 4: Vocabulário e Conteúdo (Peso 2)', [
+                ('4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.', 'q4_1'),
+                ('4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.', 'q4_2'),
+                ('4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.', 'q4_3')
+            ]),
+            ('Dimensão 5: Domínio e Progressão (Peso 2)', [
+                ('5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.', 'q5_1'),
+                ('5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.', 'q5_2'),
+                ('5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.', 'q5_3')
+            ])
+        ] %}
 
+        {% for titulo, perguntas in dimensoes %}
         <div class="form-section">
-            <h3>Dimensão 3: Técnicas e Estratégias (Peso 2)</h3>
-            <p>3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.</p>
+            <h3>{{ titulo }}</h3>
+            {% for pergunta, nome_pergunta in perguntas %}
+            <p>{{ pergunta }}</p>
             <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q3_1" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q3_1" value="Não Atende"> Não Atende</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Atende" required> Atende</label>
+                <label><input type="radio" name="{{ nome_pergunta }}" value="Não Atende"> Não Atende</label>
             </div>
-            <p>3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q3_2" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q3_2" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q3_3" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q3_3" value="Não Atende"> Não Atende</label>
-            </div>
+            {% endfor %}
         </div>
-        
-        <div class="form-section">
-            <h3>Dimensão 4: Vocabulário e Conteúdo (Peso 2)</h3>
-            <p>4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q4_1" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q4_1" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q4_2" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q4_2" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q4_3" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q4_3" value="Não Atende"> Não Atende</label>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h3>Dimensão 5: Domínio e Progressão (Peso 2)</h3>
-            <p>5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q5_1" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q5_1" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q5_2" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q5_2" value="Não Atende"> Não Atende</label>
-            </div>
-            <p>5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.</p>
-            <div class="radio-group" onchange="calculateScore()">
-                <label><input type="radio" name="q5_3" value="Atende" required> Atende</label>
-                <label><input type="radio" name="q5_3" value="Não Atende"> Não Atende</label>
-            </div>
-        </div>
+        {% endfor %}
 
         <div class="form-section">
             <h3>Feedback</h3>
@@ -483,96 +583,39 @@
     </form>
 </div>
 
-<div id="links-visitacoes" class="section" style="display:none;">
-    <h2>Links para Visitações</h2>
-    <div class="filters">
-        <form id="filterFormVisitas">
-            <input type="text" id="tema_visitas" name="tema" placeholder="Tema" list="temas-list-visitas" value="">
-            <datalist id="temas-list-visitas"></datalist>
-            
-            <input type="text" id="turma_visitas" name="turma" placeholder="Turma" list="turmas-list-visitas" value="">
-            <datalist id="turmas-list-visitas"></datalist>
-            
-            <input type="text" id="dia_da_semana_visitas" name="dia_da_semana" placeholder="Dia da Semana" list="dias-semana-list" value="">
-            <datalist id="dias-semana-list"></datalist>
-
-            <input type="text" id="dia_do_mes_visitas" name="dia_do_mes" placeholder="Dia do Mês" list="dias-mes-list" value="">
-            <datalist id="dias-mes-list"></datalist>
-
-            <input type="text" id="responsavel_pela_visita" name="responsavel_visita" placeholder="Responsável pela Visitação" list="responsaveis-visita-list" value="">
-            <datalist id="responsaveis-visita-list"></datalist>
-
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="sem_responsavel_pela_visita" name="sem_responsavel_pela_visita"> Sem Responsável pela visitação</label>
-            </div>
-
-            <div class="button-group">
-                <button type="submit">Aplicar Filtros</button>
-                <button type="button" id="clearFiltersVisitas">Limpar Filtros</button>
-                <button type="button" id="exportCsvVisitas">Exportar para CSV</button>
-                <button type="button" id="exportXlsxVisitas">Exportar para XLSX</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="metrics" id="metrics-visitas">
-        <h3>Métricas</h3>
-        <div class="metrics-grid">
-            <p>Total de Formações: <span id="visitas-total-formacoes">0</span></p>
-            <p>Formações Visitadas: <span id="visitas-formacoes-visitadas">0</span></p>
-            <p>Formações com Problemas: <span id="visitas-formacoes-problemas">0</span></p>
-            <p>% de Visitação: <span id="visitas-pct-visitacao">0%</span></p>
-        </div>
-    </div>
-
-    <div id="table-visitas">
-        <h3>Tabela de Resultados</h3>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-        <div class="pagination-container" id="pagination-visitas"></div>
-    </div>
-</div>
-
 <div id="resultados-presenca" class="section" style="display:none;">
     <div class="result-header">
         <h2>Resultados - Presença</h2>
         <button class="toggle-form-result" data-form-id="form-presenca" data-result-id="resultados-presenca">Exibir Formulário</button>
     </div>
     <div class="filters">
+        <h3>Filtros de Busca</h3>
         <form id="filterFormPresenca">
-            <input type="text" id="diretoria_presenca_filtro" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
+            <input type="text" name="diretoria_de_ensino_resp" placeholder="Diretoria do Responsável" value="">
             
-            <input type="text" id="responsavel_filtro" name="responsavel" placeholder="Nome do Responsável" value="">
+            <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
             
-            <input type="text" id="de_participante_filtro" name="de_participante" placeholder="DE do Participante" value="">
+            <input type="text" name="de_participante" placeholder="DE do Participante" value="">
 
-            <input type="text" id="escola_participante_filtro" name="escola_participante" placeholder="Escola do Participante" value="">
+            <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
 
-            <select id="presenca_filtro" name="presenca">
+            <select name="presenca">
                 <option value="">Presença (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
 
-            <select id="camera_filtro" name="camera">
+            <select name="camera">
                 <option value="">Câmera (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
             </select>
             
-            <input type="text" id="tema_presenca_filtro" name="tema" placeholder="Tema" value="">
+            <input type="text" name="tema" placeholder="Tema" value="">
             
-            <input type="text" id="turma_presenca_filtro" name="turma" placeholder="Turma" value="">
+            <input type="text" name="turma" placeholder="Turma" value="">
 
-            <select id="declinou_participante_filtro" name="declinou_participante">
+            <select name="declinou_participante">
                 <option value="">Declinou (Todos)</option>
                 <option value="SIM">SIM</option>
                 <option value="NÃO">NÃO</option>
@@ -584,7 +627,6 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersPresenca">Limpar Filtros</button>
                 <button type="button" id="exportCsvPresenca">Exportar para CSV</button>
-                <button type="button" id="exportXlsxPresenca">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -621,10 +663,11 @@
         <button class="toggle-form-result" data-form-id="form-acompanhamento" data-result-id="resultados-acompanhamento">Exibir Formulário</button>
     </div>
     <div class="filters">
+        <h3>Filtros de Busca</h3>
         <form id="filterFormAcompanhamento">
-            <input type="text" id="responsavel_acompanhamento_filtro" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
+            <input type="text" name="responsavel_acompanhamento" placeholder="Responsável pelo Acompanhamento" value="">
             
-            <input type="text" id="formador_assistido_filtro" name="formador_assistido" placeholder="Responsável pela Formação" value="">
+            <input type="text" name="formador_assistido" placeholder="Responsável pela Formação" value="">
             
             <input type="week" id="semana_acompanhamento_filtro" name="semana" placeholder="Semana (Domingo a Sábado)" value="">
 
@@ -632,7 +675,6 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersAcompanhamento">Limpar Filtros</button>
                 <button type="button" id="exportCsvAcompanhamento">Exportar para CSV</button>
-                <button type="button" id="exportXlsxAcompanhamento">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -671,21 +713,21 @@
     </div>
     <form id="filterFormAvaliacao">
         <div class="filters">
-            <input type="text" id="diretoria_de_ensino_avaliacao_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
+            <h3>Filtros de Busca</h3>
+            <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <input type="text" id="observado_filtro" name="observado" placeholder="Nome do Observado" value="">
+            <input type="text" name="observado" placeholder="Nome do Observado" value="">
             
-            <input type="text" id="escola_avaliacao_filtro" name="escola" placeholder="Escola" value="">
+            <input type="text" name="escola" placeholder="Escola" value="">
             
-            <input type="text" id="tema_observado_avaliacao_filtro" name="tema_observado" placeholder="Tema" value="">
+            <input type="text" name="tema_observado" placeholder="Tema" value="">
             
-            <input type="text" id="codigo_turma_avaliacao_filtro" name="codigo_turma" placeholder="Turma" value="">
+            <input type="text" name="codigo_turma" placeholder="Turma" value="">
 
             <div class="button-group">
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersAvaliacao">Limpar Filtros</button>
                 <button type="button" id="exportCsvAvaliacao">Exportar para CSV</button>
-                <button type="button" id="exportXlsxAvaliacao">Exportar para XLSX</button>
             </div>
         </div>
     </form>
@@ -719,20 +761,20 @@
         <button class="toggle-form-result" data-form-id="form-demandas" data-result-id="resultados-demandas">Exibir Formulário</button>
     </div>
     <div class="filters">
+        <h3>Filtros de Busca</h3>
         <form id="filterFormDemandas">
-            <input type="text" id="pec_filtro" name="pec" placeholder="PEC Multiplica responsável" value="">
+            <input type="text" name="pec" placeholder="PEC Multiplica responsável" value="">
             
-            <input type="text" id="caff_filtro" name="caff" placeholder="CAFF responsável" value="">
+            <input type="text" name="caff" placeholder="CAFF responsável" value="">
             
-            <input type="text" id="diretoria_de_ensino_demanda_filtro" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
+            <input type="text" name="diretoria_de_ensino" placeholder="Diretoria de Ensino" value="">
             
-            <input type="week" id="semana_demandas_filtro_resultados" name="semana" placeholder="Semana" value="">
+            <input type="week" id="semana_demandas_filtro" name="semana" placeholder="Semana" value="">
 
             <div class="button-group">
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersDemandas">Limpar Filtros</button>
                 <button type="button" id="exportCsvDemandas">Exportar para CSV</button>
-                <button type="button" id="exportXlsxDemandas">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -766,6 +808,7 @@
 <div id="controle-ateste" class="section" style="display:none;">
     <h2>Controle para ATESTE</h2>
     <div class="filters">
+        <h3>Filtros de Busca</h3>
         <form id="filterFormAteste">
             <label for="start_date_ateste">Período: Data de Início</label>
             <input type="date" id="start_date_ateste" name="start_date" value="">
@@ -786,7 +829,6 @@
                 <button type="submit">Aplicar Filtros</button>
                 <button type="button" id="clearFiltersAteste">Limpar Filtros</button>
                 <button type="button" id="exportCsvAteste">Exportar para CSV</button>
-                <button type="button" id="exportXlsxAteste">Exportar para XLSX</button>
             </div>
         </form>
     </div>
@@ -855,7 +897,8 @@
                 <select id="user-access-level" name="access_level" required>
                     <option value="no_access">Sem Acesso</option>
                     <option value="basic_access">Basic Access (PM/PC)</option>
-                    <option value="full_access">Full Access (PEC/FORMADOR/EFAPE)</option>
+                    <option value="efape_access">EFAPE Access (Formador EFAPE)</option>
+                    <option value="intermediate_access">Intermediate Access (PEC)</option>
                     <option value="super_admin">Super Admin (ADM)</option>
                 </select>
                 
@@ -914,7 +957,6 @@
                     <option value="resultados-avaliacao">Resultados de Avaliação</option>
                     <option value="resultados-demandas">Resultados de Demandas</option>
                     <option value="controle-ateste">Controle para Ateste</option>
-                    <option value="links-visitacoes">Links para Visitações</option>
                 </optgroup>
                 <optgroup label="Outros">
                     <option value="painel-bi">Painel BI</option>
@@ -1001,6 +1043,8 @@
                 <option value="avaliacao">Avaliação</option>
                 <option value="demandas">Demandas</option>
                 <option value="ateste">Ateste</option>
+                <option value="ocorrencias">Ocorrências</option>
+                <option value="visitas">Visitas</option>
                 <option value="usuarios">Usuários</option>
                 <option value="avisos">Avisos</option>
                 <option value="links">Links</option>
@@ -1035,6 +1079,6 @@
   </div>
 </div>
 
-<script type="module" src="{{ url_for('static', filename='js/script.js', _external=True, v=config['APP_VERSION']) }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
