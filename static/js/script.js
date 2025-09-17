@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação.");
+    console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação. Usando base_de_dados.xlsx via Flask e JSON para submissões.");
 
     // Mapeamento das perguntas da avaliação para seus textos completos
     const avaliacaoQuestionsMap = {
@@ -1059,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'substituicoes_realizadas': 'Substituições Realizadas',
                 'engajamento': 'Ações de Engajamento',
                 'valor_formacao': 'Valor da Formação',
-                # Colunas para a tabela de participantes
+                // Colunas para a tabela de participantes
                 'nome': 'Nome',
                 'cpf': 'CPF',
                 'escola': 'Escola',
@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'di': 'DI',
                 'pei': 'PEI',
                 'declinou': 'Declinou',
-                # Colunas para a tabela de usuários
+                // Colunas para a tabela de usuários
                 'password_hash': 'Hash da Senha',
                 'access_level': 'Nível de Acesso'
             };
@@ -1802,6 +1802,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // NOVO: Lógica para o formulário de gerenciamento de visibilidade
+    const visibilityForm = document.getElementById('visibilityForm');
     if (visibilityForm) {
         visibilityForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -2227,9 +2228,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.showSection('form-presenca');
                     break;
                 case 'formador_access':
+                    // FORMADOR
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
                 case 'efape_access':
+                    // EFAPE
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
                 case 'intermediate_access':
-                    // FORMADOR, EFAPE e PEC (acesso unificado)
+                    // PEC
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
