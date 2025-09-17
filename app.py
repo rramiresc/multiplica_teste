@@ -9,11 +9,16 @@ from datetime import datetime, timedelta, date
 import pytz
 import zipfile
 from io import BytesIO
+import hashlib
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_, func, cast, String, case, distinct, tuple_, inspect
+from sqlalchemy import or_, func, cast, String, case, distinct, tuple_
+from collections import defaultdict
+import glob
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import inspect
 from werkzeug.utils import secure_filename
 from threading import Thread
+import base64
 
 # Inicializar o Flask
 app = Flask(__name__)
@@ -34,7 +39,7 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['ALLOWED_EXTENSIONS'] = {'xlsx', 'csv'}
+app.config['ALLOWED_EXTENSIONS'] = {'xlsx'}
 app.config['DOWNLOAD_FOLDER'] = 'downloads'
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -48,26 +53,25 @@ PARTICIPANTES_DF = None
 # Definir o fuso horário de São Paulo
 SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
 
-# Definição dos níveis de acesso
+# Definição dos níveis de acesso (CORRIGIDO: CM tem acesso básico)
 ACCESS_LEVELS = {
     'PM': 'basic_access',
+    'PEC': 'intermediate_access',
+    'FORMADOR': 'formador_access',
+    'EFAPE': 'efape_access',
+    'ADM': 'super_admin',
     'PC': 'no_access',
-    'CM': 'basic_access',
-    'FORMADOR': 'power_user',
-    'EFAPE': 'power_user',
-    'PEC': 'power_user',
-    'CAFF': 'power_user',
-    'PEC Multiplica': 'power_user',
-    'PM Multiplicador': 'basic_access',
-    'PC Multiplicador': 'no_access',
-    'ADM': 'super_admin'
+    'CM': 'basic_access'
 }
 
 ACCESS_HIERARCHY = {
     "no_access": 0,
     "basic_access": 1,
-    "power_user": 2,
-    "super_admin": 3
+    "formador_access": 2,
+    "efape_access": 3,
+    "intermediate_access": 4,
+    "full_access": 5,
+    "super_admin": 6
 }
 
 ADMIN_CPF = "32302739825"
@@ -83,14 +87,18 @@ def format_datetime(dt):
     return dt
 
 def format_date(d):
-    if isinstance(d, date):
-        return d.strftime('%d/%m/%Y')
+    if isinstance(d, datetime):
+        return d.astimezone(SAO_PAULO_TIMEZONE).strftime('%d/%m/%Y')
     return d
 
 def format_time(t):
     if isinstance(t, datetime):
         return t.astimezone(SAO_PAULO_TIMEZONE).strftime('%H:%M')
     return t
+
+# Criptografar senha
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 # Modelo do Banco de Dados
 class Acompanhamento(db.Model):
@@ -234,42 +242,6 @@ class HiddenElement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     element_id = db.Column(db.String, unique=True, nullable=False)
     is_hidden = db.Column(db.Boolean, default=False)
-    
-class Ocorrencia(db.Model):
-    __tablename__ = 'ocorrencias'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String)
-    email = db.Column(db.String)
-    telefone = db.Column(db.String)
-    turma = db.Column(db.String)
-    tema = db.Column(db.String)
-    tipo_ocorrencia = db.Column(db.String)
-    outra_ocorrencia_desc = db.Column(db.String)
-    descricao_problema = db.Column(db.String)
-    ocorrencia_ainda_ocorre = db.Column(db.String)
-    nivel_impacto = db.Column(db.String)
-    data_horario = db.Column(db.DateTime)
-
-class Visita(db.Model):
-    __tablename__ = 'visitas'
-    id = db.Column(db.Integer, primary_key=True)
-    responsavel_visitacao = db.Column(db.String)
-    encontro_aconteceu = db.Column(db.String)
-    motivo_nao_aconteceu = db.Column(db.String)
-    observacao = db.Column(db.String)
-    turma = db.Column(db.String)
-    tema = db.Column(db.String)
-    data_formacao = db.Column(db.Date)
-    dia_mes = db.Column(db.Integer)
-    dia_semana = db.Column(db.String)
-    horario = db.Column(db.String)
-    url = db.Column(db.String)
-    tenant = db.Column(db.String)
-    segmento = db.Column(db.String)
-    nome_responsavel_base = db.Column(db.String)
-    cpf_responsavel_base = db.Column(db.String)
-    email = db.Column(db.String)
-    mes = db.Column(db.Integer)
 
 # Mapeamento para deleção e edição de registros
 MODEL_MAP = {
@@ -281,21 +253,22 @@ MODEL_MAP = {
     'usuarios': Usuario,
     'avisos': Aviso,
     'links': Link,
-    'ocorrencias': Ocorrencia,
-    'visitas': Visita,
 }
-
 # Lista de tabelas que podem ser editadas pelo modal
-EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'ocorrencias', 'visitas']
+EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste']
 
+# Função para carregar a base de participantes
 def load_participants_base():
+    """Carrega a base de dados de participantes a partir de um arquivo Excel e a armazena em memória."""
     global PARTICIPANTES_DF
     file_path = 'participantes_base_editavel.xlsx'
     try:
+        # Tenta ler o arquivo na raiz do projeto
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Arquivo '{file_path}' não encontrado.")
             
         PARTICIPANTES_DF = pd.read_excel(file_path)
+        # Limpar colunas com nomes mistos ou nulos e padronizar o CPF
         PARTICIPANTES_DF.columns = PARTICIPANTES_DF.columns.str.lower().str.strip().str.replace(' ', '_')
         PARTICIPANTES_DF.rename(columns={'nome_completo': 'nome'}, inplace=True)
         if 'cpf' in PARTICIPANTES_DF.columns:
@@ -312,41 +285,10 @@ def load_participants_base():
         PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'])
         return False
 
-def populate_visitas_from_excel():
-    file_path = 'links_visitações.xlsx'
-    with app.app_context():
-        if Visita.query.count() == 0:
-            try:
-                if not os.path.exists(file_path):
-                    print(f"AVISO: Arquivo '{file_path}' não encontrado. A tabela de visitas permanecerá vazia.")
-                    return
-                
-                visitas_df = pd.read_excel(file_path)
-                visitas_df.columns = visitas_df.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('ã', 'a').str.replace('ç', 'c')
-                visitas_df.rename(columns={'nome_do_responsavel': 'nome_responsavel_base', 'cpf_do_responsavel': 'cpf_responsavel_base', 'e-mail': 'email', 'mes': 'mes', 'url': 'url', 'tenant': 'tenant', 'segmento': 'segmento'}, inplace=True)
-                visitas_df.replace({np.nan: None}, inplace=True)
-
-                records = visitas_df.to_dict('records')
-                visitas_to_add = []
-                for record in records:
-                    record['data_formacao'] = record.get('data_da_formacao')
-                    record['horario'] = record.get('horario')
-                    record['turma'] = record.get('turma')
-                    record['tema'] = record.get('tema')
-                    record['dia_semana'] = record.get('dia_da_semana')
-                    record['dia_mes'] = record.get('dia_do_mes')
-                    record['encontro_aconteceu'] = 'Não visitado'
-                    visitas_to_add.append(Visita(**record))
-                
-                db.session.bulk_save_objects(visitas_to_add)
-                db.session.commit()
-                print("Tabela de visitas populada com sucesso a partir do Excel.")
-            except Exception as e:
-                db.session.rollback()
-                print(f"ERRO: Não foi possível popular a tabela de visitas a partir do Excel. {e}")
-
+# Carregar a base de dados na inicialização
 load_participants_base()
 
+# Funções auxiliares para manipulação de datas (semana de domingo a sábado)
 def get_sunday_of_week(year, week_num):
     first_day_of_year = datetime(year, 1, 1).date()
     if first_day_of_year.weekday() <= 3:
@@ -363,13 +305,12 @@ def get_saturday_of_week(year, week_num):
     saturday_of_our_week = sunday_of_our_week + timedelta(days=6)
     return saturday_of_our_week
 
+# Decorador para verificar autenticação e nível de acesso
 def login_required(access_level_required):
     def wrapper(fn):
         @functools.wraps(fn)
         def decorated_view(*args, **kwargs):
             if 'user_cpf' not in session:
-                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Acesso negado. Por favor, faça login.'}), 401
                 return redirect(url_for('login'))
             
             user_access_level = session.get('access_level', 'no_access')
@@ -387,10 +328,11 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+# Criar as tabelas no banco de dados se não existirem
 with app.app_context():
     db.create_all()
-    populate_visitas_from_excel()
 
+# Rotas de Autenticação
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_cpf' in session:
@@ -402,12 +344,14 @@ def login():
         cpf = request.form.get('cpf').strip()
         password = request.form.get('password').strip()
 
+        # Lógica especial para o Super Admin inicial
         if cpf == ADMIN_CPF and password == PASSWORD_FOR_ADMIN:
             user_in_db = Usuario.query.filter_by(cpf=cpf).first()
             if not user_in_db:
+                # Criar o super admin na primeira vez com a senha simbólica
                 new_user = Usuario(
                     cpf=cpf,
-                    password_hash=generate_password_hash(password),
+                    password_hash=hash_password(password),
                     access_level='super_admin'
                 )
                 db.session.add(new_user)
@@ -418,10 +362,32 @@ def login():
             return redirect(url_for('index'))
 
         user = Usuario.query.filter_by(cpf=cpf).first()
-        if user and check_password_hash(user.password_hash, password):
-            session['user_cpf'] = user.cpf
-            
-            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
+
+        if user:
+            if hash_password(password) == user.password_hash:
+                session['user_cpf'] = user.cpf
+                session['access_level'] = user.access_level
+                
+                # Lógica de verificação e redefinição de perfil
+                user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
+                if user_in_data:
+                    etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
+                    access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
+                    
+                    highest_access_level = "no_access"
+                    if access_levels_found:
+                        highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
+                    
+                    if ACCESS_HIERARCHY.get(highest_access_level, 0) > ACCESS_HIERARCHY.get(user.access_level, 0):
+                        user.access_level = highest_access_level
+                        db.session.commit()
+                        session['access_level'] = highest_access_level
+                        
+                return redirect(url_for('index'))
+            else:
+                error = "Senha incorreta."
+        else:
+            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
             if user_in_data:
                 etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
                 access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
@@ -430,14 +396,12 @@ def login():
                 if access_levels_found:
                     highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
                 
-                if ACCESS_HIERARCHY.get(highest_access_level, 0) > ACCESS_HIERARCHY.get(user.access_level, 0):
-                    user.access_level = highest_access_level
-                    db.session.commit()
-            
-            session['access_level'] = user.access_level
-            return redirect(url_for('index'))
-        else:
-            error = "CPF ou senha incorretos."
+                if highest_access_level == "no_access":
+                    error = "Seu perfil não tem permissão de acesso ao sistema."
+                else:
+                    return redirect(url_for('register', cpf=cpf))
+            else:
+                return redirect(url_for('register', cpf=cpf))
 
     return render_template('login_cpf.html', error=error)
 
@@ -446,6 +410,7 @@ def forgot_password():
     error = None
     if request.method == 'POST':
         cpf = request.form.get('cpf').strip()
+        
         user_in_db = Usuario.query.filter_by(cpf=cpf).first()
         if user_in_db:
             return redirect(url_for('reset_password', cpf=cpf))
@@ -467,10 +432,10 @@ def reset_password():
     error = None
     if request.method == 'POST':
         new_password = request.form.get('new_password')
-        if not new_password or len(new_password) < 6:
-            error = "A nova senha é obrigatória e deve ter pelo menos 6 caracteres."
+        if not new_password:
+            error = "A nova senha é obrigatória."
         else:
-            user.password_hash = generate_password_hash(new_password)
+            user.password_hash = hash_password(new_password)
             db.session.commit()
             return redirect(url_for('login', error="Senha alterada com sucesso! Por favor, faça login."))
             
@@ -496,9 +461,10 @@ def register():
         if not password or len(password) < 6:
             return render_template('register.html', cpf=cpf, error="A senha é obrigatória e deve ter pelo menos 6 caracteres.")
 
-        hashed_password = generate_password_hash(password)
+        hashed_password = hash_password(password)
 
-        user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
+        # Determinar nível de acesso a partir da base de participantes
+        user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
         access_level_to_assign = 'no_access'
         if user_in_data:
             etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
@@ -544,38 +510,30 @@ def get_user_info():
         return jsonify({'error': 'Usuário não logado'}), 401
     
     global PARTICIPANTES_DF
-    if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
-        if user_info:
-            user_info = user_info[0]
-            return jsonify({
-                'nome': user_info.get('nome', 'N/A'),
-                'cpf': user_info.get('cpf', 'N/A'),
-                'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
-                'etapa': user_info.get('etapa', 'N/A'),
-                'email': user_info.get('email', 'N/A'),
-                'access_level': session.get('access_level'),
-                'responsavel': user_info.get('responsavel', 'N/A')
-            })
-    
-    user_in_db = Usuario.query.filter_by(cpf=user_cpf).first()
-    if user_in_db:
-         return jsonify({
-            'nome': 'N/A',
-            'cpf': user_in_db.cpf,
-            'diretoria_de_ensino': 'N/A',
-            'etapa': 'N/A',
-            'email': 'N/A',
-            'access_level': user_in_db.access_level
+    user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+    if user_info:
+        user_info = user_info[0]
+        return jsonify({
+            'nome': user_info.get('nome', 'N/A'),
+            'cpf': user_info.get('cpf', 'N/A'),
+            'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
+            'etapa': user_info.get('etapa', 'N/A'),
+            'access_level': session.get('access_level'),
+            'responsavel': user_info.get('responsavel', 'N/A')
         })
-    
-    return jsonify({'error': 'Informações do usuário não encontradas na base de dados'}), 404
+    else:
+        user_in_db = Usuario.query.filter_by(cpf=user_cpf).first()
+        if user_in_db:
+             return jsonify({
+                'nome': 'N/A',
+                'cpf': user_in_db.cpf,
+                'diretoria_de_ensino': 'N/A',
+                'etapa': 'N/A',
+                'access_level': user_in_db.access_level
+            })
+        return jsonify({'error': 'Informações do usuário não encontradas na base de dados'}), 404
 
-# ====================================================================
-# Rotas para Datalists (Consolidadas)
-# ====================================================================
-
-@app.route('/api/datalists')
+@app.route('/get_all_datalists')
 @login_required("basic_access")
 def get_all_datalists():
     try:
@@ -599,9 +557,10 @@ def get_all_datalists():
             'RENATA KELLY DOS SANTOS LOBAO',
             'ROBERTO SERAGLIA MARTINS',
             'STEFANI DE SOUZA MENEZES',
-            'AINDA NAO TENHO CAFF'
+            'AINDA NÃO TENHO CAFF'
         ])
         
+        # CORREÇÃO: Adicionando as novas opções de pauta
         pautas_numericas = [str(i) for i in range(0, 17)]
         pautas_desdobramento = [f"Desdobramento {i}" for i in range(1, 9)]
         data['pautas_formativas'] = pautas_numericas + pautas_desdobramento
@@ -613,14 +572,14 @@ def get_all_datalists():
         app.logger.error(f"Erro ao carregar todas as datalists: {e}")
         return jsonify({'error': 'Erro interno ao carregar dados.'}), 500
 
-@app.route('/api/datalists/pecs_and_formadores', methods=['GET'])
-@login_required("power_user")
+@app.route('/get_pecs_and_formadores', methods=['GET'])
+@login_required("basic_access")
 def get_pecs_and_formadores():
     try:
         global PARTICIPANTES_DF
         if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
             observadores = PARTICIPANTES_DF[
-                PARTICIPANTES_DF['etapa'].isin(['PEC', 'FORMADOR', 'CAFF'])
+                PARTICIPANTES_DF['etapa'].isin(['PEC', 'FORMADOR'])
             ]['nome'].dropna().unique()
             return jsonify(sorted(list(observadores)))
         return jsonify([])
@@ -628,7 +587,7 @@ def get_pecs_and_formadores():
         app.logger.error(f"Erro ao carregar lista de PECs e Formadores: {e}")
         return jsonify([]), 500
 
-@app.route('/api/datalists/responsaveis_for_presenca', methods=['GET'])
+@app.route('/get_responsaveis_for_presenca', methods=['GET'])
 @login_required("basic_access")
 def get_responsaveis_for_presenca():
     try:
@@ -641,7 +600,7 @@ def get_responsaveis_for_presenca():
         app.logger.error(f"Erro ao carregar lista de responsáveis de presença: {e}")
         return jsonify([]), 500
 
-@app.route('/api/datalists/temas_by_responsavel')
+@app.route('/get_temas_by_responsavel')
 @login_required("basic_access")
 def get_temas_by_responsavel():
     responsavel = request.args.get('responsavel')
@@ -651,7 +610,7 @@ def get_temas_by_responsavel():
         return jsonify(sorted(list(filtered_temas)))
     return jsonify(sorted(list(PARTICIPANTES_DF['tema'].dropna().unique())))
 
-@app.route('/api/datalists/turmas_by_tema_and_responsavel')
+@app.route('/get_turmas_by_tema_and_responsavel')
 @login_required("basic_access")
 def get_turmas_by_tema_and_responsavel():
     responsavel = request.args.get('responsavel')
@@ -665,8 +624,22 @@ def get_turmas_by_tema_and_responsavel():
         return jsonify(sorted(list(filtered_turmas)))
     return jsonify([])
 
-@app.route('/api/datalists/schools_by_de')
-@login_required("power_user")
+@app.route('/get_turmas_by_tema_and_responsavel_basic')
+@login_required("basic_access")
+def get_turmas_by_tema_and_responsavel_basic():
+    responsavel = request.args.get('responsavel')
+    tema = request.args.get('tema')
+    global PARTICIPANTES_DF
+    if responsavel and tema and PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
+        filtered_turmas = PARTICIPANTES_DF[
+            (PARTICIPANTES_DF['responsavel'] == responsavel) & 
+            (PARTICIPANTES_DF['tema'] == tema)
+        ]['turma'].dropna().unique()
+        return jsonify(sorted(list(filtered_turmas)))
+    return jsonify([])
+
+@app.route('/get_schools_by_de')
+@login_required("intermediate_access")
 def get_schools_by_de():
     diretoria = request.args.get('diretoria')
     global PARTICIPANTES_DF
@@ -675,8 +648,8 @@ def get_schools_by_de():
         return jsonify(sorted(list(escolas)))
     return jsonify([])
 
-@app.route('/api/counts/participants_by_schools')
-@login_required("power_user")
+@app.route('/get_counts_by_schools')
+@login_required("intermediate_access")
 def get_counts_by_schools():
     escolas_str = request.args.get('escolas')
     global PARTICIPANTES_DF
@@ -704,8 +677,8 @@ def get_counts_by_schools():
         })
     return jsonify({'pm_count': 0, 'pc_count': 0, 'pm_total': 0, 'pc_total': 0})
 
-@app.route('/api/info/by_nome_or_cpf')
-@login_required("basic_access")
+@app.route('/get_info_by_nome_or_cpf')
+@login_required("intermediate_access")
 def get_info_by_nome_or_cpf():
     search_term = request.args.get('search_term')
     global PARTICIPANTES_DF
@@ -732,7 +705,7 @@ def get_info_by_nome_or_cpf():
             return jsonify(response_data)
     return jsonify({})
 
-@app.route('/api/info/participantes_by_turma')
+@app.route('/get_participantes_by_turma')
 @login_required("basic_access")
 def get_participantes_by_turma():
     turma = request.args.get('turma')
@@ -747,8 +720,8 @@ def get_participantes_by_turma():
         return jsonify(participantes_ordenados)
     return jsonify([])
 
-@app.route('/api/info/formador_assistido')
-@login_required("power_user")
+@app.route('/get_formador_assistido')
+@login_required("efape_access")
 def get_formador_assistido():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -758,8 +731,8 @@ def get_formador_assistido():
             return jsonify([formador])
     return jsonify([])
 
-@app.route('/api/info/tema_by_turma')
-@login_required("power_user")
+@app.route('/get_tema_by_turma')
+@login_required("efape_access")
 def get_tema_by_turma():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -769,12 +742,8 @@ def get_tema_by_turma():
             return jsonify([tema])
     return jsonify([])
 
-# ====================================================================
-# Rotas de Submissão de Formulários
-# ====================================================================
-
-@app.route('/submit/acompanhamento', methods=['POST'])
-@login_required("power_user")
+@app.route('/submit_acompanhamento', methods=['POST'])
+@login_required("efape_access")
 def submit_acompanhamento():
     try:
         data = request.json
@@ -787,6 +756,7 @@ def submit_acompanhamento():
 
         data_encontro_dt = datetime.strptime(data_encontro_str, '%Y-%m-%d').date()
 
+        # Checagem de duplicidade
         existing_record = Acompanhamento.query.filter_by(
             responsavel_acompanhamento=responsavel_acompanhamento,
             turma=turma,
@@ -847,10 +817,10 @@ def submit_acompanhamento():
 
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erro em /submit/acompanhamento: {e}")
+        app.logger.error(f"Erro em /submit_acompanhamento: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar acompanhamento: {e}'}), 500
 
-@app.route('/submit/presenca', methods=['POST'])
+@app.route('/submit_presenca', methods=['POST'])
 @login_required("basic_access")
 def submit_presenca():
     try:
@@ -907,44 +877,43 @@ def submit_presenca():
         
         nome_quem_preencheu = nome_substituto if substituicao_ocorreu == 'Sim' else responsavel_presenca
         
-        if PARTICIPANTES_DF is not None:
-            ateste_data_in_base = PARTICIPANTES_DF[
-                (PARTICIPANTES_DF['nome'] == nome_quem_preencheu)
-            ].to_dict('records')
+        ateste_data_in_base = PARTICIPANTES_DF[
+            (PARTICIPANTES_DF['nome'] == nome_quem_preencheu)
+        ].to_dict('records')
 
-            if ateste_data_in_base:
-                ateste_record_exists = Ateste.query.filter_by(
+        if ateste_data_in_base:
+            ateste_record_exists = Ateste.query.filter_by(
+                nome_quem_preencheu=nome_quem_preencheu,
+                tema=tema_presenca,
+                turma=turma_presenca,
+                data_formacao=data_formacao_dt
+            ).first()
+
+            if not ateste_record_exists:
+                ateste_data = ateste_data_in_base[0]
+                new_ateste = Ateste(
+                    responsavel_base=ateste_data.get('responsavel'),
                     nome_quem_preencheu=nome_quem_preencheu,
                     tema=tema_presenca,
                     turma=turma_presenca,
-                    data_formacao=data_formacao_dt
-                ).first()
-
-                if not ateste_record_exists:
-                    ateste_data = ateste_data_in_base[0]
-                    new_ateste = Ateste(
-                        responsavel_base=ateste_data.get('responsavel'),
-                        nome_quem_preencheu=nome_quem_preencheu,
-                        tema=tema_presenca,
-                        turma=turma_presenca,
-                        data_formacao=data_formacao_dt,
-                        diretoria_de_ensino=ateste_data.get('diretoria_de_ensino'),
-                        escola=ateste_data.get('escola'),
-                        cpf=ateste_data.get('cpf'),
-                        valor_formacao=152.04
-                    )
-                    db.session.add(new_ateste)
+                    data_formacao=data_formacao_dt,
+                    diretoria_de_ensino=ateste_data.get('diretoria_de_ensino'),
+                    escola=ateste_data.get('escola'),
+                    cpf=ateste_data.get('cpf'),
+                    valor_formacao=152.04
+                )
+                db.session.add(new_ateste)
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Registro de presença salvo com sucesso!'})
 
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erro em /submit/presenca: {e}")
+        app.logger.error(f"Erro em /submit_presenca: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de presença: {e}'}), 500
 
-@app.route('/submit/avaliacao', methods=['POST'])
-@login_required("power_user")
+@app.route('/submit_avaliacao', methods=['POST'])
+@login_required("intermediate_access")
 def submit_avaliacao():
     try:
         data = request.json
@@ -957,6 +926,7 @@ def submit_avaliacao():
 
         data_acompanhamento_dt = datetime.strptime(data_acompanhamento_str, '%Y-%m-%d').date()
 
+        # Checagem de duplicidade
         existing_record = Avaliacao.query.filter_by(
             observador=observador,
             cpf_observado=cpf_observado,
@@ -993,11 +963,11 @@ def submit_avaliacao():
         return jsonify({'success': True, 'message': 'Avaliação salva com sucesso!'})
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erro em /submit/avaliacao: {e}")
+        app.logger.error(f"Erro em /submit_avaliacao: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar avaliação: {e}'}), 500
 
-@app.route('/submit/demandas', methods=['POST'])
-@login_required("power_user")
+@app.route('/submit_demandas', methods=['POST'])
+@login_required("intermediate_access")
 def submit_demandas():
     try:
         data = request.json
@@ -1007,6 +977,7 @@ def submit_demandas():
         if not pec_cpf or not semana:
             return jsonify({'success': False, 'message': 'Dados obrigatórios faltando para o registro de demandas.'}), 400
 
+        # Checagem de duplicidade
         existing_record = Demanda.query.filter_by(
             cpf_pec=pec_cpf,
             semana=semana
@@ -1017,6 +988,7 @@ def submit_demandas():
         
         alinhamento_geral = 'Não se aplica'
 
+        # Garante que os valores numéricos são tratados como 0 se não existirem
         pm_orientados_val = int(data.get('pm_orientados') or 0)
         cursistas_orientados_val = int(data.get('cursistas_orientados') or 0)
 
@@ -1046,188 +1018,10 @@ def submit_demandas():
         return jsonify({'success': True, 'message': 'Registro de demanda salvo com sucesso!'})
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erro em /submit/demandas: {e}")
+        app.logger.error(f"Erro em /submit_demandas: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de demanda: {e}'}), 500
 
-@app.route('/submit/ocorrencia', methods=['POST'])
-@login_required('basic_access')
-def submit_ocorrencia():
-    try:
-        data = request.json
-        new_ocorrencia = Ocorrencia(
-            nome=data.get('nome_ocorrencia'),
-            email=data.get('email_ocorrencia'),
-            telefone=data.get('telefone_ocorrencia'),
-            turma=data.get('turma_ocorrencia'),
-            tema=data.get('tema_ocorrencia'),
-            tipo_ocorrencia=data.get('tipo_ocorrencia'),
-            outra_ocorrencia_desc=data.get('outra_ocorrencia_desc'),
-            descricao_problema=data.get('descricao_problema'),
-            ocorrencia_ainda_ocorre=data.get('ocorrencia_ainda_ocorre'),
-            nivel_impacto=data.get('nivel_impacto'),
-            data_horario=now_sp()
-        )
-        db.session.add(new_ocorrencia)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Ocorrência registrada com sucesso!'})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro em /submit/ocorrencia: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao salvar ocorrência: {e}'}), 500
-
-@app.route('/api/visitas', methods=['GET'])
-@login_required('power_user')
-def get_visitas():
-    try:
-        query = Visita.query
-
-        user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
-        user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
-
-        if session.get('access_level') == 'power_user':
-            query = query.filter(or_(Visita.responsavel_visitacao == None, Visita.responsavel_visitacao == user_name))
-        
-        filters = request.args.to_dict()
-        if filters:
-            for key, value in filters.items():
-                if value and key in ['responsavel_visitacao', 'turma', 'tema', 'dia_semana']:
-                    query = query.filter(cast(getattr(Visita, key), String).ilike(f'%{value}%'))
-                elif value and key == 'sem_responsavel' and value == 'Sim':
-                    query = query.filter(Visita.responsavel_visitacao == None)
-                elif value and key == 'encontro_aconteceu':
-                    if value == 'Reservado':
-                        query = query.filter(Visita.responsavel_visitacao.isnot(None))
-                    elif value == 'Não Visitado':
-                        query = query.filter(Visita.responsavel_visitacao.is_(None))
-                    else:
-                        query = query.filter(Visita.encontro_aconteceu == value)
-        
-        all_visitas = query.all()
-        results = []
-        for v in all_visitas:
-            record = v.__dict__.copy()
-            record.pop('_sa_instance_state', None)
-            if 'data_formacao' in record and record['data_formacao']:
-                record['data_formacao'] = record['data_formacao'].isoformat()
-            
-            record['is_editable'] = v.responsavel_visitacao == user_name or session.get('access_level') == 'super_admin'
-            
-            if v.responsavel_visitacao is not None:
-                record['encontro_aconteceu'] = v.encontro_aconteceu
-            else:
-                record['encontro_aconteceu'] = 'Não visitado'
-                
-            results.append(record)
-
-        total_formacoes = Visita.query.count()
-        formacoes_visitadas = db.session.query(Visita).filter(Visita.encontro_aconteceu.in_(['Sim', 'Não'])).count()
-        formacoes_com_problemas = db.session.query(Visita).filter(Visita.encontro_aconteceu == 'Não').count()
-        pct_visitacao = (formacoes_visitadas / total_formacoes) * 100 if total_formacoes > 0 else 0
-
-        metrics = {
-            'total_formacoes': total_formacoes,
-            'formacoes_visitadas': formacoes_visitadas,
-            'formacoes_com_problemas': formacoes_com_problemas,
-            'pct_visitacao': f'{pct_visitacao:.2f}%'
-        }
-        
-        return jsonify({
-            'results': results,
-            'metrics': metrics
-        })
-
-    except Exception as e:
-        app.logger.error(f"Erro em /api/visitas: {e}")
-        return jsonify({'error': f'Erro ao buscar dados: {e}'}), 500
-
-@app.route('/api/visitas/reserve', methods=['POST'])
-@login_required('power_user')
-def reserve_visita():
-    try:
-        data = request.json
-        user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
-        user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
-
-        record_id = data.get('id')
-        if not record_id:
-             return jsonify({'success': False, 'message': 'ID do registro não fornecido.'}), 400
-        
-        existing_record = Visita.query.get(record_id)
-        if not existing_record:
-             return jsonify({'success': False, 'message': 'Esta formação não existe na base para ser reservada.'}), 404
-        
-        if existing_record.responsavel_visitacao is not None:
-             return jsonify({'success': False, 'message': 'Esta formação já foi reservada.'}), 409
-        
-        existing_record.responsavel_visitacao = user_name
-        existing_record.encontro_aconteceu = 'Reservado'
-        
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Visita reservada com sucesso!'})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro em /api/visitas/reserve: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao reservar visita: {e}'}), 500
-
-@app.route('/api/visitas/edit/<int:record_id>', methods=['POST'])
-@login_required('power_user')
-def edit_visita(record_id):
-    try:
-        data = request.json
-        record = Visita.query.get(record_id)
-        if not record:
-            return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
-
-        user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
-        user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
-        
-        if record.responsavel_visitacao != user_name and session.get('access_level') != 'super_admin':
-            return jsonify({'success': False, 'message': 'Acesso negado. Você só pode editar suas próprias reservas.'}), 403
-
-        record.encontro_aconteceu = data.get('encontro_aconteceu')
-        record.motivo_nao_aconteceu = data.get('motivo_nao_aconteceu')
-        record.observacao = data.get('observacao_visita')
-        
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Registro de visitação atualizado com sucesso!'})
-
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro em /api/visitas/edit: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao atualizar registro: {e}'}), 500
-        
-@app.route('/api/visitas/delete/<int:record_id>', methods=['DELETE'])
-@login_required('power_user')
-def delete_visita(record_id):
-    try:
-        record = Visita.query.get(record_id)
-        if not record:
-            return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
-
-        user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
-        user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
-
-        if record.responsavel_visitacao != user_name and session.get('access_level') != 'super_admin':
-            return jsonify({'success': False, 'message': 'Acesso negado. Você só pode excluir suas próprias reservas.'}), 403
-
-        record.responsavel_visitacao = None
-        record.encontro_aconteceu = 'Não visitado'
-        record.observacao = None
-        record.motivo_nao_aconteceu = None
-        
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Reserva de visitação excluída com sucesso!'})
-        
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro em /api/visitas/delete: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao excluir reserva: {e}'}), 500
-
-@app.route('/api/results/<table_name>')
+@app.route('/get_results/<table_name>')
 @login_required("basic_access")
 def get_results(table_name):
     try:
@@ -1235,14 +1029,25 @@ def get_results(table_name):
         
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
-
-        if user_access_level == 'basic_access':
-            if table_name not in ['presenca', 'ocorrencias']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'power_user':
-             if table_name in ['usuarios', 'avisos', 'links']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
         
+        # --- LÓGICA CORRIGIDA DE PERMISSÕES ---
+        # Define os relatórios permitidos para cada nível de acesso
+        allowed_tables_map = {
+            'basic_access': ['presenca'],
+            'formador_access': ['presenca', 'acompanhamento', 'ateste'],
+            'efape_access': ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel'],
+            'intermediate_access': ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
+            'super_admin': ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios']
+        }
+        
+        if table_name not in allowed_tables_map.get(user_access_level, []):
+            return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+
+        # --- FIM DA LÓGICA CORRIGIDA DE PERMISSÕES ---
+
+        # === INÍCIO DA LÓGICA DE FILTRAGEM DO CONTEÚDO ===
+        
+        # LÓGICA ESPECÍFICA PARA A BASE DE PARTICIPANTES (sem query SQL)
         if table_name == 'participantes_base_editavel':
             if PARTICIPANTES_DF is None:
                 return jsonify({'error': 'Base de participantes não carregada.'}), 500
@@ -1282,35 +1087,25 @@ def get_results(table_name):
         page = request.args.get('page', 1, type=int)
         query = Model.query
         
-        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf] if PARTICIPANTES_DF is not None else None
-        user_name = user_info_df['nome'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
-        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
-        user_email = user_info_df['email'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
+        # LÓGICA ADICIONAL DE FILTRO POR USUÁRIO
+        # Essa lógica é para restringir a visualização, não para liberar.
+        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
+        user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
+        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if not user_info_df.empty else None
 
-        if user_access_level == 'basic_access':
-            if table_name == 'presenca':
-                query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.cpf_participante == user_cpf
-                ))
-            elif table_name == 'ocorrencias':
-                 query = query.filter_by(email=user_email)
-
-        elif user_access_level == 'power_user':
-            if table_name == 'presenca':
-                query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.cpf_participante == user_cpf
-                ))
-            elif table_name in ['acompanhamento', 'avaliacao', 'demandas']:
-                if user_de:
+        if user_access_level == 'basic_access' and table_name == 'presenca':
+            query = query.filter(or_(
+                Presenca.responsavel == user_name,
+                Presenca.nome_substituto == user_name
+            ))
+        # REMOVIDA LÓGICA REPETIDA PARA OUTROS NÍVEIS DE ACESSO, USANDO A TABELA DE PERMISSÕES.
+        # A lógica abaixo é para filtros específicos do usuário logado.
+        elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+            if user_de:
+                if table_name == 'presenca':
+                    query = query.filter_by(diretoria_de_ensino_resp=user_de)
+                elif table_name in ['avaliacao', 'demandas']:
                     query = query.filter_by(diretoria_de_ensino=user_de)
-            elif table_name == 'ateste':
-                 query = query.filter_by(cpf=user_cpf)
-            elif table_name == 'visitas':
-                query = query.filter(or_(Visita.responsavel_visitacao == None, Visita.responsavel_visitacao == user_name))
         
         filtered_query = query
         
@@ -1345,6 +1140,7 @@ def get_results(table_name):
                         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
                         filtered_query = filtered_query.filter(Ateste.data_formacao <= end_date)
                 elif hasattr(Model, key):
+                    # CORREÇÃO: Tratamento para colunas que podem não existir no modelo
                     filtered_query = filtered_query.filter(cast(getattr(Model, key), String).ilike(f'%{value}%'))
         
         metrics = {}
@@ -1444,17 +1240,6 @@ def get_results(table_name):
                 'num_formacoes_unicas': metrics_query.num_formacoes_unicas or 0,
                 'total_a_pagar': f'{metrics_query.total_pagar:,.2f}'.replace('.', 'X').replace(',', '.').replace('X', ',') if metrics_query.total_pagar is not None else '0,00'
             }
-        
-        elif table_name == 'ocorrencias':
-            metrics_query = db.session.query(
-                func.count(Model.id).label('num_ocorrencias'),
-                func.sum(case((Model.ocorrencia_ainda_ocorre == 'Sim', 1), else_=0)).label('ocorrencias_ativas')
-            ).filter(Model.id.in_(subquery_for_metrics)).first()
-            
-            metrics = {
-                'num_ocorrencias': metrics_query.num_ocorrencias or 0,
-                'ocorrencias_ativas': metrics_query.ocorrencias_ativas or 0
-            }
 
         total_items = filtered_query.count()
         paginated_query = filtered_query.paginate(page=page, per_page=per_page, error_out=False)
@@ -1481,174 +1266,10 @@ def get_results(table_name):
         })
 
     except Exception as e:
-        app.logger.error(f"Erro em /api/results/{table_name}: {e}")
+        app.logger.error(f"Erro em /get_results/{table_name}: {e}")
         return jsonify({'error': f'Erro ao buscar dados: {e}'}), 500
 
-@app.route('/api/records/<table_name>/<int:record_id>', methods=['GET'])
-@login_required('basic_access')
-def get_record(table_name, record_id):
-    if table_name not in MODEL_MAP:
-        return jsonify({'error': 'Tabela não encontrada.'}), 404
-    
-    Model = MODEL_MAP[table_name]
-    record = Model.query.get(record_id)
-    
-    if not record:
-        return jsonify({'error': 'Registro não encontrado.'}), 404
-        
-    data = record.__dict__.copy()
-    data.pop('_sa_instance_state', None)
-    
-    for key, value in data.items():
-        if isinstance(value, (datetime, date)):
-            data[key] = value.isoformat()
-    
-    return jsonify(data)
-
-@app.route('/api/records/<table_name>/<string:record_cpf>', methods=['GET'])
-@login_required('super_admin')
-def get_user_by_cpf(table_name, record_cpf):
-    if table_name not in ['usuarios', 'participantes_base_editavel']:
-        return jsonify({'error': 'Tabela não suportada para busca por CPF.'}), 400
-
-    if table_name == 'usuarios':
-        user = Usuario.query.filter_by(cpf=record_cpf).first()
-        if not user:
-            return jsonify({'error': 'Usuário não encontrado.'}), 404
-        data = user.__dict__.copy()
-        data.pop('_sa_instance_state', None)
-        return jsonify(data)
-    
-    elif table_name == 'participantes_base_editavel':
-        global PARTICIPANTES_DF
-        if PARTICIPANTES_DF is None or PARTICIPANTES_DF.empty:
-            return jsonify({'error': 'Base de participantes não carregada.'}), 500
-        
-        record = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == record_cpf].to_dict('records')
-        if not record:
-            return jsonify({'error': 'Registro não encontrado.'}), 404
-            
-        return jsonify(record[0])
-
-@app.route('/edit/record/<table_name>', methods=['POST'])
-@login_required('basic_access')
-def edit_record(table_name):
-    if table_name not in EDITABLE_TABLES:
-        return jsonify({'success': False, 'message': 'Edição não permitida para esta tabela.'}), 403
-        
-    Model = MODEL_MAP.get(table_name)
-    if not Model:
-        return jsonify({'success': False, 'message': 'Tabela não encontrada.'}), 404
-    
-    data = request.json
-    record_id = data.get('id')
-    
-    record = Model.query.get(record_id)
-    if not record:
-        return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
-    
-    try:
-        if table_name == 'presenca':
-            record.presenca = data.get('presenca')
-            record.camera = data.get('camera')
-        elif table_name == 'acompanhamento':
-            record.encontro_realizado = data.get('encontro_realizado')
-            if record.encontro_realizado == 'Sim':
-                record.formador_presente = data.get('formador_presente')
-                record.formador_camera = data.get('formador_camera')
-                record.formador_fundo = data.get('formador_fundo')
-                record.dia_semana_encontro = data.get('dia_semana_encontro')
-                record.horario_encontro = data.get('horario_encontro')
-                record.real_participantes = data.get('real_participantes')
-                record.camera_aberta_participantes = data.get('camera_aberta_participantes')
-                record.motivo_nao_ocorrencia = None
-            else:
-                record.motivo_nao_ocorrencia = data.get('motivo_nao_ocorrencia')
-                record.formador_presente = None
-                record.formador_camera = None
-                record.formador_fundo = None
-                record.dia_semana_encontro = None
-                record.horario_encontro = None
-                record.real_participantes = None
-                record.camera_aberta_participantes = None
-            record.observacao = data.get('observacao')
-        elif table_name == 'avaliacao':
-            record.nota_final = data.get('nota_final')
-            record.feedback_estruturado = data.get('feedback_estruturado')
-            record.observacoes_gerais = data.get('observacoes_gerais')
-        elif table_name == 'demandas':
-            record.formacoes_realizadas = data.get('formacoes_realizadas')
-            record.pm_orientados = data.get('pm_orientados')
-            record.cursistas_orientados = data.get('cursistas_orientados')
-        elif table_name == 'ateste':
-            record.valor_formacao = data.get('valor_formacao')
-        elif table_name == 'ocorrencias':
-            record.tipo_ocorrencia = data.get('tipo_ocorrencia')
-            record.outra_ocorrencia_desc = data.get('outra_ocorrencia_desc')
-            record.descricao_problema = data.get('descricao_problema')
-            record.ocorrencia_ainda_ocorre = data.get('ocorrencia_ainda_ocorre')
-        elif table_name == 'visitas':
-            record.encontro_aconteceu = data.get('encontro_aconteceu')
-            record.motivo_nao_aconteceu = data.get('motivo_nao_aconteceu')
-            record.observacao = data.get('observacao_visita')
-        else:
-            return jsonify({'success': False, 'message': 'Tabela não suportada para edição.'}), 400
-        
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Registro atualizado com sucesso!'})
-        
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro ao editar registro na tabela {table_name}: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao atualizar o registro: {e}'}), 500
-        
-@app.route('/api/delete/entry', methods=['POST'])
-@login_required('super_admin')
-def delete_entry():
-    data = request.json
-    table_name = data.get('table')
-    record_id = data.get('id')
-
-    if table_name not in MODEL_MAP:
-        return jsonify({'success': False, 'message': 'Tabela não encontrada.'}), 404
-
-    Model = MODEL_MAP[table_name]
-    
-    try:
-        if table_name == 'presenca' and data.get('delete_related'):
-            turma = data.get('turma')
-            data_formacao = data.get('data_formacao')
-            pauta = data.get('pauta')
-            
-            if not all([turma, data_formacao, pauta]):
-                 return jsonify({'success': False, 'message': 'Dados de formação incompletos para exclusão em massa.'}), 400
-            
-            records_to_delete = Presenca.query.filter_by(
-                turma=turma,
-                data_formacao=datetime.strptime(data_formacao, '%Y-%m-%d').date(),
-                pauta=pauta
-            ).all()
-            
-            for record in records_to_delete:
-                db.session.delete(record)
-            
-            message = f"Todos os {len(records_to_delete)} registros da formação foram excluídos."
-        else:
-            record = Model.query.get(record_id)
-            if not record:
-                return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
-            
-            db.session.delete(record)
-            message = f'Registro ID {record_id} da tabela "{table_name}" excluído com sucesso.'
-        
-        db.session.commit()
-        return jsonify({'success': True, 'message': message})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro ao excluir registro: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao excluir o registro: {e}'}), 500
-
-@app.route('/admin/upload_base', methods=['POST'])
+@app.route('/upload_base', methods=['POST'])
 @login_required('super_admin')
 def upload_base():
     if 'baseFile' not in request.files:
@@ -1676,22 +1297,22 @@ def upload_base():
     return jsonify({'success': False, 'message': 'Formato de arquivo não permitido. Apenas .xlsx é aceito.'}), 400
 
 def generate_and_save_reports(user_cpf):
-    def generate_csv_from_df(df_to_save):
-        csv_file = BytesIO()
-        df_to_save.to_csv(csv_file, index=False, encoding='utf-8-sig')
-        csv_file.seek(0)
-        return csv_file.read()
-
+    """
+    Função para gerar o arquivo zip de relatórios em segundo plano.
+    """
     with app.app_context():
         try:
-            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos', 'ocorrencias', 'visitas']
+            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos']
             zip_filename = f'todos_relatorios_{now_sp().strftime("%Y%m%d%H%M%S")}.zip'
             zip_path = os.path.join(app.config['DOWNLOAD_FOLDER'], zip_filename)
 
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 global PARTICIPANTES_DF
                 if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
-                    zipf.writestr('participantes_base_editavel.csv', generate_csv_from_df(PARTICIPANTES_DF))
+                    csv_file = BytesIO()
+                    PARTICIPANTES_DF.to_csv(csv_file, index=False, encoding='utf-8-sig')
+                    csv_file.seek(0)
+                    zipf.writestr('participantes_base_editavel.csv', csv_file.read())
                     print("Base de participantes adicionada ao zip.")
                 
                 for table_name in tables:
@@ -1699,17 +1320,14 @@ def generate_and_save_reports(user_cpf):
                     if not Model:
                         continue
                     
-                    query_results = Model.query.all()
-                    if not query_results:
-                        continue
-
-                    df = pd.DataFrame([obj.__dict__ for obj in query_results])
+                    query = Model.query.all()
+                    df = pd.DataFrame([obj.__dict__ for obj in query])
                     df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
                     
                     for col in df.columns:
                         if pd.api.types.is_datetime64_any_dtype(df[col]):
                             df[col] = pd.to_datetime(df[col]).dt.date
-                        elif col in ['engajamento', 'escolas_visitadas']:
+                        elif col == 'engajamento' or col == 'escolas_visitadas':
                             df[col] = df[col].astype(str).str.replace(r"\[|\]|'", "", regex=True)
 
                     column_order = {
@@ -1721,16 +1339,18 @@ def generate_and_save_reports(user_cpf):
                         'usuarios': ['id', 'cpf', 'access_level'],
                         'avisos': ['id', 'titulo', 'conteudo', 'imagem_url'],
                         'links': ['id', 'titulo', 'descricao', 'url', 'imagem_url'],
-                        'ocorrencias': ['id', 'nome', 'email', 'telefone', 'turma', 'tema', 'tipo_ocorrencia', 'outra_ocorrencia_desc', 'descricao_problema', 'ocorrencia_ainda_ocorre', 'nivel_impacto', 'data_horario'],
-                        'visitas': ['id', 'responsavel_visitacao', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'turma', 'tema', 'data_formacao', 'dia_mes', 'dia_semana', 'horario', 'url', 'tenant', 'segmento', 'nome_responsavel_base', 'cpf_responsavel_base', 'email', 'mes']
                     }
                     
                     if table_name in column_order:
                         existing_cols = [col for col in column_order[table_name] if col in df.columns]
                         df = df[existing_cols]
 
-                    zipf.writestr(f'{table_name}.csv', generate_csv_from_df(df))
-            
+                    csv_file = BytesIO()
+                    df.to_csv(csv_file, index=False, encoding='utf-8-sig')
+                    csv_file.seek(0)
+                    
+                    zipf.writestr(f'{table_name}.csv', csv_file.read())
+
             app.logger.info(f"Arquivo de relatórios para {user_cpf} gerado com sucesso: {zip_path}")
             with open(os.path.join(app.config['DOWNLOAD_FOLDER'], f'{user_cpf}_latest_download.txt'), 'w') as f:
                 f.write(zip_path)
@@ -1738,7 +1358,7 @@ def generate_and_save_reports(user_cpf):
         except Exception as e:
             app.logger.error(f"Erro ao gerar o zip de relatórios em segundo plano para {user_cpf}: {e}")
             
-@app.route('/admin/download_all_reports_async', methods=['GET'])
+@app.route('/download_all_reports_async', methods=['GET'])
 @login_required("super_admin")
 def download_all_reports_async():
     try:
@@ -1750,7 +1370,7 @@ def download_all_reports_async():
         app.logger.error(f"Erro ao iniciar a thread de exportação: {e}")
         return jsonify({'success': False, 'message': 'Erro ao iniciar a geração dos relatórios.'}), 500
 
-@app.route('/admin/check_download_status', methods=['GET'])
+@app.route('/check_download_status', methods=['GET'])
 @login_required("super_admin")
 def check_download_status():
     user_cpf = session.get('user_cpf')
@@ -1764,7 +1384,7 @@ def check_download_status():
     
     return jsonify({'status': 'processing'})
 
-@app.route('/admin/download_file/<filename>', methods=['GET'])
+@app.route('/download_file/<filename>', methods=['GET'])
 @login_required("super_admin")
 def download_file(filename):
     user_cpf = session.get('user_cpf')
@@ -1833,7 +1453,7 @@ def manage_user():
             if user_db:
                 return jsonify({'success': False, 'message': 'Usuário com este CPF já existe. Use a opção de editar.'}), 409
             
-            password = generate_password_hash(data.get('password')) if data.get('password') else generate_password_hash('123')
+            password = hash_password('123')
             new_user = Usuario(
                 cpf=cpf,
                 password_hash=password,
@@ -1883,17 +1503,18 @@ def export_csv(table_name):
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
         
-        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf] if PARTICIPANTES_DF is not None else None
-        user_name = user_info_df['nome'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
-        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
-        user_email = user_info_df['email'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
-
-        if user_access_level == 'basic_access':
-            if table_name not in ['presenca', 'ocorrencias']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        elif user_access_level == 'power_user':
-             if table_name in ['usuarios', 'avisos', 'links']:
-                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        # --- LÓGICA CORRIGIDA DE PERMISSÕES PARA EXPORTAÇÃO ---
+        allowed_tables_map = {
+            'basic_access': ['presenca'],
+            'formador_access': ['presenca', 'acompanhamento', 'ateste'],
+            'efape_access': ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel'],
+            'intermediate_access': ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
+            'super_admin': ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios']
+        }
+        
+        if table_name not in allowed_tables_map.get(user_access_level, []):
+            return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        # --- FIM DA LÓGICA CORRIGIDA DE PERMISSÕES ---
                 
         if table_name == 'participantes_base_editavel':
             if PARTICIPANTES_DF is None or PARTICIPANTES_DF.empty:
@@ -1918,29 +1539,20 @@ def export_csv(table_name):
         Model = MODEL_MAP[table_name]
         query = Model.query
         
-        if user_access_level == 'basic_access':
-             if table_name == 'presenca':
+        # LÓGICA ADICIONAL DE FILTRO POR USUÁRIO (se necessário)
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        if user_info:
+            if user_access_level == 'basic_access' and table_name == 'presenca':
                  query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.cpf_participante == user_cpf
-                 ))
-             elif table_name == 'ocorrencias':
-                 query = query.filter_by(email=user_email)
-        elif user_access_level == 'power_user':
-             if table_name == 'presenca':
-                query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.cpf_participante == user_cpf
+                    Presenca.responsavel == user_info[0].get('responsavel'),
+                    Presenca.nome_substituto == user_info[0].get('nome')
                 ))
-             elif table_name in ['acompanhamento', 'avaliacao', 'demandas']:
-                if user_de:
-                    query = query.filter_by(diretoria_de_ensino=user_de)
-             elif table_name == 'ateste':
-                query = query.filter_by(cpf=user_cpf)
-             elif table_name == 'visitas':
-                query = query.filter(or_(Visita.responsavel_visitacao == None, Visita.responsavel_visitacao == user_name))
+            elif user_access_level == 'formador_access' and table_name in ['acompanhamento', 'ateste']:
+                 query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
+            elif user_access_level == 'efape_access' and table_name in ['acompanhamento', 'ateste']:
+                 query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
+            elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+                query = query.filter_by(diretoria_de_ensino=user_info[0].get('diretoria_de_ensino'))
 
         filters = request.args.to_dict()
         for key, value in filters.items():
@@ -1984,6 +1596,282 @@ def export_csv(table_name):
         app.logger.error(f"Erro ao exportar CSV para a tabela {table_name}: {e}")
         return jsonify({'error': f'Erro ao exportar CSV: {e}'}), 500
 
+@app.route('/')
+@login_required("basic_access")
+def index():
+    aviso = Aviso.query.first()
+    links = Link.query.all()
+    hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
+    return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements=hidden_elements)
+
+@app.route('/get_visibility')
+def get_visibility():
+    elements = HiddenElement.query.all()
+    hidden_elements = {element.element_id: element.is_hidden for element in elements}
+    return jsonify({'hidden_elements': hidden_elements})
+
+@app.route('/admin/avisos', methods=['POST'])
+@login_required('super_admin')
+def gerenciar_aviso():
+    try:
+        data = request.json
+        aviso = Aviso.query.first()
+        if aviso:
+            aviso.titulo = data['titulo']
+            aviso.conteudo = data['conteudo']
+            aviso.imagem_url = data.get('imagem_url')
+        else:
+            aviso = Aviso(
+                titulo=data['titulo'],
+                conteudo=data['conteudo'],
+                imagem_url=data.get('imagem_url')
+            )
+            db.session.add(aviso)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Aviso salvo com sucesso.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao salvar aviso: {e}'}), 500
+
+@app.route('/get_aviso', methods=['GET'])
+@login_required('basic_access')
+def get_aviso():
+    aviso = Aviso.query.first()
+    if aviso:
+        return jsonify({
+            'titulo': aviso.titulo,
+            'conteudo': aviso.conteudo,
+            'imagem_url': aviso.imagem_url
+        })
+    return jsonify({})
+
+@app.route('/admin/links', methods=['GET', 'POST', 'DELETE'])
+@login_required('super_admin')
+def gerenciar_links():
+    try:
+        if request.method == 'POST':
+            data = request.json
+            link_id = data.get('id')
+            if link_id:
+                link = Link.query.get(link_id)
+                if link:
+                    link.titulo = data['titulo']
+                    link.descricao = data.get('descricao')
+                    link.url = data['url']
+                    link.imagem_url = data.get('imagem_url')
+                    db.session.commit()
+                    return jsonify({'success': True, 'message': 'Link atualizado com sucesso.'})
+                return jsonify({'success': False, 'message': 'Link não encontrado.'}), 404
+            else:
+                new_link = Link(
+                    titulo=data['titulo'],
+                    descricao=data.get('descricao'),
+                    url=data['url'],
+                    imagem_url=data.get('imagem_url')
+                )
+                db.session.add(new_link)
+                db.session.commit()
+                return jsonify({'success': True, 'message': 'Link adicionado com sucesso.'})
+        
+        elif request.method == 'DELETE':
+            data = request.json
+            link_id = data.get('id')
+            link_to_delete = Link.query.get(link_id)
+            if link_to_delete:
+                db.session.delete(link_to_delete)
+                db.session.commit()
+                return jsonify({'success': True, 'message': 'Link excluído com sucesso.'})
+            return jsonify({'success': False, 'message': 'Link não encontrado.'}), 404
+        
+        else: # GET
+            link_id = request.args.get('id')
+            if link_id:
+                link = Link.query.get(link_id)
+                if link:
+                    return jsonify([{
+                        'id': link.id,
+                        'titulo': link.titulo,
+                        'descricao': link.descricao,
+                        'url': link.url,
+                        'imagem_url': link.imagem_url
+                    }])
+                return jsonify({}), 404
+            links = Link.query.all()
+            return jsonify([{
+                'id': link.id,
+                'titulo': link.titulo,
+                'descricao': link.descricao,
+                'url': link.url,
+                'imagem_url': link.imagem_url
+            } for link in links])
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao processar a requisição: {e}'}), 500
+
+@app.route('/get_links', methods=['GET'])
+@login_required('intermediate_access')
+def get_links():
+    links = Link.query.all()
+    return jsonify([{
+        'id': link.id,
+        'titulo': link.titulo,
+        'descricao': link.descricao,
+        'url': link.url,
+        'imagem_url': link.imagem_url
+    } for link in links])
+
+@app.route('/admin/delete_entry', methods=['POST'])
+@login_required('super_admin')
+def delete_entry():
+    data = request.json
+    table_name = data.get('table')
+    record_id = data.get('id')
+    delete_related = data.get('delete_related', False)
+    
+    if table_name not in MODEL_MAP:
+        return jsonify({'success': False, 'message': 'Tabela não encontrada.'}), 404
+
+    Model = MODEL_MAP[table_name]
+
+    try:
+        if delete_related and table_name == 'presenca':
+            presenca_record = Presenca.query.get(record_id)
+            if not presenca_record:
+                return jsonify({'success': False, 'message': 'Registro de presença não encontrado.'}), 404
+            
+            db.session.query(Presenca).filter(
+                Presenca.responsavel == presenca_record.responsavel,
+                Presenca.turma == presenca_record.turma,
+                Presenca.tema == presenca_record.tema,
+                Presenca.data_formacao == presenca_record.data_formacao
+            ).delete(synchronize_session=False)
+
+            Ateste.query.filter_by(
+                nome_quem_preencheu=presenca_record.responsavel,
+                tema=presenca_record.tema,
+                turma=presenca_record.turma,
+                data_formacao=presenca_record.data_formacao
+            ).delete(synchronize_session=False)
+            
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Todos os registros da formação foram excluídos com sucesso!'})
+        
+        else:
+            record_to_delete = Model.query.get(record_id)
+            if not record_to_delete:
+                return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
+            
+            db.session.delete(record_to_delete)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Registro excluído com sucesso!'})
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro ao excluir registro: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao excluir registro: {e}'}), 500
+
+@app.route('/edit_record/<table_name>', methods=['POST'])
+@login_required('basic_access')
+def edit_record(table_name):
+    data = request.json
+    record_id = data.pop('id', None)
+    
+    if not record_id or table_name not in MODEL_MAP:
+        return jsonify({'success': False, 'message': 'Dados inválidos ou tabela não encontrada.'}), 400
+
+    Model = MODEL_MAP[table_name]
+    record = Model.query.get(record_id)
+
+    if not record:
+        return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
+    
+    user_access_level = session.get('access_level')
+    user_cpf = session.get('user_cpf')
+
+    if user_access_level != 'super_admin':
+        is_owner = False
+        
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_name = user_info[0].get('nome') if user_info else None
+
+        if table_name == 'presenca':
+            is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
+        elif table_name == 'acompanhamento':
+            is_owner = record.responsavel_acompanhamento == user_name
+        elif table_name == 'avaliacao':
+            is_owner = record.observador == user_name
+        elif table_name == 'demandas':
+            is_owner = record.cpf_pec == user_cpf
+        elif table_name == 'ateste':
+            is_owner = record.cpf == user_cpf
+
+        if not is_owner:
+             return jsonify({'success': False, 'message': 'Acesso negado. Você só pode editar seus próprios registros.'}), 403
+
+    try:
+        for key, value in data.items():
+            if hasattr(record, key):
+                setattr(record, key, value)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Registro atualizado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro ao editar registro: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao atualizar registro: {e}'}), 500
+
+@app.route('/get_record/<table_name>/<record_id>', methods=['GET'])
+@login_required('basic_access')
+def get_record(table_name, record_id):
+    if table_name not in MODEL_MAP:
+        return jsonify({'error': 'Tabela não encontrada.'}), 404
+
+    Model = MODEL_MAP[table_name]
+    
+    if table_name == 'usuarios':
+        record = Model.query.filter_by(cpf=record_id).first()
+    else:
+        record = Model.query.get(record_id)
+
+    if not record:
+        return jsonify({'error': 'Registro não encontrado.'}), 404
+    
+    user_access_level = session.get('access_level')
+    user_cpf = session.get('user_cpf')
+
+    if user_access_level != 'super_admin':
+        is_owner = False
+        
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_name = user_info[0].get('nome') if user_info else None
+
+        if table_name == 'presenca':
+            is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
+        elif table_name == 'acompanhamento':
+            is_owner = record.responsavel_acompanhamento == user_name
+        elif table_name == 'avaliacao':
+            is_owner = record.observador == user_name
+        elif table_name == 'demandas':
+            is_owner = record.cpf_pec == user_cpf
+        elif table_name == 'ateste':
+            is_owner = record.cpf == user_cpf
+        elif table_name == 'usuarios':
+            is_owner = record.cpf == user_cpf
+        
+        if not is_owner:
+             return jsonify({'success': False, 'message': 'Acesso negado. Você só pode ver seus próprios registros.'}), 403
+
+    data = {}
+    for column in inspect(Model).c:
+        value = getattr(record, column.name)
+        if isinstance(value, (datetime, date)):
+            data[column.name] = value.isoformat()
+        else:
+            data[column.name] = value
+    
+    return jsonify(data)
+
+
 @app.route('/admin/toggle_visibility', methods=['POST'])
 @login_required('super_admin')
 def toggle_visibility():
@@ -2008,116 +1896,8 @@ def toggle_visibility():
         app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
         return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
 
-@app.route('/get_visibility')
-def get_visibility():
-    try:
-        elements = HiddenElement.query.all()
-        hidden_elements = {element.element_id: element.is_hidden for element in elements}
-        return jsonify({'hidden_elements': hidden_elements})
-    except Exception as e:
-        app.logger.error(f"Erro ao obter visibilidade: {e}")
-        return jsonify({'error': 'Erro ao carregar configurações de visibilidade.'}), 500
-
-@app.route('/admin/avisos', methods=['GET', 'POST'])
-@login_required('super_admin')
-def manage_avisos():
-    if request.method == 'GET':
-        aviso = Aviso.query.first()
-        if not aviso:
-            return jsonify({}), 404
-        return jsonify({
-            'titulo': aviso.titulo,
-            'conteudo': aviso.conteudo,
-            'imagem_url': aviso.imagem_url
-        })
-    elif request.method == 'POST':
-        data = request.json
-        aviso = Aviso.query.first()
-        if aviso:
-            aviso.titulo = data.get('titulo')
-            aviso.conteudo = data.get('conteudo')
-            aviso.imagem_url = data.get('imagem_url')
-            message = 'Aviso atualizado com sucesso.'
-        else:
-            new_aviso = Aviso(
-                titulo=data.get('titulo'),
-                conteudo=data.get('conteudo'),
-                imagem_url=data.get('imagem_url')
-            )
-            db.session.add(new_aviso)
-            message = 'Aviso criado com sucesso.'
-        db.session.commit()
-        return jsonify({'success': True, 'message': message})
-    
-    return jsonify({'success': False, 'message': 'Método não suportado.'}), 405
-
-@app.route('/admin/links', methods=['GET', 'POST', 'DELETE'])
-@login_required('super_admin')
-def manage_links():
-    if request.method == 'GET':
-        if 'id' in request.args:
-            link_id = request.args.get('id')
-            link = Link.query.get(link_id)
-            if not link:
-                return jsonify({}), 404
-            return jsonify(link.__dict__)
-        links = Link.query.all()
-        return jsonify([l.__dict__ for l in links])
-    elif request.method == 'POST':
-        data = request.json
-        link_id = data.get('id')
-        if link_id:
-            link = Link.query.get(link_id)
-            if not link:
-                return jsonify({'success': False, 'message': 'Link não encontrado.'}), 404
-            link.titulo = data.get('titulo')
-            link.descricao = data.get('descricao')
-            link.url = data.get('url')
-            link.imagem_url = data.get('imagem_url')
-            message = 'Link atualizado com sucesso.'
-        else:
-            new_link = Link(
-                titulo=data.get('titulo'),
-                descricao=data.get('descricao'),
-                url=data.get('url'),
-                imagem_url=data.get('imagem_url')
-            )
-            db.session.add(new_link)
-            message = 'Link criado com sucesso.'
-        db.session.commit()
-        return jsonify({'success': True, 'message': message})
-    elif request.method == 'DELETE':
-        data = request.json
-        link_id = data.get('id')
-        link = Link.query.get(link_id)
-        if not link:
-            return jsonify({'success': False, 'message': 'Link não encontrado.'}), 404
-        db.session.delete(link)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Link excluído com sucesso.'})
-
-@app.route('/get_links', methods=['GET'])
-@login_required('basic_access')
-def get_links():
-    links = Link.query.all()
-    links_list = []
-    for link in links:
-        links_list.append({
-            'titulo': link.titulo,
-            'descricao': link.descricao,
-            'url': link.url,
-            'imagem_url': link.imagem_url
-        })
-    return jsonify(links_list)
-
-@app.route('/')
-def index():
-    aviso = Aviso.query.first()
-    return render_template('index.html', aviso=aviso, access_level=session.get('access_level', 'none'))
-
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        populate_visitas_from_excel()
     app.run(debug=True)
