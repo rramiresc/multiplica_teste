@@ -2449,20 +2449,28 @@ document.addEventListener('DOMContentLoaded', function() {
     async function checkAccessAndInitializeUI() {
         console.log("DEBUG JS: Iniciando checkAccessAndInitializeUI...");
         try {
-            const response = await fetch('/get_access_level');
-            if (!response.ok) {
-                console.warn(`DEBUG JS: Falha ao obter nível de acesso (${response.status}). Redirecionando para login.`);
-                window.location.href = '/login';
-                return;
-            }
-            const data = await response.json();
-            currentAccessLevel = data.access_level;
-            console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
-
+            // Acesso à rota de visibilidade é pública agora, sem a necessidade de login.
             const visibilityResponse = await fetch('/get_visibility');
-            const visibilityData = await visibilityResponse.json();
+            let visibilityData = { hidden_elements: {} };
+            if (visibilityResponse.ok) {
+                visibilityData = await visibilityResponse.json();
+            } else {
+                console.warn(`DEBUG JS: Erro ao carregar visibilidade (${visibilityResponse.status}). Usando configuração padrão.`);
+            }
             const hiddenElements = visibilityData.hidden_elements || {};
             console.log('DEBUG JS: Elementos ocultos:', hiddenElements);
+
+            const accessResponse = await fetch('/get_access_level');
+            let data;
+            if (accessResponse.ok) {
+                data = await accessResponse.json();
+                currentAccessLevel = data.access_level;
+                console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
+            } else {
+                // Se não está logado, use o nível de acesso "none"
+                currentAccessLevel = 'none';
+                console.warn(`DEBUG JS: Falha ao obter nível de acesso (${accessResponse.status}). Assumindo não logado.`);
+            }
 
             document.querySelectorAll('.section').forEach(section => {
                 section.style.display = 'none';
@@ -2471,64 +2479,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.style.display = 'none';
             });
             document.getElementById('aviso-modal').style.display = 'none';
+            
+            // Oculta todos os botões e seções por padrão, exceto as telas de login
+            const visibleElements = [];
 
             switch (currentAccessLevel) {
                 case 'basic_access':
-                    // PM e CM
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    visibleElements.push('tab-form-presenca', 'tab-form-ocorrencia', 'tab-resultados-presenca', 'tab-resultados-ocorrencias');
                     window.showSection('form-presenca');
                     break;
                 case 'formador_access':
-                    // FORMADOR
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    visibleElements.push('tab-form-presenca', 'tab-form-acompanhamento', 'tab-form-ocorrencia', 'tab-resultados-presenca', 'tab-resultados-acompanhamento', 'tab-resultados-ocorrencias', 'tab-controle-ateste', 'tab-links-importantes');
                     window.showSection('form-presenca');
                     break;
                 case 'efape_access':
-                    // EFAPE
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
-                    document.getElementById('tab-visitas-encontros').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    visibleElements.push('tab-form-presenca', 'tab-form-acompanhamento', 'tab-form-ocorrencia', 'tab-visitas-encontros', 'tab-resultados-presenca', 'tab-resultados-acompanhamento', 'tab-resultados-ocorrencias', 'tab-controle-ateste', 'tab-links-importantes');
                     window.showSection('form-presenca');
                     break;
                 case 'intermediate_access':
-                    // PEC
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
-                    document.getElementById('tab-form-demandas').style.display = 'inline-block';
-                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-avaliacao').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-demandas').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-painel-bi').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    visibleElements.push('tab-form-presenca', 'tab-form-acompanhamento', 'tab-form-avaliacao', 'tab-form-demandas', 'tab-form-ocorrencia', 'tab-resultados-presenca', 'tab-resultados-acompanhamento', 'tab-resultados-avaliacao', 'tab-resultados-demandas', 'tab-resultados-ocorrencias', 'tab-controle-ateste', 'tab-painel-bi', 'tab-links-importantes');
                     window.showSection('form-presenca');
                     break;
                 case 'super_admin':
-                    // ADM
-                    document.querySelectorAll('.tab-button').forEach(button => {
-                        button.style.display = 'inline-block';
-                    });
-                    document.getElementById('tab-admin-tools').style.display = 'inline-block';
+                    visibleElements.push('tab-form-presenca', 'tab-form-acompanhamento', 'tab-form-avaliacao', 'tab-form-demandas', 'tab-form-ocorrencia', 'tab-visitas-encontros', 'tab-resultados-presenca', 'tab-resultados-acompanhamento', 'tab-resultados-avaliacao', 'tab-resultados-demandas', 'tab-resultados-ocorrencias', 'tab-controle-ateste', 'tab-painel-bi', 'tab-links-importantes', 'tab-admin-tools');
                     window.showSection('admin-tools');
                     break;
                 default:
@@ -2546,6 +2519,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (section) {
                         section.style.display = 'none';
                     }
+                } else if (visibleElements.includes(button.id) || currentAccessLevel === 'super_admin') {
+                    button.style.display = 'inline-block';
                 }
                  button.removeEventListener('click', handleTabClick);
                  button.addEventListener('click', handleTabClick);

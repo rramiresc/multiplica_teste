@@ -1910,6 +1910,17 @@ def export_csv(table_name):
         app.logger.error(f"Erro ao exportar CSV para a tabela {table_name}: {e}")
         return jsonify({'error': f'Erro ao exportar CSV: {e}'}), 500
 
+@app.route('/get_visibility')
+def get_visibility():
+    """Rota pública para obter as configurações de visibilidade."""
+    try:
+        elements = HiddenElement.query.all()
+        hidden_elements = {element.element_id: element.is_hidden for element in elements}
+        return jsonify({'hidden_elements': hidden_elements})
+    except Exception as e:
+        app.logger.error(f"Erro ao obter visibilidade: {e}")
+        return jsonify({'error': 'Erro ao carregar configurações de visibilidade.'}), 500
+
 @app.route('/admin/toggle_visibility', methods=['POST'])
 @login_required('super_admin')
 def toggle_visibility():
