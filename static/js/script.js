@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const state = {
         currentPage: {},
         currentFilters: {},
-        user: { accessLevel: 'none' },
+        user: { accessLevel: 'none', nome: null, cpf: null, email: null },
         visibility: {}
     };
 
@@ -102,20 +102,29 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         async loadAllDatalists() {
             try {
-                const data = await API.get('/api/datalists');
-                UI.populateDatalist(data.turmas, 'turmas-list');
-                UI.populateDatalist(data.diretorias, 'diretorias-list');
-                UI.populateDatalist(data.pecs, 'pecs-list');
-                UI.populateDatalist(data.caffs, 'caffs-list');
-                UI.populateDatalist(data.pautas_formativas, 'pautas-formativas-list');
-                UI.populateDatalist(data.temas, 'temas-list-presenca');
-                UI.populateDatalist(data.temas, 'temas-list-ateste');
-                UI.populateDatalist(data.responsaveis, 'responsaveis-list-ateste');
-                UI.populateDatalist(data.nomes, 'nomes-list-ateste');
-                UI.populateDatalist(data.nomes, 'nomes-list-avaliacao');
-                UI.populateDatalist(data.cpfs, 'cpfs-list');
-                UI.populateDatalist(data.turmas, 'turmas-ocorrencia-list');
-                UI.populateDatalist(data.temas, 'temas-ocorrencia-list');
+                const [allDatalistsData, pecsAndFormadoresData, responsaveisForPresencaData] = await Promise.all([
+                    API.get('/api/datalists'),
+                    API.get('/api/datalists/pecs_and_formadores'),
+                    API.get('/api/datalists/responsaveis_for_presenca')
+                ]);
+
+                UI.populateDatalist(allDatalistsData.turmas, 'turmas-list');
+                UI.populateDatalist(allDatalistsData.diretorias, 'diretorias-list');
+                UI.populateDatalist(allDatalistsData.pecs, 'pecs-list');
+                UI.populateDatalist(allDatalistsData.caffs, 'caffs-list');
+                UI.populateDatalist(allDatalistsData.pautas_formativas, 'pautas-formativas-list');
+                UI.populateDatalist(allDatalistsData.temas, 'temas-list-presenca');
+                UI.populateDatalist(allDatalistsData.temas, 'temas-list-ateste');
+                UI.populateDatalist(allDatalistsData.responsaveis, 'responsaveis-list-ateste');
+                UI.populateDatalist(allDatalistsData.nomes, 'nomes-list-ateste');
+                UI.populateDatalist(pecsAndFormadoresData, 'observadores-list');
+                UI.populateDatalist(responsaveisForPresencaData, 'responsaveis-list');
+                UI.populateDatalist(allDatalistsData.nomes, 'nomes-list-avaliacao');
+                UI.populateDatalist(allDatalistsData.cpfs, 'cpfs-list');
+                UI.populateDatalist(allDatalistsData.turmas, 'turmas-ocorrencia-list');
+                UI.populateDatalist(allDatalistsData.temas, 'temas-ocorrencia-list');
+                
+                console.log("DEBUG JS: Todas as datalists carregadas.");
             } catch (e) {
                 console.error('Falha ao carregar datalists:', e);
             }
@@ -123,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderTable(tableId, data) {
             const tableBody = document.querySelector(`#table-${tableId} tbody`);
             const tableHead = document.querySelector(`#table-${tableId} thead tr`);
-            const { results, columns, total_items, per_page } = data;
+            const { results, columns } = data;
             
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
@@ -131,7 +140,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const isEditable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'ocorrencias', 'visitas'].includes(tableId);
             if (isEditable) tableHead.innerHTML += '<th>Ações</th>';
 
-            const columnOrder = { 'presenca': ['id', 'responsavel', 'turma', 'data_formacao', 'presenca', 'camera'], 'acompanhamento': ['id', 'responsavel_acompanhamento', 'turma', 'data_encontro', 'encontro_realizado'], 'avaliacao': ['id', 'observador', 'observado', 'data_acompanhamento', 'nota_final'] };
+            const columnOrder = { 
+                'presenca': ['id', 'responsavel', 'turma', 'data_formacao', 'presenca', 'camera'], 
+                'acompanhamento': ['id', 'responsavel_acompanhamento', 'turma', 'data_encontro', 'encontro_realizado'], 
+                'avaliacao': ['id', 'observador', 'observado', 'data_acompanhamento', 'nota_final'] 
+            };
             const orderedColumns = columnOrder[tableId] || columns;
             
             orderedColumns.forEach(col => {
@@ -165,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         async fetchResults(tableId, page = 1) {
-            const filters = new URLSearchParams(state.currentFilters[tableId]);
+            const filters = new URLSearchParams(state.currentFilters[tableId] || {});
             filters.set('page', page);
             try {
                 const data = await API.get(`/api/results/${tableId}?${filters.toString()}`);
@@ -207,91 +220,196 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) {
                 modalContent.innerHTML = `<p style="color:red;">Erro ao carregar o registro: ${e.message}</p>`;
             }
+        },
+        async loadLinksPage() {
+            const linksContainer = document.getElementById('links-container');
+            try {
+                const links = await API.get('/get_links');
+                linksContainer.innerHTML = links.map(link => `
+                    <div class="link-card">
+                        <div class="link-info">
+                            <h3><a href="${link.url}" target="_blank">${link.titulo}</a></h3>
+                            <p>${link.descricao}</p>
+                        </div>
+                        <div class="link-image-container">
+                            <img src="${link.imagem_url}" alt="${link.titulo}" class="link-image">
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('ERRO JS: Erro ao carregar links:', e);
+                linksContainer.innerHTML = '<p>Ocorreu um erro ao carregar os links.</p>';
+            }
+        },
+        async loadLinksAdmin() {
+            const linksAdminListBody = document.querySelector('#links-admin-list tbody');
+            try {
+                const links = await API.get('/admin/links');
+                linksAdminListBody.innerHTML = links.map(link => `
+                    <tr>
+                        <td>${link.titulo}</td>
+                        <td><a href="${link.url}" target="_blank">${link.url}</a></td>
+                        <td>
+                            <button class="edit-link-button" data-id="${link.id}">Editar</button>
+                            <button class="delete-link-button red-button" data-id="${link.id}">Excluir</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('ERRO JS: Erro ao carregar links:', e);
+                linksAdminListBody.innerHTML = '<tr><td colspan="3">Erro ao carregar links.</td></tr>';
+            }
+        },
+        async fetchAvisoDataForAdmin() {
+            const avisoForm = document.getElementById('avisoForm');
+            const avisoFormH3 = avisoForm.querySelector('h3');
+            try {
+                const aviso = await API.get('/admin/avisos');
+                document.getElementById('aviso-titulo').value = aviso.titulo;
+                document.getElementById('aviso-conteudo').value = aviso.conteudo;
+                document.getElementById('aviso-imagem-url').value = aviso.imagem_url;
+                if (avisoFormH3) avisoFormH3.textContent = 'Editar Aviso Existente';
+            } catch (e) {
+                if (e.message.includes('404')) {
+                    if (avisoFormH3) avisoFormH3.textContent = 'Criar Novo Aviso';
+                }
+                console.warn('DEBUG JS: Aviso não encontrado ou erro ao carregar:', e);
+            }
+        },
+        async fetchAviso() {
+            const avisoModal = document.getElementById('aviso-modal');
+            try {
+                const aviso = await API.get('/admin/avisos');
+                document.getElementById('aviso-modal-titulo').textContent = aviso.titulo;
+                document.getElementById('aviso-modal-conteudo').textContent = aviso.conteudo;
+                const imagemElement = document.getElementById('aviso-modal-imagem');
+                if (aviso.imagem_url) {
+                    imagemElement.src = aviso.imagem_url;
+                    imagemElement.style.display = 'block';
+                } else {
+                    imagemElement.style.display = 'none';
+                }
+                avisoModal.style.display = 'block';
+            } catch (e) {
+                avisoModal.style.display = 'none';
+                console.warn('DEBUG JS: Aviso não encontrado ou erro ao carregar:', e);
+            }
         }
     };
-    
-    function setupFormEvents() {
-        // Evento de delegação para formulários
+
+    function setupEventListeners() {
+        const presencaContainer = document.getElementById('participantes-container');
+        if (presencaContainer) {
+            presencaContainer.addEventListener('change', (e) => {
+                const radio = e.target;
+                if (radio.name.startsWith('presenca_')) {
+                    const isPresent = radio.value === 'SIM';
+                    const participanteDiv = radio.closest('.participante-item');
+                    const cameraRadios = participanteDiv.querySelectorAll(`input[name^="camera_"]`);
+                    cameraRadios.forEach(cameraRadio => {
+                        cameraRadio.disabled = !isPresent;
+                        if (!isPresent && cameraRadio.value === 'NÃO') cameraRadio.checked = true;
+                        else if (isPresent && cameraRadio.value === 'SIM') cameraRadio.checked = true;
+                    });
+                }
+            });
+        }
+        
+        document.body.addEventListener('click', async function(e) {
+            const target = e.target;
+            if (target.matches('.tab-button')) {
+                UI.showSection(target.dataset.sectionId, target.dataset.tableId);
+            } else if (target.matches('.pagination-button')) {
+                const tableId = target.dataset.table;
+                let page = state.currentPage[tableId];
+                if (target.dataset.action === 'next') page++;
+                else if (target.dataset.action === 'prev') page--;
+                UI.fetchResults(tableId, page);
+            } else if (target.matches('.edit-button') || target.matches('.delete-button')) {
+                const id = target.dataset.id;
+                const table = target.closest('table').dataset.tableId;
+                if (target.matches('.edit-button')) {
+                    UI.openModal(id, table);
+                } else if (target.matches('.delete-button')) {
+                    if (confirm(`Tem certeza que deseja excluir o registro ID ${id} da tabela "${table}"?`)) {
+                        await API.post('/api/delete/entry', { table, id });
+                        UI.fetchResults(table, state.currentPage[table]);
+                    }
+                }
+            } else if (target.matches('.reserve-visita-button')) {
+                const recordId = target.dataset.id;
+                if (confirm('Deseja reservar esta visita?')) {
+                    await API.post('/api/visitas/reserve', { id: recordId });
+                    UI.fetchVisitas();
+                }
+            }
+        });
+
+        document.body.addEventListener('change', async function(e) {
+            const target = e.target;
+            if (target.matches('#turma_presenca')) {
+                const turma = target.value;
+                const container = document.getElementById('participantes-container');
+                container.innerHTML = '';
+                if (turma) {
+                    const participantes = await API.get(`/api/info/participantes_by_turma?turma=${encodeURIComponent(turma)}`);
+                    container.innerHTML = participantes.map(p => `
+                        <div class="participante-item" data-cpf="${p.cpf}" data-nome="${p.nome}" data-escola="${p.escola}" data-diretoria_de_ensino="${p.diretoria_de_ensino}">
+                            <span class="participante-nome">${p.nome}</span>
+                            <span class="participante-info">(${p.diretoria_de_ensino || 'N/A'} - ${p.escola || 'N/A'}) - ${p.etapa || 'N/A'}</span>
+                            <div class="radio-group">
+                                <label>Presença:<input type="radio" name="presenca_${p.cpf}" value="SIM" required> SIM<input type="radio" name="presenca_${p.cpf}" value="NÃO"> NÃO</label>
+                                <label>Câmera:<input type="radio" name="camera_${p.cpf}" value="SIM" required> SIM<input type="radio" name="camera_${p.cpf}" value="NÃO"> NÃO</label>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        });
+
         document.body.addEventListener('submit', async function(e) {
             e.preventDefault();
             const form = e.target;
-            const formId = form.id;
-            const data = Object.fromEntries(new FormData(form).entries());
+            let data = Object.fromEntries(new FormData(form).entries());
             let endpoint, successMessage;
-            
-            switch (formId) {
+
+            switch (form.id) {
                 case 'formPresenca':
-                    endpoint = '/submit/presenca';
-                    successMessage = 'Registro de presença enviado com sucesso!';
-                    const participantesData = {};
+                    data = { ...data, participantes: {} };
                     form.querySelectorAll('.participante-item').forEach(item => {
                         const cpf = item.dataset.cpf;
-                        participantesData[cpf] = {
-                            ...item.dataset,
-                            presenca: item.querySelector(`input[name="presenca_${cpf}"]:checked`)?.value,
-                            camera: item.querySelector(`input[name="camera_${cpf}"]:checked`)?.value
+                        data.participantes[cpf] = {
+                            nome: item.dataset.nome,
+                            cpf,
+                            escola: item.dataset.escola,
+                            diretoria_de_ensino: item.dataset.diretoria_de_ensino,
+                            presenca: form.querySelector(`input[name="presenca_${cpf}"]:checked`)?.value,
+                            camera: form.querySelector(`input[name="camera_${cpf}"]:checked`)?.value,
                         };
                     });
-                    data.participantes = participantesData;
+                    endpoint = '/submit/presenca';
+                    successMessage = 'Registro de presença enviado com sucesso!';
                     break;
                 case 'formAcompanhamento':
                     endpoint = '/submit/acompanhamento';
                     successMessage = 'Acompanhamento de encontro salvo com sucesso!';
                     break;
-                case 'formAvaliacao':
-                    endpoint = '/submit/avaliacao';
-                    successMessage = 'Avaliação enviada com sucesso!';
-                    break;
-                case 'formDemandas':
-                    endpoint = '/submit/demandas';
-                    successMessage = 'Registro de demanda salvo com sucesso!';
-                    data.escolas_visitadas = [...form.querySelectorAll('input[name="escolas_visitadas_demandas"]:checked')].map(cb => cb.value);
-                    data.engajamento = [...form.querySelectorAll('input[name="engajamento_demandas"]:checked')].map(cb => cb.value);
-                    break;
-                case 'formOcorrencia':
-                    endpoint = '/submit/ocorrencia';
-                    successMessage = 'Ocorrência registrada com sucesso!';
-                    break;
-                case 'editForm':
-                    endpoint = `/edit/record/${form.dataset.table}`;
-                    successMessage = 'Registro atualizado com sucesso!';
-                    break;
+                // Adicione os outros formulários aqui
+                default:
+                    return;
             }
             if (endpoint) {
-                const result = await API.post(endpoint, data);
-                if (result && result.success) {
-                    UI.showSection(form.dataset.resultId, form.dataset.table);
-                }
+                await API.post(endpoint, data);
             }
-        });
-    }
-
-    function setupClickEvents() {
-        document.body.addEventListener('click', async function(e) {
-            if (e.target.closest('.tab-button')) {
-                const button = e.target.closest('.tab-button');
-                UI.showSection(button.dataset.sectionId, button.dataset.tableId);
-            } else if (e.target.matches('.pagination-button')) {
-                const button = e.target;
-                const tableId = button.dataset.table;
-                let page = state.currentPage[tableId];
-                if (button.dataset.action === 'next') page++;
-                else if (button.dataset.action === 'prev') page--;
-                UI.fetchResults(tableId, page);
-            } else if (e.target.matches('.edit-button')) {
-                const button = e.target;
-                UI.openModal(button.dataset.id, button.dataset.table);
-            }
-            // Outros eventos de clique, como botões de formulário e filtros, podem ser adicionados aqui.
         });
     }
 
     async function initializeApp() {
         try {
             const visibilityData = await API.get('/get_visibility').catch(() => ({ hidden_elements: {} }));
-            const accessData = await API.get('/get_access_level').catch(() => ({ access_level: 'none' }));
+            const userData = await API.get('/get_user_info').catch(() => ({ access_level: 'none', nome: null }));
             
-            state.user.accessLevel = accessData.access_level;
+            state.user = userData;
             state.visibility = visibilityData.hidden_elements;
             
             const accessMap = {
@@ -318,12 +436,11 @@ document.addEventListener('DOMContentLoaded', function() {
             await UI.loadLinksPage();
             await UI.fetchAviso();
             setupLogoutButton();
-            setupFormEvents();
-            setupClickEvents();
+            setupEventListeners();
+            console.log("DEBUG JS: checkAccessAndInitializeUI concluído.");
 
         } catch (e) {
             console.error("Erro na inicialização:", e);
-            // Redireciona para o login em caso de falha crítica
             window.location.href = '/login';
         }
     }
@@ -346,6 +463,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         headerContent.appendChild(logoutButton);
     }
-    
+
     initializeApp();
 });
