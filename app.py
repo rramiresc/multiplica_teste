@@ -345,11 +345,9 @@ def login_required(access_level_required):
     def wrapper(fn):
         @functools.wraps(fn)
         def decorated_view(*args, **kwargs):
-            # Adicione esta verificação para permitir acesso às rotas de autenticação sem redirecionar
-            if request.path in ['/login', '/register', '/forgot_password', '/reset_password']:
-                return fn(*args, **kwargs)
-
             if 'user_cpf' not in session:
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Acesso negado. Por favor, faça login.'}), 401
                 return redirect(url_for('login'))
             
             user_access_level = session.get('access_level', 'no_access')
@@ -1910,13 +1908,30 @@ def export_csv(table_name):
         app.logger.error(f"Erro ao exportar CSV para a tabela {table_name}: {e}")
         return jsonify({'error': f'Erro ao exportar CSV: {e}'}), 500
 
-@app.route('/')
-@login_required("basic_access")
-def index():
-    aviso = Aviso.query.first()
-    links = Link.query.all()
-    hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
-    return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements=hidden_elements)
+@app.route('/admin/toggle_visibility', methods=['POST'])
+@login_required('super_admin')
+def toggle_visibility():
+    data = request.json
+    element_id = data.get('element_id')
+    is_hidden = data.get('is_hidden')
+
+    if not element_id:
+        return jsonify({'success': False, 'message': 'ID do elemento não fornecido.'}), 400
+
+    try:
+        element = HiddenElement.query.filter_by(element_id=element_id).first()
+        if element:
+            element.is_hidden = is_hidden
+        else:
+            element = HiddenElement(element_id=element_id, is_hidden=is_hidden)
+            db.session.add(element)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Visibilidade alterada com sucesso.'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
+        return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
+
 
 @app.route('/admin_tools', methods=['POST'])
 @login_required('super_admin')

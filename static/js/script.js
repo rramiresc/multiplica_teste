@@ -1836,7 +1836,8 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`/admin/search_user?cpf=${encodeURIComponent(cpf)}`);
                 if (!response.ok) {
-                    throw new Error('Falha na resposta da API.');
+                    const errorText = await response.text();
+                    throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
                 }
                 const data = await response.json();
                 console.log("DEBUG: Dados recebidos da busca:", data);
@@ -2104,21 +2105,25 @@ document.addEventListener('DOMContentLoaded', function() {
     async function fetchAvisoDataForAdmin() {
         try {
             const response = await fetch('/get_aviso');
-            const aviso = await response.json();
-            const avisoFormH3 = avisoForm.querySelector('h3');
-
-            if (aviso && aviso.titulo && aviso.conteudo) {
-                document.getElementById('aviso-titulo').value = aviso.titulo;
-                document.getElementById('aviso-conteudo').value = aviso.conteudo;
-                document.getElementById('aviso-imagem-url').value = aviso.imagem_url;
-                
-                if (avisoFormH3) {
-                    avisoFormH3.textContent = 'Editar Aviso Existente';
+            if (response.ok) {
+                const aviso = await response.json();
+                const avisoFormH3 = avisoForm.querySelector('h3');
+    
+                if (aviso && aviso.titulo && aviso.conteudo) {
+                    document.getElementById('aviso-titulo').value = aviso.titulo;
+                    document.getElementById('aviso-conteudo').value = aviso.conteudo;
+                    document.getElementById('aviso-imagem-url').value = aviso.imagem_url;
+                    
+                    if (avisoFormH3) {
+                        avisoFormH3.textContent = 'Editar Aviso Existente';
+                    }
+                } else {
+                    if (avisoFormH3) {
+                        avisoFormH3.textContent = 'Criar Novo Aviso';
+                    }
                 }
             } else {
-                if (avisoFormH3) {
-                    avisoFormH3.textContent = 'Criar Novo Aviso';
-                }
+                console.warn('DEBUG JS: Aviso não encontrado (status ' + response.status + ')');
             }
         } catch (error) {
             console.warn('DEBUG JS: Erro ao carregar aviso para o admin (provavelmente não há aviso cadastrado):', error);
@@ -2129,20 +2134,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const avisoModal = document.getElementById('aviso-modal');
         try {
             const response = await fetch('/get_aviso');
-            const aviso = await response.json();
-            if (aviso && aviso.titulo && aviso.conteudo) {
-                document.getElementById('aviso-modal-titulo').textContent = aviso.titulo;
-                document.getElementById('aviso-modal-conteudo').textContent = aviso.conteudo;
-                const imagemElement = document.getElementById('aviso-modal-imagem');
-                if (aviso.imagem_url) {
-                    imagemElement.src = aviso.imagem_url;
-                    imagemElement.style.display = 'block';
+            if (response.ok) {
+                const aviso = await response.json();
+                if (aviso && aviso.titulo && aviso.conteudo) {
+                    document.getElementById('aviso-modal-titulo').textContent = aviso.titulo;
+                    document.getElementById('aviso-modal-conteudo').textContent = aviso.conteudo;
+                    const imagemElement = document.getElementById('aviso-modal-imagem');
+                    if (aviso.imagem_url) {
+                        imagemElement.src = aviso.imagem_url;
+                        imagemElement.style.display = 'block';
+                    } else {
+                        imagemElement.style.display = 'none';
+                    }
+                    avisoModal.style.display = 'block';
                 } else {
-                    imagemElement.style.display = 'none';
+                    avisoModal.style.display = 'none';
                 }
-                avisoModal.style.display = 'block';
             } else {
-                avisoModal.style.display = 'none';
+                console.warn('DEBUG JS: Aviso não encontrado (status ' + response.status + ')');
             }
         } catch (error) {
             console.error('ERRO JS: Erro ao carregar aviso:', error);
@@ -2168,6 +2177,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadLinksAdmin() {
         try {
             const response = await fetch('/admin/links');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
+            }
             const links = await response.json();
             linksAdminListBody.innerHTML = '';
             links.forEach(link => {
@@ -2193,6 +2206,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const linkId = event.target.dataset.id;
             try {
                 const response = await fetch(`/admin/links?id=${linkId}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
+                }
                 const link = await response.json();
                 if (link.length > 0) {
                     document.getElementById('link-id').value = link[0].id;
@@ -2276,6 +2293,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const linksContainer = document.getElementById('links-container');
         try {
             const response = await fetch('/get_links');
+            if (!response.ok) {
+                 const errorText = await response.text();
+                 throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
+            }
             const links = await response.json();
             linksContainer.innerHTML = '';
             if (links.length > 0) {
