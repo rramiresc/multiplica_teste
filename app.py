@@ -1971,12 +1971,12 @@ def admin_tools():
     return jsonify({'success': False, 'message': 'Ação inválida.'}), 400
 
 @app.route('/')
-@login_required("basic_access")
 def index():
     aviso = Aviso.query.first()
     links = Link.query.all()
-    hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
-    return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements=hidden_elements)
+    # hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
+    # Removendo a chamada que causa erro na inicialização.
+    return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements={})
 
 if __name__ == '__main__':
     with app.app_context():

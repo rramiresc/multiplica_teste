@@ -55,8 +55,17 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("DEBUG JS: Carregando todas as datalists de uma vez...");
         try {
             const allDatalistsResponse = await fetch('/get_all_datalists');
+            if (!allDatalistsResponse.ok) {
+                 throw new Error('Falha ao carregar datalists');
+            }
             const pecsAndFormadoresResponse = await fetch('/get_pecs_and_formadores');
+             if (!pecsAndFormadoresResponse.ok) {
+                 throw new Error('Falha ao carregar pecs e formadores');
+            }
             const responsaveisForPresencaResponse = await fetch('/get_responsaveis_for_presenca');
+             if (!responsaveisForPresencaResponse.ok) {
+                 throw new Error('Falha ao carregar responsaveis para presenca');
+            }
 
             const allDatalistsData = await allDatalistsResponse.json();
             const pecsAndFormadoresData = await pecsAndFormadoresResponse.json();
@@ -1836,8 +1845,8 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`/admin/search_user?cpf=${encodeURIComponent(cpf)}`);
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Falha na resposta da API: ${response.status}`);
                 }
                 const data = await response.json();
                 console.log("DEBUG: Dados recebidos da busca:", data);
@@ -2178,8 +2187,8 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch('/admin/links');
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Falha na resposta da API: ${response.status}`);
             }
             const links = await response.json();
             linksAdminListBody.innerHTML = '';
@@ -2207,8 +2216,8 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`/admin/links?id=${linkId}`);
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Falha na resposta da API: ${response.status} - ${errorText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Falha na resposta da API: ${response.status}`);
                 }
                 const link = await response.json();
                 if (link.length > 0) {
@@ -2449,17 +2458,17 @@ document.addEventListener('DOMContentLoaded', function() {
     async function checkAccessAndInitializeUI() {
         console.log("DEBUG JS: Iniciando checkAccessAndInitializeUI...");
         try {
-            // Acesso à rota de visibilidade é pública agora, sem a necessidade de login.
-            const visibilityResponse = await fetch('/get_visibility');
+            // Acesso à rota de visibilidade agora é pública, sem necessidade de login.
+            const visibilityResponse = await fetch('/get_visibility', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             let visibilityData = { hidden_elements: {} };
             if (visibilityResponse.ok) {
                 visibilityData = await visibilityResponse.json();
-            } else {
+            } else if (visibilityResponse.status !== 404) {
                 console.warn(`DEBUG JS: Erro ao carregar visibilidade (${visibilityResponse.status}). Usando configuração padrão.`);
             }
             const hiddenElements = visibilityData.hidden_elements || {};
             console.log('DEBUG JS: Elementos ocultos:', hiddenElements);
-
+            
             const accessResponse = await fetch('/get_access_level');
             let data;
             if (accessResponse.ok) {
@@ -2479,7 +2488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.style.display = 'none';
             });
             document.getElementById('aviso-modal').style.display = 'none';
-            
+
             // Oculta todos os botões e seções por padrão, exceto as telas de login
             const visibleElements = [];
 
