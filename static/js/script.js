@@ -4,7 +4,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DEBUG JS: DOM totalmente carregado e pronto para a ação.");
 
-    // Variáveis de estado globais
     const state = {
         currentPage: {},
         currentFilters: {},
@@ -47,6 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(url);
                 if (!response.ok) {
                     const errorText = await response.text();
+                    const isHtml = errorText.startsWith('<!DOCTYPE');
+                    if (isHtml) {
+                        window.location.href = '/login'; // Redireciona se a resposta for a página de login
+                        throw new Error('Redirecionando para login.');
+                    }
                     const errorData = JSON.parse(errorText);
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
@@ -406,10 +410,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function initializeApp() {
         try {
-            const visibilityData = await API.get('/get_visibility').catch(() => ({ hidden_elements: {} }));
-            const userData = await API.get('/get_user_info').catch(() => ({ access_level: 'none', nome: null }));
-            
+            const userData = await API.get('/get_user_info');
             state.user = userData;
+
+            const visibilityData = await API.get('/get_visibility').catch(() => ({ hidden_elements: {} }));
             state.visibility = visibilityData.hidden_elements;
             
             const accessMap = {
