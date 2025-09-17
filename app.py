@@ -347,6 +347,7 @@ def login_required(access_level_required):
         def decorated_view(*args, **kwargs):
             if 'user_cpf' not in session:
                 if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    # Retorna um JSON de erro para chamadas de API sem autenticação
                     return jsonify({'error': 'Acesso negado. Por favor, faça login.'}), 401
                 return redirect(url_for('login'))
             
@@ -354,6 +355,7 @@ def login_required(access_level_required):
             
             if ACCESS_HIERARCHY.get(user_access_level, 0) < ACCESS_HIERARCHY.get(access_level_required, 0):
                 if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    # Retorna um JSON de erro para chamadas de API com permissões insuficientes
                     return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente.'}), 403
                 return redirect(url_for('login', error="Acesso negado. Nível de permissão insuficiente."))
             
@@ -1955,6 +1957,14 @@ def admin_tools():
             app.logger.error(f"Erro ao limpar todos os dados: {e}")
             return jsonify({'success': False, 'message': f'Erro ao limpar todos os dados: {e}'}), 500
     return jsonify({'success': False, 'message': 'Ação inválida.'}), 400
+
+@app.route('/')
+@login_required("basic_access")
+def index():
+    aviso = Aviso.query.first()
+    links = Link.query.all()
+    hidden_elements = {h.element_id: h.is_hidden for h in HiddenElement.query.all()}
+    return render_template('index.html', aviso=aviso, links=links, access_level=session.get('access_level', 'none'), hidden_elements=hidden_elements)
 
 if __name__ == '__main__':
     with app.app_context():
