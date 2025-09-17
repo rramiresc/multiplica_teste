@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file, make_response
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
 import json
 import numpy as np
@@ -15,8 +15,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from threading import Thread
 
+# Inicializar o Flask
 app = Flask(__name__)
 
+# Configuração do SQLAlchemy com a string de conexão do Render
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set.")
@@ -24,6 +26,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# Chave secreta da sessão
 app.secret_key = os.environ.get('SESSION_SECRET_KEY')
 if not app.secret_key:
     raise ValueError("SESSION_SECRET_KEY environment variable is not set.")
@@ -39,9 +42,13 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 if not os.path.exists(app.config['DOWNLOAD_FOLDER']):
     os.makedirs(app.config['DOWNLOAD_FOLDER'])
 
+# Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
+
+# Definir o fuso horário de São Paulo
 SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
 
+# Definição dos níveis de acesso
 ACCESS_LEVELS = {
     'PM': 'basic_access',
     'PC': 'no_access',
@@ -66,6 +73,7 @@ ACCESS_HIERARCHY = {
 ADMIN_CPF = "32302739825"
 PASSWORD_FOR_ADMIN = "123"
 
+# Funções de conversão e formatação de data e hora
 def now_sp():
     return datetime.now(SAO_PAULO_TIMEZONE)
 
@@ -84,6 +92,7 @@ def format_time(t):
         return t.astimezone(SAO_PAULO_TIMEZONE).strftime('%H:%M')
     return t
 
+# Modelo do Banco de Dados
 class Acompanhamento(db.Model):
     __tablename__ = 'acompanhamento'
     id = db.Column(db.Integer, primary_key=True)
@@ -262,6 +271,7 @@ class Visita(db.Model):
     email = db.Column(db.String)
     mes = db.Column(db.Integer)
 
+# Mapeamento para deleção e edição de registros
 MODEL_MAP = {
     'presenca': Presenca,
     'acompanhamento': Acompanhamento,
@@ -275,6 +285,7 @@ MODEL_MAP = {
     'visitas': Visita,
 }
 
+# Lista de tabelas que podem ser editadas pelo modal
 EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'ocorrencias', 'visitas']
 
 def load_participants_base():
@@ -410,7 +421,7 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             session['user_cpf'] = user.cpf
             
-            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
+            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
             if user_in_data:
                 etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
                 access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
@@ -487,7 +498,7 @@ def register():
 
         hashed_password = generate_password_hash(password)
 
-        user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
+        user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
         access_level_to_assign = 'no_access'
         if user_in_data:
             etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
@@ -524,6 +535,7 @@ def get_access_level():
 def health_check():
     return '', 200
 
+# Rota para obter as informações do usuário logado
 @app.route('/get_user_info')
 @login_required("basic_access")
 def get_user_info():
@@ -532,30 +544,36 @@ def get_user_info():
         return jsonify({'error': 'Usuário não logado'}), 401
     
     global PARTICIPANTES_DF
-    user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
-    if user_info:
-        user_info = user_info[0]
-        return jsonify({
-            'nome': user_info.get('nome', 'N/A'),
-            'cpf': user_info.get('cpf', 'N/A'),
-            'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
-            'etapa': user_info.get('etapa', 'N/A'),
-            'email': user_info.get('email', 'N/A'),
-            'access_level': session.get('access_level'),
-            'responsavel': user_info.get('responsavel', 'N/A')
-        })
-    else:
-        user_in_db = Usuario.query.filter_by(cpf=user_cpf).first()
-        if user_in_db:
-             return jsonify({
-                'nome': 'N/A',
-                'cpf': user_in_db.cpf,
-                'diretoria_de_ensino': 'N/A',
-                'etapa': 'N/A',
-                'email': 'N/A',
-                'access_level': user_in_db.access_level
+    if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        if user_info:
+            user_info = user_info[0]
+            return jsonify({
+                'nome': user_info.get('nome', 'N/A'),
+                'cpf': user_info.get('cpf', 'N/A'),
+                'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
+                'etapa': user_info.get('etapa', 'N/A'),
+                'email': user_info.get('email', 'N/A'),
+                'access_level': session.get('access_level'),
+                'responsavel': user_info.get('responsavel', 'N/A')
             })
-        return jsonify({'error': 'Informações do usuário não encontradas na base de dados'}), 404
+    
+    user_in_db = Usuario.query.filter_by(cpf=user_cpf).first()
+    if user_in_db:
+         return jsonify({
+            'nome': 'N/A',
+            'cpf': user_in_db.cpf,
+            'diretoria_de_ensino': 'N/A',
+            'etapa': 'N/A',
+            'email': 'N/A',
+            'access_level': user_in_db.access_level
+        })
+    
+    return jsonify({'error': 'Informações do usuário não encontradas na base de dados'}), 404
+
+# ====================================================================
+# Rotas para Datalists (Consolidadas)
+# ====================================================================
 
 @app.route('/api/datalists')
 @login_required("basic_access")
@@ -751,6 +769,10 @@ def get_tema_by_turma():
             return jsonify([tema])
     return jsonify([])
 
+# ====================================================================
+# Rotas de Submissão de Formulários
+# ====================================================================
+
 @app.route('/submit/acompanhamento', methods=['POST'])
 @login_required("power_user")
 def submit_acompanhamento():
@@ -885,32 +907,33 @@ def submit_presenca():
         
         nome_quem_preencheu = nome_substituto if substituicao_ocorreu == 'Sim' else responsavel_presenca
         
-        ateste_data_in_base = PARTICIPANTES_DF[
-            (PARTICIPANTES_DF['nome'] == nome_quem_preencheu)
-        ].to_dict('records')
+        if PARTICIPANTES_DF is not None:
+            ateste_data_in_base = PARTICIPANTES_DF[
+                (PARTICIPANTES_DF['nome'] == nome_quem_preencheu)
+            ].to_dict('records')
 
-        if ateste_data_in_base:
-            ateste_record_exists = Ateste.query.filter_by(
-                nome_quem_preencheu=nome_quem_preencheu,
-                tema=tema_presenca,
-                turma=turma_presenca,
-                data_formacao=data_formacao_dt
-            ).first()
-
-            if not ateste_record_exists:
-                ateste_data = ateste_data_in_base[0]
-                new_ateste = Ateste(
-                    responsavel_base=ateste_data.get('responsavel'),
+            if ateste_data_in_base:
+                ateste_record_exists = Ateste.query.filter_by(
                     nome_quem_preencheu=nome_quem_preencheu,
                     tema=tema_presenca,
                     turma=turma_presenca,
-                    data_formacao=data_formacao_dt,
-                    diretoria_de_ensino=ateste_data.get('diretoria_de_ensino'),
-                    escola=ateste_data.get('escola'),
-                    cpf=ateste_data.get('cpf'),
-                    valor_formacao=152.04
-                )
-                db.session.add(new_ateste)
+                    data_formacao=data_formacao_dt
+                ).first()
+
+                if not ateste_record_exists:
+                    ateste_data = ateste_data_in_base[0]
+                    new_ateste = Ateste(
+                        responsavel_base=ateste_data.get('responsavel'),
+                        nome_quem_preencheu=nome_quem_preencheu,
+                        tema=tema_presenca,
+                        turma=turma_presenca,
+                        data_formacao=data_formacao_dt,
+                        diretoria_de_ensino=ateste_data.get('diretoria_de_ensino'),
+                        escola=ateste_data.get('escola'),
+                        cpf=ateste_data.get('cpf'),
+                        valor_formacao=152.04
+                    )
+                    db.session.add(new_ateste)
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Registro de presença salvo com sucesso!'})
@@ -1059,7 +1082,7 @@ def get_visitas():
         query = Visita.query
 
         user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
         user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
 
         if session.get('access_level') == 'power_user':
@@ -1124,7 +1147,7 @@ def reserve_visita():
     try:
         data = request.json
         user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
         user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
 
         record_id = data.get('id')
@@ -1158,7 +1181,7 @@ def edit_visita(record_id):
             return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
 
         user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
         user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
         
         if record.responsavel_visitacao != user_name and session.get('access_level') != 'super_admin':
@@ -1185,7 +1208,7 @@ def delete_visita(record_id):
             return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
 
         user_cpf = session.get('user_cpf')
-        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+        user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records') if PARTICIPANTES_DF is not None else None
         user_name = user_info[0].get('nome') if user_info and 'nome' in user_info[0] else None
 
         if record.responsavel_visitacao != user_name and session.get('access_level') != 'super_admin':
@@ -1203,7 +1226,6 @@ def delete_visita(record_id):
         db.session.rollback()
         app.logger.error(f"Erro em /api/visitas/delete: {e}")
         return jsonify({'success': False, 'message': f'Erro ao excluir reserva: {e}'}), 500
-
 
 @app.route('/api/results/<table_name>')
 @login_required("basic_access")
@@ -1433,7 +1455,7 @@ def get_results(table_name):
                 'num_ocorrencias': metrics_query.num_ocorrencias or 0,
                 'ocorrencias_ativas': metrics_query.ocorrencias_ativas or 0
             }
-        
+
         total_items = filtered_query.count()
         paginated_query = filtered_query.paginate(page=page, per_page=per_page, error_out=False)
         
@@ -1459,10 +1481,8 @@ def get_results(table_name):
         })
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         app.logger.error(f"Erro em /api/results/{table_name}: {e}")
-        return jsonify({'error': f"Erro ao buscar dados: {e}"}), 500
+        return jsonify({'error': f'Erro ao buscar dados: {e}'}), 500
 
 @app.route('/api/records/<table_name>/<int:record_id>', methods=['GET'])
 @login_required('basic_access')
@@ -1964,16 +1984,6 @@ def export_csv(table_name):
         app.logger.error(f"Erro ao exportar CSV para a tabela {table_name}: {e}")
         return jsonify({'error': f'Erro ao exportar CSV: {e}'}), 500
 
-@app.route('/get_visibility')
-def get_visibility():
-    try:
-        elements = HiddenElement.query.all()
-        hidden_elements = {element.element_id: element.is_hidden for element in elements}
-        return jsonify({'hidden_elements': hidden_elements})
-    except Exception as e:
-        app.logger.error(f"Erro ao obter visibilidade: {e}")
-        return jsonify({'error': 'Erro ao carregar configurações de visibilidade.'}), 500
-
 @app.route('/admin/toggle_visibility', methods=['POST'])
 @login_required('super_admin')
 def toggle_visibility():
@@ -1998,28 +2008,15 @@ def toggle_visibility():
         app.logger.error(f"Erro ao alterar a visibilidade do elemento: {e}")
         return jsonify({'success': False, 'message': 'Erro ao alterar a visibilidade.'}), 500
 
-@app.route('/admin_tools', methods=['POST'])
-@login_required('super_admin')
-def admin_tools():
-    data = request.json
-    action = data.get('action')
-    if action == 'clear_all':
-        try:
-            with db.session.begin():
-                db.session.query(Acompanhamento).delete()
-                db.session.query(Presenca).delete()
-                db.session.query(Avaliacao).delete()
-                db.session.query(Demanda).delete()
-                db.session.query(Ateste).delete()
-                db.session.query(Ocorrencia).delete()
-                db.session.query(Visita).delete()
-                db.session.commit()
-            return jsonify({'success': True, 'message': 'Todos os dados dos formulários foram excluídos com sucesso!'})
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Erro ao limpar todos os dados: {e}")
-            return jsonify({'success': False, 'message': f'Erro ao limpar todos os dados: {e}'}), 500
-    return jsonify({'success': False, 'message': 'Ação inválida.'}), 400
+@app.route('/get_visibility')
+def get_visibility():
+    try:
+        elements = HiddenElement.query.all()
+        hidden_elements = {element.element_id: element.is_hidden for element in elements}
+        return jsonify({'hidden_elements': hidden_elements})
+    except Exception as e:
+        app.logger.error(f"Erro ao obter visibilidade: {e}")
+        return jsonify({'error': 'Erro ao carregar configurações de visibilidade.'}), 500
 
 @app.route('/admin/avisos', methods=['GET', 'POST'])
 @login_required('super_admin')

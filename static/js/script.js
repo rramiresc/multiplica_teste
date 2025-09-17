@@ -12,23 +12,23 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const AVALIACAO_QUESTIONS_MAP = {
-        'q1_1': '1.1 - Promove um ambiente virtual seguro, respeitoso e acolhedor...',
-        'q1_2': '1.2 - Conduz a formação em ambiente adequado...',
-        'q1_3': '1.3 - Estimula os demais participantes a seguirem as regras de etiqueta...',
+        'q1_1': '1.1 - Promove um ambiente virtual seguro, respeitoso e acolhedor, prevenindo condutas inadequadas e incentivando a observância da ética nas interações, em conformidade com as diretrizes do Programa.',
+        'q1_2': '1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.',
+        'q1_3': '1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.',
         'q2_1': '2.1 - Inicia a formação no horário determinado.',
-        '2.2': '2.2 - Gerencia o tempo assegurando a realização das atividades...',
+        '2.2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
         'q2_3': '2.3 - Encerra a formação no horário estipulado.',
-        'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação...',
-        'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem...',
-        'q3_3': '3.3 - Gerencia o tempo de forma eficiente...',
-        'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão...',
-        '4.2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo...',
-        '4.3': '4.3 - As discussões se mantêm produtivas e alinhadas...',
-        'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta...',
-        '5.2': '5.2 - Promove e estimula exemplos práticos...',
-        '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica...'
+        'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
+        'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
+        'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
+        'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
+        '4.2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
+        '4.3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
+        'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
+        '5.2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
+        '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
     };
-
+    
     const MODAL_TEMPLATES = {
         'presenca': (r) => `<h3>Editar Registro de Presença</h3><form id="editForm" data-table="presenca"><input type="hidden" name="id" value="${r.id}"><p><strong>Participante:</strong> ${r.nome_participante}</p><p><strong>Data:</strong> ${new Date(r.data_formacao).toLocaleDateString('pt-BR')}</p><label>Presença:</label><div class="radio-group"><label><input type="radio" name="presenca" value="SIM" ${r.presenca === 'SIM' ? 'checked' : ''}> SIM</label><label><input type="radio" name="presenca" value="NÃO" ${r.presenca === 'NÃO' ? 'checked' : ''}> NÃO</label></div><label>Câmera:</label><div class="radio-group"><label><input type="radio" name="camera" value="SIM" ${r.camera === 'SIM' ? 'checked' : ''}> SIM</label><label><input type="radio" name="camera" value="NÃO" ${r.camera === 'NÃO' ? 'checked' : ''}> NÃO</label></div><div class="button-group"><button type="submit" class="modal-save-button">Salvar</button><button type="button" class="modal-close-button close-button">Cancelar</button></div></form>`,
         'acompanhamento': (r) => `<h3>Editar Registro de Acompanhamento</h3><form id="editForm" data-table="acompanhamento"><input type="hidden" name="id" value="${r.id}"><p><strong>Turma:</strong> ${r.turma}</p><p><strong>Data:</strong> ${new Date(r.data_encontro).toLocaleDateString('pt-BR')}</p><label>Encontro Realizado:</label><div class="radio-group"><label><input type="radio" name="encontro_realizado" value="Sim" ${r.encontro_realizado === 'Sim' ? 'checked' : ''}> Sim</label><label><input type="radio" name="encontro_realizado" value="Não" ${r.encontro_realizado === 'Não' ? 'checked' : ''}> Não</label></div><div id="modal-encontro-realizado-sim" class="form-section" style="${r.encontro_realizado === 'Sim' ? 'display:block;' : 'display:none;'}"><label for="real_participantes">Participantes reais:</label><input type="number" name="real_participantes" value="${r.real_participantes || 0}"><label for="camera_aberta_participantes">Câmera aberta:</label><input type="number" name="camera_aberta_participantes" value="${r.camera_aberta_participantes || 0}"></div><div id="modal-encontro-realizado-nao" class="form-section" style="${r.encontro_realizado === 'Não' ? 'display:block;' : 'display:none;'}"><label for="motivo_nao_ocorrencia">Motivo da não ocorrência:</label><textarea name="motivo_nao_ocorrencia">${r.motivo_nao_ocorrencia || ''}</textarea></div><label for="observacao">Observação:</label><textarea name="observacao">${r.observacao || ''}</textarea><div class="button-group"><button type="submit" class="modal-save-button">Salvar</button><button type="button" class="modal-close-button close-button">Cancelar</button></div></form>`,
@@ -46,9 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(url);
                 if (!response.ok) {
                     const errorText = await response.text();
-                    const isHtml = errorText.startsWith('<!DOCTYPE');
-                    if (isHtml) {
-                        window.location.href = '/login'; // Redireciona se a resposta for a página de login
+                    // Redireciona se a resposta for a página de login
+                    if (errorText.startsWith('<!DOCTYPE')) {
+                        window.location.href = '/login';
                         throw new Error('Redirecionando para login.');
                     }
                     const errorData = JSON.parse(errorText);
