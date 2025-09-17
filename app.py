@@ -15,10 +15,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from threading import Thread
 
-# Inicializar o Flask
 app = Flask(__name__)
 
-# Configuração do SQLAlchemy com a string de conexão do Render
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set.")
@@ -26,7 +24,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Chave secreta da sessão
 app.secret_key = os.environ.get('SESSION_SECRET_KEY')
 if not app.secret_key:
     raise ValueError("SESSION_SECRET_KEY environment variable is not set.")
@@ -42,16 +39,12 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 if not os.path.exists(app.config['DOWNLOAD_FOLDER']):
     os.makedirs(app.config['DOWNLOAD_FOLDER'])
 
-# Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
-
-# Definir o fuso horário de São Paulo
 SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
 
-# Definição dos níveis de acesso (UNIFICADO)
 ACCESS_LEVELS = {
     'PM': 'basic_access',
-    'PC': 'basic_access',
+    'PC': 'no_access',
     'CM': 'basic_access',
     'FORMADOR': 'power_user',
     'EFAPE': 'power_user',
@@ -59,7 +52,7 @@ ACCESS_LEVELS = {
     'CAFF': 'power_user',
     'PEC Multiplica': 'power_user',
     'PM Multiplicador': 'basic_access',
-    'PC Multiplicador': 'basic_access',
+    'PC Multiplicador': 'no_access',
     'ADM': 'super_admin'
 }
 
@@ -73,7 +66,6 @@ ACCESS_HIERARCHY = {
 ADMIN_CPF = "32302739825"
 PASSWORD_FOR_ADMIN = "123"
 
-# Funções de conversão e formatação de data e hora
 def now_sp():
     return datetime.now(SAO_PAULO_TIMEZONE)
 
@@ -92,7 +84,6 @@ def format_time(t):
         return t.astimezone(SAO_PAULO_TIMEZONE).strftime('%H:%M')
     return t
 
-# Modelos do Banco de Dados
 class Acompanhamento(db.Model):
     __tablename__ = 'acompanhamento'
     id = db.Column(db.Integer, primary_key=True)
@@ -271,7 +262,6 @@ class Visita(db.Model):
     email = db.Column(db.String)
     mes = db.Column(db.Integer)
 
-# Mapeamento para deleção e edição de registros
 MODEL_MAP = {
     'presenca': Presenca,
     'acompanhamento': Acompanhamento,
@@ -285,7 +275,6 @@ MODEL_MAP = {
     'visitas': Visita,
 }
 
-# Lista de tabelas que podem ser editadas pelo modal
 EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'ocorrencias', 'visitas']
 
 def load_participants_base():
@@ -315,7 +304,6 @@ def load_participants_base():
 def populate_visitas_from_excel():
     file_path = 'links_visitações.xlsx'
     with app.app_context():
-        # Somente popula se a tabela estiver vazia
         if Visita.query.count() == 0:
             try:
                 if not os.path.exists(file_path):
@@ -346,10 +334,8 @@ def populate_visitas_from_excel():
                 db.session.rollback()
                 print(f"ERRO: Não foi possível popular a tabela de visitas a partir do Excel. {e}")
 
-# Carregar a base de dados na inicialização
 load_participants_base()
 
-# Funções auxiliares para manipulação de datas (semana de domingo a sábado)
 def get_sunday_of_week(year, week_num):
     first_day_of_year = datetime(year, 1, 1).date()
     if first_day_of_year.weekday() <= 3:
@@ -394,7 +380,6 @@ with app.app_context():
     db.create_all()
     populate_visitas_from_excel()
 
-# Rotas de Autenticação
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_cpf' in session:
@@ -572,10 +557,6 @@ def get_user_info():
             })
         return jsonify({'error': 'Informações do usuário não encontradas na base de dados'}), 404
 
-# ====================================================================
-# Rotas para Datalists (Consolidadas)
-# ====================================================================
-
 @app.route('/api/datalists')
 @login_required("basic_access")
 def get_all_datalists():
@@ -621,7 +602,7 @@ def get_pecs_and_formadores():
         global PARTICIPANTES_DF
         if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
             observadores = PARTICIPANTES_DF[
-                PARTICIPANTES_DF['etapa'].isin(['PEC', 'FORMADOR'])
+                PARTICIPANTES_DF['etapa'].isin(['PEC', 'FORMADOR', 'CAFF'])
             ]['nome'].dropna().unique()
             return jsonify(sorted(list(observadores)))
         return jsonify([])
@@ -769,10 +750,6 @@ def get_tema_by_turma():
         if tema:
             return jsonify([tema])
     return jsonify([])
-
-# ====================================================================
-# Rotas de Submissão de Formulários
-# ====================================================================
 
 @app.route('/submit/acompanhamento', methods=['POST'])
 @login_required("power_user")
@@ -1075,10 +1052,6 @@ def submit_ocorrencia():
         app.logger.error(f"Erro em /submit/ocorrencia: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar ocorrência: {e}'}), 500
 
-# ====================================================================
-# Rotas de Visitação
-# ====================================================================
-
 @app.route('/api/visitas', methods=['GET'])
 @login_required('power_user')
 def get_visitas():
@@ -1104,7 +1077,7 @@ def get_visitas():
                         query = query.filter(Visita.responsavel_visitacao.isnot(None))
                     elif value == 'Não Visitado':
                         query = query.filter(Visita.responsavel_visitacao.is_(None))
-                    else: # Filtra 'Sim' ou 'Não'
+                    else:
                         query = query.filter(Visita.encontro_aconteceu == value)
         
         all_visitas = query.all()
@@ -1115,10 +1088,8 @@ def get_visitas():
             if 'data_formacao' in record and record['data_formacao']:
                 record['data_formacao'] = record['data_formacao'].isoformat()
             
-            # Adiciona o status de edição e exclusão
             record['is_editable'] = v.responsavel_visitacao == user_name or session.get('access_level') == 'super_admin'
             
-            # Ajusta o status para a exibição no frontend
             if v.responsavel_visitacao is not None:
                 record['encontro_aconteceu'] = v.encontro_aconteceu
             else:
@@ -1289,10 +1260,10 @@ def get_results(table_name):
         page = request.args.get('page', 1, type=int)
         query = Model.query
         
-        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
-        user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
-        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if not user_info_df.empty else None
-        user_email = user_info_df['email'].iloc[0] if not user_info_df.empty else None
+        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf] if PARTICIPANTES_DF is not None else None
+        user_name = user_info_df['nome'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
+        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
+        user_email = user_info_df['email'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
 
         if user_access_level == 'basic_access':
             if table_name == 'presenca':
@@ -1318,7 +1289,6 @@ def get_results(table_name):
                  query = query.filter_by(cpf=user_cpf)
             elif table_name == 'visitas':
                 query = query.filter(or_(Visita.responsavel_visitacao == None, Visita.responsavel_visitacao == user_name))
-
         
         filtered_query = query
         
@@ -1463,7 +1433,7 @@ def get_results(table_name):
                 'num_ocorrencias': metrics_query.num_ocorrencias or 0,
                 'ocorrencias_ativas': metrics_query.ocorrencias_ativas or 0
             }
-
+        
         total_items = filtered_query.count()
         paginated_query = filtered_query.paginate(page=page, per_page=per_page, error_out=False)
         
@@ -1489,8 +1459,10 @@ def get_results(table_name):
         })
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         app.logger.error(f"Erro em /api/results/{table_name}: {e}")
-        return jsonify({'error': f'Erro ao buscar dados: {e}'}), 500
+        return jsonify({'error': f"Erro ao buscar dados: {e}"}), 500
 
 @app.route('/api/records/<table_name>/<int:record_id>', methods=['GET'])
 @login_required('basic_access')
@@ -1655,10 +1627,6 @@ def delete_entry():
         db.session.rollback()
         app.logger.error(f"Erro ao excluir registro: {e}")
         return jsonify({'success': False, 'message': f'Erro ao excluir o registro: {e}'}), 500
-
-# ====================================================================
-# Rotas Administrativas
-# ====================================================================
 
 @app.route('/admin/upload_base', methods=['POST'])
 @login_required('super_admin')
@@ -1895,10 +1863,10 @@ def export_csv(table_name):
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
         
-        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
-        user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else None
-        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if not user_info_df.empty else None
-        user_email = user_info_df['email'].iloc[0] if not user_info_df.empty else None
+        user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf] if PARTICIPANTES_DF is not None else None
+        user_name = user_info_df['nome'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
+        user_de = user_info_df['diretoria_de_ensino'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
+        user_email = user_info_df['email'].iloc[0] if user_info_df is not None and not user_info_df.empty else None
 
         if user_access_level == 'basic_access':
             if table_name not in ['presenca', 'ocorrencias']:
