@@ -1919,6 +1919,7 @@ def get_visibility():
         return jsonify({'hidden_elements': hidden_elements})
     except Exception as e:
         app.logger.error(f"Erro ao obter visibilidade: {e}")
+        # Retorna JSON de erro em caso de falha, em vez de 404/500
         return jsonify({'error': 'Erro ao carregar configurações de visibilidade.'}), 500
 
 @app.route('/admin/toggle_visibility', methods=['POST'])
