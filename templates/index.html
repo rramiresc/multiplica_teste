@@ -19,7 +19,7 @@
 </header>
 
 <div class="navigation-tabs">
-    <button class="tab-button active" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
+    <button class="tab-button" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
     <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros</button>
     <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao" id="tab-form-avaliacao">Formulário de Avaliação</button>
     <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas" id="tab-form-demandas">Registro de Demandas</button>
@@ -127,7 +127,7 @@
             <label for="formador_assistido">Nome do Formador, PEC ou PM assistido:</label>
             <input type="text" id="formador_assistido" name="formador_assistido" readonly>
             
-            <div class="radio-group" onchange="toggleSubstituto(this)">
+            <div class="radio-group">
                 <label>
                     <input type="radio" name="formador_substituicao" value="aplica" checked> O Formador Assistido é o responsável pela formação
                 </label>
@@ -378,7 +378,7 @@
             </div>
             
             <label>Visitou Escola na semana indicada?</label>
-            <div class="radio-group" onchange="toggleSchoolSelection(this)">
+            <div class="radio-group">
                 <label><input type="radio" name="visitas_escolas_demandas" value="Sim" required> Sim</label>
                 <label><input type="radio" name="visitas_escolas_demandas" value="Não"> Não</label>
             </div>
@@ -928,7 +928,8 @@
                     <option value="intermediate_access">Intermediate Access (PEC)</option>
                     <option value="super_admin">Super Admin (ADM)</option>
                 </select>
-                
+                <p><small>Para novos usuários, a senha padrão é <b>123</b>. Por favor, instrua-os a alterá-la no primeiro acesso.</small></p>
+
                 <div class="button-group">
                     <button type="submit" id="save-user-button">Adicionar Novo Usuário</button>
                     <button type="button" id="delete-user-button" class="red-button">Excluir</button>
@@ -957,7 +958,7 @@
     <div class="form-section">
         <h3>Atualizar Base de Participantes via Planilha</h3>
         <p>Faça o upload de uma planilha (.xlsx) com a base de participantes. Esta ação <b>irá apagar todos os dados</b> existentes na tabela `participantes_base_editavel` e substituí-los pelo conteúdo da nova planilha.</p>
-        <form id="uploadBaseForm" action="/upload_base" method="POST" enctype="multipart/form-data">
+        <form id="uploadBaseForm" action="/admin/upload_base" method="POST" enctype="multipart/form-data">
             <label for="baseFile">Arquivo .xlsx:</label>
             <input type="file" id="baseFile" name="baseFile" accept=".xlsx" required>
             <button type="submit">Fazer Upload e Atualizar</button>
@@ -1082,7 +1083,7 @@
             </select>
             
             <label for="delete-id">ID do Registro:</label>
-            <input type="number" id="delete-id" name="id" required>
+            <input type="text" id="delete-id" name="id" required>
             
             <button type="submit" class="red-button">Excluir Registro</button>
         </form>
