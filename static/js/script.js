@@ -591,21 +591,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const visitasEscolasRadios = document.querySelectorAll('input[name="visitas_escolas_demandas"]');
-    if (visitasEscolasRadios) {
-        visitasEscolasRadios.forEach(radio => {
+
+    window.toggleSchoolSelection = function(radioGroup) {
+        const selectedValue = radioGroup.querySelector('input:checked')?.value;
+        console.log(`DEBUG JS: Visitas às escolas: ${selectedValue}`);
+        if (escolasContainer) {
+            if (selectedValue === 'Sim') {
+                escolasContainer.style.display = 'block';
+                loadSchoolsByDiretoria();
+            } else {
+                escolasContainer.style.display = 'none';
+                if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
+                if (pmOrientadosInput) pmOrientadosInput.value = 0;
+                if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
+                // NOVOS CAMPOS
+                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
+                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
+            }
+        }
+    };
+
+    if (document.querySelector('input[name="visitas_escolas_demandas"]')) {
+        document.querySelectorAll('input[name="visitas_escolas_demandas"]').forEach(radio => {
             radio.addEventListener('change', function() {
-                if (this.value === 'Sim') {
-                    escolasContainer.style.display = 'block';
-                    loadSchoolsByDiretoria();
-                } else {
-                    escolasContainer.style.display = 'none';
-                    if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
-                    if (pmOrientadosInput) pmOrientadosInput.value = 0;
-                    if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
-                    if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
-                    if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
-                }
+                window.toggleSchoolSelection(this.closest('.radio-group'));
             });
         });
     }
@@ -1473,6 +1482,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
+            if (formId === 'formOcorrencia') {
+                const tipoOcorrencia = data['tipo_ocorrencia'];
+                if (tipoOcorrencia !== 'Outra') {
+                    delete data['outra_ocorrencia_desc'];
+                }
+            }
 
             try { // Início do bloco try para a requisição fetch
                 const response = await fetch(endpoint, {
@@ -2093,8 +2108,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Erro ao excluir link.');
                 }
             }
-        });
-    }
+        }
+    });
 
     if (linkForm) {
         linkForm.addEventListener('submit', async function(event) {

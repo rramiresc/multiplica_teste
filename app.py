@@ -607,13 +607,14 @@ def get_all_datalists():
             'AINDA NÃO TENHO CAFF'
         ])
         
+        # CORREÇÃO: Adicionando as novas opções de pauta
         pautas_numericas = [str(i) for i in range(0, 17)]
         pautas_desdobramento = [f"Desdobramento {i}" for i in range(1, 9)]
         data['pautas_formativas'] = pautas_numericas + pautas_desdobramento
         data['temas'] = sorted(list(all_participants['tema'].dropna().unique()))
         data['cpfs'] = sorted(list(all_participants['cpf'].dropna().unique()))
         
-        # Corrigido para verificar a existência das colunas
+        # CORREÇÃO: Adicionando verificação de existência das colunas
         data['emails'] = sorted(list(all_participants['email'].dropna().unique())) if 'email' in all_participants.columns else []
         data['telefones'] = sorted(list(all_participants['telefone'].dropna().unique())) if 'telefone' in all_participants.columns else []
 
@@ -981,35 +982,6 @@ def submit_presenca():
         app.logger.error(f"Erro em /submit_presenca: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de presença: {e}'}), 500
 
-@app.route('/submit_ocorrencia', methods=['POST'])
-@login_required("basic_access")
-def submit_ocorrencia():
-    try:
-        data = request.json
-        if not data.get('nome_ocorrencia') or not data.get('turma_ocorrencia') or not data.get('descricao_problema'):
-            return jsonify({'success': False, 'message': 'Dados obrigatórios faltando para o registro de ocorrência.'}), 400
-        
-        new_ocorrencia = Ocorrencia(
-            nome_ocorrencia=data.get('nome_ocorrencia'),
-            email_ocorrencia=data.get('email_ocorrencia'),
-            telefone_ocorrencia=data.get('telefone_ocorrencia'),
-            turma_ocorrencia=data.get('turma_ocorrencia'),
-            tema_ocorrencia=data.get('tema_ocorrencia'),
-            tipo_ocorrencia=data.get('tipo_ocorrencia'),
-            outra_ocorrencia_desc=data.get('outra_ocorrencia_desc'),
-            descricao_problema=data.get('descricao_problema'),
-            ocorrencia_ainda_ocorre=data.get('ocorrencia_ainda_ocorre'),
-            nivel_impacto=data.get('nivel_impacto'),
-            timestamp=now_sp()
-        )
-        db.session.add(new_ocorrencia)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Ocorrência registrada com sucesso!'})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro em /submit_ocorrencia: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao registrar ocorrência: {e}'}), 500
-
 @app.route('/submit_avaliacao', methods=['POST'])
 @login_required("intermediate_access")
 def submit_avaliacao():
@@ -1118,6 +1090,35 @@ def submit_demandas():
         db.session.rollback()
         app.logger.error(f"Erro em /submit_demandas: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de demanda: {e}'}), 500
+
+@app.route('/submit_ocorrencia', methods=['POST'])
+@login_required("basic_access")
+def submit_ocorrencia():
+    try:
+        data = request.json
+        if not data.get('nome_ocorrencia') or not data.get('turma_ocorrencia') or not data.get('descricao_problema'):
+            return jsonify({'success': False, 'message': 'Dados obrigatórios faltando para o registro de ocorrência.'}), 400
+        
+        new_ocorrencia = Ocorrencia(
+            nome_ocorrencia=data.get('nome_ocorrencia'),
+            email_ocorrencia=data.get('email_ocorrencia'),
+            telefone_ocorrencia=data.get('telefone_ocorrencia'),
+            turma_ocorrencia=data.get('turma_ocorrencia'),
+            tema_ocorrencia=data.get('tema_ocorrencia'),
+            tipo_ocorrencia=data.get('tipo_ocorrencia'),
+            outra_ocorrencia_desc=data.get('outra_ocorrencia_desc'),
+            descricao_problema=data.get('descricao_problema'),
+            ocorrencia_ainda_ocorre=data.get('ocorrencia_ainda_ocorre'),
+            nivel_impacto=data.get('nivel_impacto'),
+            timestamp=now_sp()
+        )
+        db.session.add(new_ocorrencia)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Ocorrência registrada com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Erro em /submit_ocorrencia: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao registrar ocorrência: {e}'}), 500
 
 @app.route('/get_results/<table_name>')
 @login_required("basic_access")
@@ -1910,6 +1911,7 @@ def edit_record(table_name):
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
         elif table_name == 'ocorrencias':
+            # Permite que qualquer usuário que preencheu a ocorrência a edite
             is_owner = record.nome_ocorrencia == user_name
         elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf

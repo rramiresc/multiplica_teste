@@ -377,7 +377,7 @@
             </div>
             
             <label>Visitou Escola na semana indicada?</label>
-            <div class="radio-group" onchange="toggleSchoolSelection(this)">
+            <div class="radio-group">
                 <label><input type="radio" name="visitas_escolas_demandas" value="Sim" required> Sim</label>
                 <label><input type="radio" name="visitas_escolas_demandas" value="Não"> Não</label>
             </div>
@@ -444,6 +444,71 @@
             <textarea id="observacao_demandas" name="observacao_demandas" rows="3"></textarea>
         </div>
         <button type="submit">Enviar</button>
+    </form>
+</div>
+
+<div id="form-ocorrencia" class="section" style="display:none;">
+    <h2>Registro de Ocorrência</h2>
+    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.
+    </p>
+    <form id="formOcorrencia">
+        <div class="form-section">
+            <h3>Dados do Relator</h3>
+            <label for="nome_ocorrencia">Nome completo:</label>
+            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" list="nomes-list-avaliacao" required autocomplete="name">
+            <datalist id="nomes-list-avaliacao"></datalist>
+
+            <label for="email_ocorrencia">E-mail:</label>
+            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required autocomplete="email" list="emails-list">
+            <datalist id="emails-list"></datalist>
+
+            <label for="telefone_ocorrencia">Telefone (opcional):</label>
+            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" autocomplete="tel" list="telefones-list">
+            <datalist id="telefones-list"></datalist>
+        </div>
+
+        <div class="form-section">
+            <h3>Detalhes da Ocorrência</h3>
+            <label for="turma_ocorrencia">Turma Afetada:</label>
+            <input type="text" id="turma_ocorrencia" name="turma_ocorrencia" list="turmas-list" required>
+            
+            <label for="tema_ocorrencia">Tema da Formação:</label>
+            <input type="text" id="tema_ocorrencia" name="tema_ocorrencia" list="temas-list-presenca" required>
+
+            <label for="tipo_ocorrencia">Tipo de Ocorrência:</label>
+            <select id="tipo_ocorrencia" name="tipo_ocorrencia" required>
+                <option value="">Selecione o tipo</option>
+                <option value="Problema com link de acesso">Problema com link de acesso</option>
+                <option value="Dificuldade de visualização/áudio">Dificuldade de visualização/áudio</option>
+                <option value="Conteúdo da pauta divergente">Conteúdo da pauta divergente</option>
+                <option value="Problema com a gravação">Problema com a gravação</option>
+                <option value="Desvio de conduta">Desvio de conduta</option>
+                <option value="Outra">Outra</option>
+            </select>
+            
+            <div id="outra_ocorrencia_desc_container" style="display:none;">
+                <label for="outra_ocorrencia_desc">Descreva a ocorrência:</label>
+                <textarea id="outra_ocorrencia_desc" name="outra_ocorrencia_desc"></textarea>
+            </div>
+
+            <label for="descricao_problema">Descreva o problema com detalhes:</label>
+            <textarea id="descricao_problema" name="descricao_problema" rows="5" required></textarea>
+
+            <label for="ocorrencia_ainda_ocorre">A ocorrência ainda está acontecendo?</label>
+            <div class="radio-group">
+                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" required> Sim</label>
+                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não"> Não</label>
+            </div>
+            
+            <label for="nivel_impacto">Nível de Impacto:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="nivel_impacto" value="Baixo" required> Baixo</label>
+                <label><input type="radio" name="nivel_impacto" value="Médio"> Médio</label>
+                <label><input type="radio" name="nivel_impacto" value="Alto"> Alto</label>
+            </div>
+        </div>
+
+        <button type="submit">Enviar Ocorrência</button>
     </form>
 </div>
 
@@ -720,6 +785,9 @@
 
 <div id="controle-ateste" class="section" style="display:none;">
     <h2>Controle para ATESTE</h2>
+    <div class="result-header">
+        <button class="toggle-form-result" data-form-id="form-acompanhamento" data-result-id="controle-ateste">Exibir Formulário</button>
+    </div>
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAteste">
@@ -967,7 +1035,7 @@
             </select>
             
             <label for="delete-id">ID do Registro:</label>
-            <input type="number" id="delete-id" name="id" required>
+            <input type="text" id="delete-id" name="id" required>
             
             <button type="submit" class="red-button">Excluir Registro</button>
         </form>
