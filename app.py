@@ -32,7 +32,6 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set.")
 
-# Força o uso de SSL/TLS com o PostgreSQL, que é o padrão no Render
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -283,19 +282,19 @@ class HiddenElement(db.Model):
     element_id = db.Column(db.String, unique=True, nullable=False)
     is_hidden = db.Column(db.Boolean, default=False)
 
-# Ajuste no modelo da tabela 'visitas' para refletir a imagem
+# Modelo da tabela 'visitas' ajustado
 class Visita(db.Model):
     __tablename__ = 'visitas'
     id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String, unique=True)  # Nome da coluna ajustado para 'url'
-    responsavel_visita = db.Column(db.String)
+    url = db.Column(db.String, unique=True)
+    # A coluna no banco de dados se chama 'responsavel_visitacao'
+    responsavel_visitacao = db.Column('responsavel_visitacao', db.String)
     cpf_responsavel_visita = db.Column(db.String)
     encontro_aconteceu = db.Column(db.String)
     motivo_nao_aconteceu = db.Column(db.String)
     observacao = db.Column(db.String)
     data_registro = db.Column(db.Date)
 
-# Mapeamento para deleção e edição de registros
 MODEL_MAP = {
     'presenca': Presenca,
     'acompanhamento': Acompanhamento,
@@ -307,7 +306,6 @@ MODEL_MAP = {
     'links': Link,
     'visitas': Visita
 }
-# Lista de tabelas que podem ser editadas pelo modal
 EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'visitas']
 
 def load_participants_base():
@@ -342,8 +340,14 @@ def load_links_base():
             raise FileNotFoundError(f"Arquivo '{file_path}' não encontrado.")
 
         LINKS_DF = pd.read_excel(file_path)
+        # Nomes de colunas do excel corrigidos
         LINKS_DF.columns = LINKS_DF.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('á', 'a').str.replace('ã', 'a').str.replace('ç', 'c').str.replace('ê', 'e').str.replace('ô', 'o')
-        LINKS_DF.rename(columns={'nome_turma': 'turma'}, inplace=True) # removido 'url_formacao' aqui
+        LINKS_DF.rename(columns={'nome_turma': 'turma', 'url_formacao': 'url'}, inplace=True, errors='ignore')
+        
+        # Corrigido: renomeando a coluna do Excel para o nome que o banco de dados usa
+        if 'responsavel_visitacao' in LINKS_DF.columns:
+             LINKS_DF.rename(columns={'responsavel_visitacao': 'responsavel_visita'}, inplace=True, errors='ignore')
+
         if 'dia_do_mes' in LINKS_DF.columns:
              LINKS_DF['dia_do_mes'] = LINKS_DF['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
         else:
@@ -1069,7 +1073,7 @@ def submit_demandas():
 def submit_visita():
     try:
         data = request.json
-        url = data.get('url_formacao') # Corrigido para 'url'
+        url = data.get('url_formacao')
         
         if not url:
             return jsonify({'success': False, 'message': 'URL da formação é obrigatória.'}), 400
@@ -1078,15 +1082,16 @@ def submit_visita():
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
         user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else 'Usuário Desconhecido'
 
-        visita = Visita.query.filter_by(url=url).first() # Corrigido para 'url'
+        visita = Visita.query.filter_by(url=url).first()
         
         is_reserve_action = 'encontro_aconteceu' not in data or data.get('encontro_aconteceu') == ''
 
         if visita:
             if visita.cpf_responsavel_visita and visita.cpf_responsavel_visita != user_cpf and session.get('access_level') != 'super_admin':
-                return jsonify({'success': False, 'message': f'Esta turma já foi reservada por {visita.responsavel_visita}.'}), 403
+                return jsonify({'success': False, 'message': f'Esta turma já foi reservada por {visita.responsavel_visitacao}.'}), 403
             
-            visita.responsavel_visita = user_name
+            # Corrigido: Usando o nome correto da coluna
+            visita.responsavel_visitacao = user_name
             visita.cpf_responsavel_visita = user_cpf
             visita.data_registro = now_sp().date()
 
@@ -1102,8 +1107,8 @@ def submit_visita():
 
         else:
             new_visita = Visita(
-                url=url, # Corrigido para 'url'
-                responsavel_visita=user_name,
+                url=url,
+                responsavel_visitacao=user_name, # Corrigido: Usando o nome correto da coluna
                 cpf_responsavel_visita=user_cpf,
                 encontro_aconteceu=data.get('encontro_aconteceu') if not is_reserve_action else None,
                 motivo_nao_aconteceu=data.get('motivo_nao_aconteceu') if not is_reserve_action else None,
@@ -1124,10 +1129,10 @@ def submit_visita():
 @login_required('full_access')
 def delete_visita_by_url():
     data = request.json
-    url = data.get('url_formacao') # Corrigido para 'url'
+    url = data.get('url_formacao')
     user_cpf = session.get('user_cpf')
     
-    visita = Visita.query.filter_by(url=url).first() # Corrigido para 'url'
+    visita = Visita.query.filter_by(url=url).first()
 
     if not visita:
         return jsonify({'success': False, 'message': 'Registro de visitação não encontrado.'}), 404
@@ -1143,7 +1148,8 @@ def delete_visita_by_url():
 
     if visita.cpf_responsavel_visita == user_cpf:
         try:
-            visita.responsavel_visita = None
+            # Corrigido: Usando o nome correto da coluna
+            visita.responsavel_visitacao = None
             visita.cpf_responsavel_visita = None
             visita.encontro_aconteceu = None
             visita.motivo_nao_aconteceu = None
@@ -1212,7 +1218,6 @@ def get_results(table_name):
         per_page = 20
         page = request.args.get('page', 1, type=int)
 
-        # Corrigida a lógica para a tabela de Visitas
         if table_name == 'visitas':
             if LINKS_DF is None:
                 return jsonify({'error': 'Base de links de visitação não carregada.'}), 500
@@ -1231,6 +1236,7 @@ def get_results(table_name):
             if 'url' not in df_links.columns:
                  df_links['url'] = None
 
+            # Corrigido: O merge agora usa a coluna 'url'
             df_merged = pd.merge(df_links, visitas_df, on='url', how='left')
             
             db_cols = [c.name for c in Visita.__table__.columns]
@@ -1249,7 +1255,7 @@ def get_results(table_name):
             if 'page' in filters: del filters['page']
             
             if filters.get('sem_responsavel_pela_visita') == 'true':
-                df_merged = df_merged[df_merged['responsavel_visita'].isnull()]
+                df_merged = df_merged[df_merged['responsavel_visitacao'].isnull()]
                 del filters['sem_responsavel_pela_visita']
 
             for key, value in filters.items():
@@ -1268,7 +1274,7 @@ def get_results(table_name):
             
             results = paginated_df.to_dict('records')
             
-            visitas_columns = ['responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'id', 'cpf_responsavel_visita']
+            visitas_columns = ['responsavel_visitacao', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'id', 'cpf_responsavel_visita']
             base_columns = df_links.columns.tolist()
             all_columns = list(set(base_columns + visitas_columns))
             
@@ -1292,7 +1298,6 @@ def get_results(table_name):
                 'metrics': metrics
             })
 
-        # Lógica para as outras tabelas
         query = Model.query
         
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
@@ -1546,7 +1551,7 @@ def generate_and_save_reports(user_cpf):
                         'usuarios': ['id', 'cpf', 'access_level'],
                         'avisos': ['id', 'titulo', 'conteudo', 'imagem_url'],
                         'links': ['id', 'titulo', 'descricao', 'url', 'imagem_url'],
-                        'visitas': ['id', 'url', 'responsavel_visita', 'cpf_responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'data_registro'] # Ajustado para 'url'
+                        'visitas': ['id', 'url', 'responsavel_visitacao', 'cpf_responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'data_registro']
                     }
                     
                     if table_name in column_order:
@@ -1838,7 +1843,6 @@ def get_export_data_token(table_name):
             visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
             visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
 
-            # Corrigido: mergeando com a coluna 'url'
             df = pd.merge(LINKS_DF.copy(), visitas_df, on='url', how='left')
             df.replace({np.nan: None}, inplace=True)
             if 'dia_do_mes' in df.columns:
@@ -1850,7 +1854,7 @@ def get_export_data_token(table_name):
                     df[col] = None
             
             if filters.get('sem_responsavel_pela_visita') == 'true':
-                df = df[df['responsavel_visita'].isnull()]
+                df = df[df['responsavel_visitacao'].isnull()]
                 del filters['sem_responsavel_pela_visita']
 
             for key, value in filters.items():
@@ -2109,6 +2113,7 @@ def edit_record(table_name):
 
     Model = MODEL_MAP[table_name]
     
+    # Ajustado: Usando 'url' para a tabela de visitas
     if table_name == 'visitas':
         record = Model.query.filter_by(url=record_id).first()
     else:
@@ -2137,6 +2142,7 @@ def edit_record(table_name):
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
         elif table_name == 'visitas':
+            # Ajustado: Usando o nome correto da coluna
             if not record.cpf_responsavel_visita:
                 is_owner = True
             else:
@@ -2149,7 +2155,8 @@ def edit_record(table_name):
         if table_name == 'visitas' and not record.cpf_responsavel_visita:
             user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
             user_name = user_info[0].get('nome') if user_info else 'Usuário Desconhecido'
-            record.responsavel_visita = user_name
+            # Ajustado: Usando o nome correto da coluna
+            record.responsavel_visitacao = user_name
             record.cpf_responsavel_visita = user_cpf
 
         for key, value in data.items():
@@ -2174,7 +2181,7 @@ def get_record(table_name, record_id):
     if table_name == 'usuarios':
         record = Model.query.filter_by(cpf=record_id).first()
     elif table_name == 'visitas':
-        record = Model.query.filter_by(url=record_id).first() # Corrigido para 'url'
+        record = Model.query.filter_by(url=record_id).first() # Ajustado para 'url'
         if not record:
              return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
@@ -2206,6 +2213,7 @@ def get_record(table_name, record_id):
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
         elif table_name == 'visitas':
+            # Ajustado: Usando o nome correto da coluna
             is_owner = (record.cpf_responsavel_visita and record.cpf_responsavel_visita == user_cpf) or not record.cpf_responsavel_visita
         
         if not is_owner:
