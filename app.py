@@ -45,7 +45,7 @@ app.config['DOWNLOAD_FOLDER'] = 'downloads'
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 if not os.path.exists(app.config['DOWNLOAD_FOLDER']):
-    os.makedirs(app.config['DOWNLOAD_FOLDER'])
+    os.makedirs(app.path.config['DOWNLOAD_FOLDER'])
 
 # Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
@@ -271,7 +271,7 @@ MODEL_MAP = {
     'links': Link,
 }
 # Lista de tabelas que podem ser editadas pelo modal
-EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste']
+EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'ocorrencias']
 
 # Função para carregar a base de participantes
 def load_participants_base():
@@ -290,15 +290,22 @@ def load_participants_base():
         if 'cpf' in PARTICIPANTES_DF.columns:
             PARTICIPANTES_DF['cpf'] = PARTICIPANTES_DF['cpf'].astype(str).str.replace(r'\.0$', '', regex=True).str.replace(r'\D', '', regex=True)
         PARTICIPANTES_DF.replace({np.nan: None}, inplace=True)
+        
+        # Correção para os nomes das colunas de email e telefone
+        if 'e-mail' in PARTICIPANTES_DF.columns:
+            PARTICIPANTES_DF.rename(columns={'e-mail': 'email'}, inplace=True)
+        if 'telefone_(opcional)' in PARTICIPANTES_DF.columns:
+            PARTICIPANTES_DF.rename(columns={'telefone_(opcional)': 'telefone'}, inplace=True)
+            
         print("Base de participantes carregada com sucesso!")
         return True
     except FileNotFoundError as e:
         print(f"AVISO: {e}")
-        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'])
+        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou', 'email', 'telefone'])
         return False
     except Exception as e:
         print(f"ERRO: Não foi possível carregar a base de participantes. {e}")
-        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'])
+        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou', 'email', 'telefone'])
         return False
 
 # Carregar a base de dados na inicialização
@@ -605,8 +612,10 @@ def get_all_datalists():
         data['pautas_formativas'] = pautas_numericas + pautas_desdobramento
         data['temas'] = sorted(list(all_participants['tema'].dropna().unique()))
         data['cpfs'] = sorted(list(all_participants['cpf'].dropna().unique()))
-        data['emails'] = sorted(list(all_participants['email'].dropna().unique()))
-        data['telefones'] = sorted(list(all_participants['telefone'].dropna().unique()))
+        
+        # CORREÇÃO: Adicionando verificação de existência das colunas
+        data['emails'] = sorted(list(all_participants['email'].dropna().unique())) if 'email' in all_participants.columns else []
+        data['telefones'] = sorted(list(all_participants['telefone'].dropna().unique())) if 'telefone' in all_participants.columns else []
 
         return jsonify(data)
     except Exception as e:
@@ -719,7 +728,7 @@ def get_counts_by_schools():
     return jsonify({'pm_count': 0, 'pc_count': 0, 'pm_total': 0, 'pc_total': 0})
 
 @app.route('/get_info_by_nome_or_cpf')
-@login_required("intermediate_access")
+@login_required("basic_access")
 def get_info_by_nome_or_cpf():
     search_term = request.args.get('search_term')
     global PARTICIPANTES_DF
@@ -738,8 +747,8 @@ def get_info_by_nome_or_cpf():
             response_data = {
                 'cpf': user_data.get('cpf', 'N/A'),
                 'nome': user_data.get('nome', 'N/A'),
-                'email': user_data.get('email', 'N/A'),
-                'telefone': user_data.get('telefone', 'N/A'),
+                'email': user_data.get('email', 'N/A') if 'email' in user_data else 'N/A',
+                'telefone': user_data.get('telefone', 'N/A') if 'telefone' in user_data else 'N/A',
                 'diretoria_de_ensino': user_data.get('diretoria_de_ensino', 'N/A'),
                 'escola': user_data.get('escola', 'N/A'),
                 'temas': sorted(list(temas)),
@@ -747,6 +756,23 @@ def get_info_by_nome_or_cpf():
             }
             return jsonify(response_data)
     return jsonify({})
+
+@app.route('/get_user_info_by_name')
+@login_required("basic_access")
+def get_user_info_by_name():
+    nome = request.args.get('nome')
+    global PARTICIPANTES_DF
+    if nome and PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
+        filtered_df = PARTICIPANTES_DF[
+            (PARTICIPANTES_DF['nome'].str.lower() == nome.lower())
+        ]
+        if not filtered_df.empty:
+            user_data = filtered_df.iloc[0].to_dict()
+            return jsonify({
+                'email': user_data.get('email', 'N/A') if 'email' in user_data else 'N/A',
+                'telefone': user_data.get('telefone', 'N/A') if 'telefone' in user_data else 'N/A'
+            })
+    return jsonify({'email': '', 'telefone': ''})
 
 @app.route('/get_participantes_by_turma')
 @login_required("basic_access")
@@ -764,7 +790,7 @@ def get_participantes_by_turma():
     return jsonify([])
 
 @app.route('/get_formador_assistido')
-@login_required("efape_access")
+@login_required("intermediate_access")
 def get_formador_assistido():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -775,7 +801,7 @@ def get_formador_assistido():
     return jsonify([])
 
 @app.route('/get_tema_by_turma')
-@login_required("efape_access")
+@login_required("basic_access")
 def get_tema_by_turma():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
