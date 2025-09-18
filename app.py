@@ -57,20 +57,22 @@ SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
 # Definição dos níveis de acesso (CORRIGIDO: CM tem acesso básico)
 ACCESS_LEVELS = {
     'PM': 'basic_access',
-    'PEC': 'full_access',
-    'FORMADOR': 'full_access',
-    'EFAPE': 'full_access',
+    'PEC': 'intermediate_access',
+    'FORMADOR': 'formador_access',
+    'EFAPE': 'efape_access',
     'ADM': 'super_admin',
-    'PC': 'no_access',
-    'CM': 'basic_access',
-    'CAFF': 'full_access' # Adicionando CAFF
+    'PC': 'basic_access',
+    'CM': 'basic_access'
 }
 
 ACCESS_HIERARCHY = {
     "no_access": 0,
     "basic_access": 1,
-    "full_access": 2,
-    "super_admin": 3
+    "formador_access": 2,
+    "efape_access": 3,
+    "intermediate_access": 4,
+    "full_access": 5,
+    "super_admin": 6
 }
 
 ADMIN_CPF = "32302739825"
@@ -353,23 +355,25 @@ def allowed_file(filename):
 # Criar as tabelas no banco de dados se não existirem
 with app.app_context():
     db.create_all()
-    # Lógica de atualização automática para usuários existentes
-    if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
-        with db.session.begin():
-            all_users = Usuario.query.all()
-            for user in all_users:
-                user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
-                if user_in_data:
-                    etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
-                    access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
-                    
-                    highest_access_level = "no_access"
-                    if access_levels_found:
-                        highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
-                    
-                    if ACCESS_HIERARCHY.get(highest_access_level, 0) > ACCESS_HIERARCHY.get(user.access_level, 0):
-                        user.access_level = highest_access_level
-                        print(f"Nível de acesso do usuário {user.cpf} atualizado para {highest_access_level} a partir da base.")
+    # Atualizar usuários com nível de acesso em branco
+    usuarios_sem_acesso = Usuario.query.filter(
+        (Usuario.access_level.is_(None)) | (Usuario.access_level == '')
+    ).all()
+    
+    for user in usuarios_sem_acesso:
+        if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
+            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
+            if user_in_data:
+                etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
+                access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
+                
+                highest_access_level = "no_access"
+                if access_levels_found:
+                    highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
+                
+                user.access_level = highest_access_level
+                print(f"Nível de acesso do usuário {user.cpf} atualizado para {highest_access_level}.")
+    
     db.session.commit()
 
 # Rotas de Autenticação
@@ -645,7 +649,7 @@ def get_responsaveis_for_presenca():
         return jsonify([])
     except Exception as e:
         app.logger.error(f"Erro ao carregar lista de responsáveis de presença: {e}")
-        return jsonify([])
+        return jsonify([]), 500
 
 @app.route('/get_temas_by_responsavel')
 @login_required("basic_access")
@@ -686,7 +690,7 @@ def get_turmas_by_tema_and_responsavel_basic():
     return jsonify([])
 
 @app.route('/get_schools_by_de')
-@login_required("full_access")
+@login_required("intermediate_access")
 def get_schools_by_de():
     diretoria = request.args.get('diretoria')
     global PARTICIPANTES_DF
@@ -696,7 +700,7 @@ def get_schools_by_de():
     return jsonify([])
 
 @app.route('/get_counts_by_schools')
-@login_required("full_access")
+@login_required("intermediate_access")
 def get_counts_by_schools():
     escolas_str = request.args.get('escolas')
     global PARTICIPANTES_DF
@@ -787,7 +791,7 @@ def get_participantes_by_turma():
     return jsonify([])
 
 @app.route('/get_formador_assistido')
-@login_required("full_access")
+@login_required("intermediate_access")
 def get_formador_assistido():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -809,7 +813,7 @@ def get_tema_by_turma():
     return jsonify([])
 
 @app.route('/submit_acompanhamento', methods=['POST'])
-@login_required("full_access")
+@login_required("intermediate_access")
 def submit_acompanhamento():
     try:
         data = request.json
@@ -979,7 +983,7 @@ def submit_presenca():
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de presença: {e}'}), 500
 
 @app.route('/submit_avaliacao', methods=['POST'])
-@login_required("full_access")
+@login_required("intermediate_access")
 def submit_avaliacao():
     try:
         data = request.json
@@ -1033,7 +1037,7 @@ def submit_avaliacao():
         return jsonify({'success': False, 'message': f'Erro ao salvar avaliação: {e}'}), 500
 
 @app.route('/submit_demandas', methods=['POST'])
-@login_required("full_access")
+@login_required("intermediate_access")
 def submit_demandas():
     try:
         data = request.json
@@ -1129,7 +1133,9 @@ def get_results(table_name):
         # Define os relatórios permitidos para cada nível de acesso
         allowed_tables_map = {
             'basic_access': ['presenca', 'ocorrencias'],
-            'full_access': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
+            'formador_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste'],
+            'efape_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste', 'participantes_base_editavel'],
+            'intermediate_access': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
             'super_admin': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios', 'links', 'avisos']
         }
         
@@ -1189,30 +1195,14 @@ def get_results(table_name):
         if user_access_level == 'basic_access' and table_name == 'presenca':
             query = query.filter(or_(
                 Presenca.responsavel == user_name,
-                Presenca.nome_substituto == user_name,
-                Presenca.cpf_participante == user_cpf # Adicionado para CM e PM
+                Presenca.nome_substituto == user_name
             ))
-        
-        if user_access_level == 'basic_access' and table_name == 'ocorrencias':
-            query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
-
-        if user_access_level == 'full_access':
-            if table_name == 'presenca':
-                query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.diretoria_de_ensino_resp == user_de
-                ))
-            if table_name == 'acompanhamento':
-                query = query.filter(Acompanhamento.responsavel_acompanhamento == user_name)
-            if table_name == 'avaliacao':
-                query = query.filter(Avaliacao.observador == user_name)
-            if table_name == 'demandas':
-                query = query.filter(Demanda.cpf_pec == user_cpf)
-            if table_name == 'ateste':
-                query = query.filter(Ateste.cpf == user_cpf)
-            if table_name == 'ocorrencias':
-                query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
+        elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+            if user_de:
+                if table_name == 'presenca':
+                    query = query.filter_by(diretoria_de_ensino_resp=user_de)
+                elif table_name in ['avaliacao', 'demandas']:
+                    query = query.filter_by(diretoria_de_ensino=user_de)
         
         filtered_query = query
         
@@ -1622,7 +1612,9 @@ def export_csv(table_name):
         # --- LÓGICA CORRIGIDA DE PERMISSÕES PARA EXPORTAÇÃO ---
         allowed_tables_map = {
             'basic_access': ['presenca', 'ocorrencias'],
-            'full_access': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
+            'formador_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste'],
+            'efape_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste', 'participantes_base_editavel'],
+            'intermediate_access': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
             'super_admin': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios']
         }
         
@@ -1655,37 +1647,18 @@ def export_csv(table_name):
         
         # LÓGICA ADICIONAL DE FILTRO POR USUÁRIO (se necessário)
         user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
-        user_name = user_info[0].get('nome') if user_info else None
-        user_de = user_info[0].get('diretoria_de_ensino') if user_info else None
-        
-        if user_access_level == 'basic_access':
-            if table_name == 'presenca':
+        if user_info:
+            if user_access_level == 'basic_access' and table_name == 'presenca':
                  query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.cpf_participante == user_cpf
+                    Presenca.responsavel == user_info[0].get('responsavel'),
+                    Presenca.nome_substituto == user_info[0].get('nome')
                 ))
-            if table_name == 'ocorrencias':
-                query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
-
-        if user_access_level == 'full_access':
-            if table_name == 'presenca':
-                query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.diretoria_de_ensino_resp == user_de
-                ))
-            if table_name == 'acompanhamento':
-                query = query.filter_by(responsavel_acompanhamento=user_name)
-            if table_name == 'avaliacao':
-                query = query.filter_by(observador=user_name)
-            if table_name == 'demandas':
-                query = query.filter_by(cpf_pec=user_cpf)
-            if table_name == 'ateste':
-                query = query.filter_by(cpf=user_cpf)
-            if table_name == 'ocorrencias':
-                query = query.filter_by(nome_ocorrencia=user_name)
-
+            elif user_access_level == 'formador_access' and table_name in ['acompanhamento', 'ateste']:
+                 query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
+            elif user_access_level == 'efape_access' and table_name in ['acompanhamento', 'ateste']:
+                 query = query.filter_by(responsavel_acompanhamento=user_info[0].get('nome'))
+            elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+                query = query.filter_by(diretoria_de_ensino=user_info[0].get('diretoria_de_ensino'))
 
         filters = request.args.to_dict()
         for key, value in filters.items():
@@ -1842,7 +1815,7 @@ def gerenciar_links():
         return jsonify({'success': False, 'message': f'Erro ao processar a requisição: {e}'}), 500
 
 @app.route('/get_links', methods=['GET'])
-@login_required('full_access')
+@login_required('intermediate_access')
 def get_links():
     links = Link.query.all()
     return jsonify([{
