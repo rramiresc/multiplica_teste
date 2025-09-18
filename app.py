@@ -44,8 +44,9 @@ app.config['DOWNLOAD_FOLDER'] = 'downloads'
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
-if not os.path.exists(app.config['DOWNLOAD_FOLDER']):
-    os.makedirs(app.path.config['DOWNLOAD_FOLDER'])
+if not os.path.exists(os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER'])):
+    os.makedirs(os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER']))
+
 
 # Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
@@ -558,8 +559,8 @@ def get_user_info():
         user_info = user_info[0]
         return jsonify({
             'nome': user_info.get('nome', 'N/A'),
-            'email': user_info.get('email', 'N/A'),
-            'telefone': user_info.get('telefone', 'N/A'),
+            'email': user_info.get('email', 'N/A') if 'email' in user_info else 'N/A',
+            'telefone': user_info.get('telefone', 'N/A') if 'telefone' in user_info else 'N/A',
             'cpf': user_info.get('cpf', 'N/A'),
             'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
             'escola': user_info.get('escola', 'N/A'),
