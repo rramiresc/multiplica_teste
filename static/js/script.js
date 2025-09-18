@@ -140,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const participantesContainer = document.getElementById('participantes-container');
     const temasPresencaDatalist = document.getElementById('temas-list-presenca');
 
-    // MUDANÇA AQUI: Agora a seleção é feita com botões de rádio
     const substituicaoRadioGroup = document.getElementById('substituicao-ocorreu-radio-group');
     const substitutoPresencaContainer = document.getElementById('substituto-presenca-container');
     const nomeSubstitutoPresencaInput = document.getElementById('nome_substituto_presenca');
@@ -164,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const responsavel = this.value;
             console.log(`DEBUG JS: Responsável de presença alterado para: ${responsavel}`);
             
-            // Mantém o valor do campo de turma se ele já tiver sido preenchido
             const originalTurmaValue = turmaPresencaInput.value;
             temaPresencaInput.value = '';
             if (originalTurmaValue === '') {
@@ -513,7 +511,6 @@ document.addEventListener('DOMContentLoaded', function() {
             'Dimensão 5': { questions: ['q5_1', 'q5_2', 'q5_3'], weight: 2 }
         };
 
-        // CORRIGIDO: Mapeamento de score para a nova escala
         const scoreMap = { 'Atende': 1, 'Não Atende': 0 };
 
         for (const dimName in dimensionsConfig) {
@@ -524,7 +521,6 @@ document.addEventListener('DOMContentLoaded', function() {
             questions.forEach(q => {
                 const selected = form.querySelector(`input[name="${q}"]:checked`);
                 if (selected) {
-                    // Usar o score da nova escala
                     dimensionCurrentRawScore += scoreMap[selected.value] !== undefined ? scoreMap[selected.value] : 0;
                     answeredQuestionsInDimension++;
                 }
@@ -551,13 +547,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const escolasContainer = document.getElementById('escolas-container');
     const escolasCheckboxContainer = document.getElementById('escolas-checkbox-container');
     
-    // NOVOS CAMPOS (agora editáveis)
     const pmOrientadosInput = document.getElementById('pm_orientados_demandas');
     const cursistasOrientadosInput = document.getElementById('cursistas_orientados_demandas');
     const formacoesRealizadasInput = document.getElementById('formacoes_realizadas_demandas');
     const substituicoesRealizadasInput = document.getElementById('substituicoes_realizadas_demandas');
     
-    // Novos campos de contagem total (agora lidos do backend)
     const pmOrientadosEsperadoInput = document.getElementById('pm_orientados_esperado_demandas');
     const cursistasOrientadosEsperadoInput = document.getElementById('cursistas_orientados_esperado_demandas');
 
@@ -566,7 +560,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const cpf = this.value;
             console.log(`DEBUG JS: CPF do PEC de demandas alterado para: ${cpf}`);
             
-            // Limpa os campos, mas mantém a edição manual possível
             pecDemandasInput.value = '';
             diretoriaDemandasInput.value = '';
             pmOrientadosEsperadoInput.value = '';
@@ -612,7 +605,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
                 if (pmOrientadosInput) pmOrientadosInput.value = 0;
                 if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
-                // NOVOS CAMPOS
                 if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
                 if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
             }
@@ -675,7 +667,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 const data = await response.json();
                 
-                // CORREÇÃO: Apenas os campos 'esperado' são preenchidos
                 if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = data.pm_total;
                 if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = data.pc_total;
                 
@@ -688,7 +679,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             if (pmOrientadosInput) pmOrientadosInput.value = 0;
             if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
-            // CORREÇÃO: Apenas os campos 'esperado' são preenchidos
             if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
             if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
         }
@@ -703,13 +693,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentRecordId = null;
     let currentTableId = null;
 
-    // NOVO: Função para fechar o modal
     window.closeModal = function() {
         editModal.style.display = "none";
-        document.body.style.overflow = 'auto'; // Reabilita o scroll
+        document.body.style.overflow = 'auto';
     }
     
-    // Anexa a função de fechar o modal aos botões de fechar e ao clique no backdrop
     closeButtons.forEach(button => {
         button.onclick = window.closeModal;
     });
@@ -1028,7 +1016,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const formData = new FormData(editForm);
                     const data = Object.fromEntries(formData.entries());
-                    let endpoint = `/edit_record/${tableId}`;
+                    
+                    // --- CORREÇÃO ADICIONADA AQUI ---
+                    // Lógica para determinar o endpoint correto
+                    let endpoint;
+                    if (tableId === 'visitas') {
+                        // Para visitas, a ação é sempre 'POST' para a rota 'submit_visita' que lida com reserva e edição
+                        endpoint = '/submit_visita'; 
+                    } else {
+                        // Para outras tabelas, a rota de edição padrão
+                        endpoint = `/edit_record/${tableId}`;
+                    }
+                    // --- FIM DA CORREÇÃO ---
                     
                     try {
                         const res = await fetch(endpoint, {
@@ -1280,8 +1279,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                         
+                        // --- CORREÇÃO: Passando o identificador correto para o modal ---
                         const recordIdentifier = tableId === 'participantes_base_editavel' || tableId === 'usuarios' ? docData.cpf : (tableId === 'visitas' ? docData.url_formacao : docData.id);
-
+                        // --- FIM DA CORREÇÃO ---
+                        
                         const editButton = document.createElement('button');
                         editButton.textContent = 'Editar';
                         editButton.classList.add('edit-button');
@@ -1296,10 +1297,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             const isReservedBySomeoneElse = docData.responsavel_visita && docData.cpf_responsavel_visita !== userCpf && userAccessLevel !== 'super_admin';
                             
                             if (isReservedBySomeoneElse) {
-                                tdActions.textContent = 'Reservado por outro usuário';
+                                tdActions.textContent = `Reservado por ${docData.responsavel_visita}`;
+                                tdActions.style.color = '#757575';
+                                tdActions.style.fontWeight = 'bold';
                             } else {
                                 tdActions.appendChild(editButton);
-                                if(docData.responsavel_visita){ // Só mostra o botão de excluir se o link estiver reservado
+                                if(docData.responsavel_visita){
                                     tdActions.appendChild(deleteButton);
                                 }
                             }
@@ -1340,7 +1343,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
 
-            // Lógica para paginação
             if (paginationContainer) {
                 const totalPages = Math.ceil(totalItemsCount / perPage);
                 paginationContainer.innerHTML = `
@@ -1392,7 +1394,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const numEscolasVisitadasUnicas = metricsContainer.querySelector(`#demandas-num_escolas_visitadas_unicas`);
                     if (numEscolasVisitadasUnicas) numEscolasVisitadasUnicas.textContent = data.metrics.num_escolas_visitadas_unicas || 0;
 
-                    // CORRIGIDO: Métricas para o novo formato X/Y
                     const totalPmsOrientados = metricsContainer.querySelector(`#demandas-total_pms_orientados`);
                     const totalPmsEsperados = metricsContainer.querySelector(`#demandas-total_pms_esperados`);
                     if (totalPmsOrientados && totalPmsEsperados) {
@@ -1445,7 +1446,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             const data = {};
 
-            // Convertendo FormData para objeto JavaScript
             for (let [key, value] of formData.entries()) {
                 data[key] = value;
             }
@@ -1512,14 +1512,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // --- CORREÇÃO ADICIONADA AQUI ---
+            // A rota de submissão para a tabela 'visitas' já é tratada por `submit_visita`.
+            // Não é necessário um manipulador de formulário separado para a reserva, pois
+            // a lógica de edição e reserva foi centralizada no modal.
             if (formId === 'formVisitas') {
-                const url = data.url_formacao;
-                const encontroAconteceu = data.encontro_aconteceu;
-                if (!url || !encontroAconteceu) {
-                    alert('URL da formação e o status do encontro são obrigatórios.');
-                    return;
-                }
+                alert('Ações de reserva e edição para links de visitação são feitas diretamente na tabela de resultados.');
+                return;
             }
+            // --- FIM DA CORREÇÃO ---
 
             try {
                 const response = await fetch(endpoint, {
@@ -1601,7 +1602,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Event Listeners para filtros de resultados (gerais)
     const filterForms = ['Presenca', 'Avaliacao', 'Demandas', 'Acompanhamento', 'ParticipantesBaseEditavel'];
     filterForms.forEach(formName => {
         const tableId = formName.toLowerCase();
@@ -1639,7 +1639,6 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchResults('visitas', 1);
         });
     }
-
 
     const clearFilterButtons = ['Presenca', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'Visitas'];
     clearFilterButtons.forEach(tableIdCapitalized => {

@@ -1240,6 +1240,90 @@ def get_results(table_name):
         Model = MODEL_MAP[table_name]
         per_page = 20
         page = request.args.get('page', 1, type=int)
+
+        # === CORREÇÃO: Lógica para a tabela de Visitas ===
+        if table_name == 'visitas':
+            if LINKS_DF is None:
+                return jsonify({'error': 'Base de links de visitação não carregada.'}), 500
+            
+            df_links = LINKS_DF.copy()
+            
+            visitas_db = Visita.query.all()
+            if visitas_db:
+                visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
+                visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
+            else:
+                visitas_df = pd.DataFrame()
+            
+            # Garante que a coluna 'url_formacao' está presente em ambos os dataframes antes do merge
+            if 'url_formacao' not in visitas_df.columns:
+                 visitas_df['url_formacao'] = None
+            if 'url_formacao' not in df_links.columns:
+                 df_links['url_formacao'] = None
+
+            df_merged = pd.merge(df_links, visitas_df, on='url_formacao', how='left')
+            
+            # Garante que as colunas do banco de dados existem antes de acessá-las
+            db_cols = [c.name for c in Visita.__table__.columns]
+            for col in db_cols:
+                if col not in df_merged.columns:
+                    df_merged[col] = None
+
+            df_merged.replace({np.nan: None}, inplace=True)
+            
+            if 'dia_do_mes' in df_merged.columns:
+                 df_merged['dia_do_mes'] = df_merged['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
+            else:
+                 df_merged['dia_do_mes'] = None
+            
+            filters = request.args.to_dict()
+            if 'page' in filters: del filters['page']
+            
+            if filters.get('sem_responsavel_pela_visita') == 'true':
+                df_merged = df_merged[df_merged['responsavel_visita'].isnull()]
+                del filters['sem_responsavel_pela_visita']
+
+            for key, value in filters.items():
+                if value:
+                    if key in df_merged.columns:
+                        df_merged = df_merged[df_merged[key].astype(str).str.contains(value, case=False, na=False)]
+            
+            df_merged = df_merged.sort_values(by='data_aula', ascending=False)
+            
+            per_page = 20
+            page = request.args.get('page', 1, type=int)
+            total_items = len(df_merged)
+            start = (page - 1) * per_page
+            end = start + per_page
+            paginated_df = df_merged.iloc[start:end]
+            
+            results = paginated_df.to_dict('records')
+            
+            visitas_columns = ['responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'id', 'cpf_responsavel_visita']
+            base_columns = df_links.columns.tolist()
+            all_columns = list(set(base_columns + visitas_columns))
+            
+            total_formacoes = len(df_merged)
+            formacoes_visitadas = len(df_merged[df_merged['encontro_aconteceu'] == 'Sim'])
+            formacoes_problemas = len(df_merged[df_merged['encontro_aconteceu'] == 'Não'])
+            pct_visitacao = (formacoes_visitadas / total_formacoes) * 100 if total_formacoes > 0 else 0
+            
+            metrics = {
+                'total_formacoes': total_formacoes,
+                'formacoes_visitadas': formacoes_visitadas,
+                'formacoes_problemas': formacoes_problemas,
+                'pct_visitacao': f'{pct_visitacao:.2f}%'
+            }
+
+            return jsonify({
+                'results': results,
+                'columns': all_columns,
+                'total_items': total_items,
+                'per_page': per_page,
+                'metrics': metrics
+            })
+
+        # === CORREÇÃO: Lógica para as outras tabelas (não-visitas) ===
         query = Model.query
         
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
@@ -1387,89 +1471,6 @@ def get_results(table_name):
                 'total_a_pagar': f'{metrics_query.total_pagar:,.2f}'.replace('.', 'X').replace(',', '.').replace('X', ',') if metrics_query.total_pagar is not None else '0,00'
             }
             
-        elif table_name == 'visitas':
-            # Combina os dados da base de links com os dados do banco de dados
-            if LINKS_DF is None:
-                return jsonify({'error': 'Base de links de visitação não carregada.'}), 500
-            
-            df_links = LINKS_DF.copy()
-            
-            visitas_db = Visita.query.all()
-            visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
-            visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
-            
-            # Garante que a coluna 'url_formacao' está presente em ambos os dataframes antes do merge
-            if 'url_formacao' not in visitas_df.columns:
-                 visitas_df['url_formacao'] = None
-            if 'url_formacao' not in df_links.columns:
-                 df_links['url_formacao'] = None
-
-            df_merged = pd.merge(df_links, visitas_df, on='url_formacao', how='left')
-            
-            # Garante que as colunas do banco de dados existem antes de acessá-las
-            db_cols = [c.name for c in Visita.__table__.columns]
-            for col in db_cols:
-                if col not in df_merged.columns:
-                    df_merged[col] = None
-
-            df_merged.replace({np.nan: None}, inplace=True)
-            
-            # Converte a coluna `dia_do_mes` para string e remove nulos antes de filtrar
-            if 'dia_do_mes' in df_merged.columns:
-                 df_merged['dia_do_mes'] = df_merged['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
-            else:
-                 df_merged['dia_do_mes'] = None
-            
-            # Aplicando os filtros da URL
-            filters = request.args.to_dict()
-            if 'page' in filters: del filters['page']
-            
-            # NOVO: Lógica de filtro "sem_responsavel_pela_visita"
-            if filters.get('sem_responsavel_pela_visita') == 'true':
-                df_merged = df_merged[df_merged['responsavel_visita'].isnull()]
-                del filters['sem_responsavel_pela_visita']
-
-            for key, value in filters.items():
-                if value:
-                    if key in df_merged.columns:
-                        df_merged = df_merged[df_merged[key].astype(str).str.contains(value, case=False, na=False)]
-            
-            df_merged = df_merged.sort_values(by='data_aula', ascending=False)
-            
-            per_page = 20
-            page = request.args.get('page', 1, type=int)
-            total_items = len(df_merged)
-            start = (page - 1) * per_page
-            end = start + per_page
-            paginated_df = df_merged.iloc[start:end]
-            
-            results = paginated_df.to_dict('records')
-            
-            # Adiciona colunas do BD que podem não existir na planilha
-            visitas_columns = ['responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'id', 'cpf_responsavel_visita']
-            base_columns = df_links.columns.tolist()
-            all_columns = list(set(base_columns + visitas_columns))
-            
-            total_formacoes = len(df_merged)
-            formacoes_visitadas = len(df_merged[df_merged['encontro_aconteceu'] == 'Sim'])
-            formacoes_problemas = len(df_merged[df_merged['encontro_aconteceu'] == 'Não'])
-            pct_visitacao = (formacoes_visitadas / total_formacoes) * 100 if total_formacoes > 0 else 0
-            
-            metrics = {
-                'total_formacoes': total_formacoes,
-                'formacoes_visitadas': formacoes_visitadas,
-                'formacoes_problemas': formacoes_problemas,
-                'pct_visitacao': f'{pct_visitacao:.2f}%'
-            }
-
-            return jsonify({
-                'results': results,
-                'columns': all_columns,
-                'total_items': total_items,
-                'per_page': per_page,
-                'metrics': metrics
-            })
-
         results_list = filtered_query.all()
         results = []
         for obj in results_list:
@@ -1883,7 +1884,6 @@ def get_export_data_token(table_name):
                 if col not in df.columns:
                     df[col] = None
             
-            # NOVO: Lógica de filtro "sem_responsavel_pela_visita"
             if filters.get('sem_responsavel_pela_visita') == 'true':
                 df = df[df['responsavel_visita'].isnull()]
                 del filters['sem_responsavel_pela_visita']
