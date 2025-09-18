@@ -703,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nomeOcorrenciaInput.addEventListener('change', async function() {
             const nome_completo = this.value;
             try {
-                const response = await fetch(`/get_info_by_nome_or_cpf?search_term=${encodeURIComponent(nome_completo)}`);
+                const response = await fetch(`/get_user_info_by_name?nome=${encodeURIComponent(nome_completo)}`);
                 const data = await response.json();
                 if (data.email) emailOcorrenciaInput.value = data.email;
                 if (data.telefone) telefoneOcorrenciaInput.value = data.telefone;
