@@ -19,14 +19,16 @@
 </header>
 
 <div class="navigation-tabs">
-    <button class="tab-button active" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
-    <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros (Visitações)</button>
+    <button class="tab-button" data-section-id="form-presenca" data-table-id="presenca" id="tab-form-presenca">Registro de Presença</button>
+    <button class="tab-button" data-section-id="form-acompanhamento" data-table-id="acompanhamento" id="tab-form-acompanhamento">Acompanhamento de Encontros</button>
     <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao" id="tab-form-avaliacao">Formulário de Avaliação</button>
     <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas" id="tab-form-demandas">Registro de Demandas</button>
+    <button class="tab-button" data-section-id="form-ocorrencia" data-table-id="ocorrencias" id="tab-form-ocorrencia">Registro de Ocorrência</button>
     <button class="tab-button" data-section-id="resultados-presenca" data-table-id="presenca" id="tab-resultados-presenca">Resultados de Presença</button>
     <button class="tab-button" data-section-id="resultados-acompanhamento" data-table-id="acompanhamento" id="tab-resultados-acompanhamento">Resultados Acompanhamento</button>
     <button class="tab-button" data-section-id="resultados-avaliacao" data-table-id="avaliacao" id="tab-resultados-avaliacao">Resultados de Avaliação</button>
     <button class="tab-button" data-section-id="resultados-demandas" data-table-id="demandas" id="tab-resultados-demandas">Resultados de Demandas</button>
+    <button class="tab-button" data-section-id="resultados-ocorrencias" data-table-id="ocorrencias" id="tab-resultados-ocorrencias">Resultados de Ocorrências</button>
     <button class="tab-button" data-section-id="controle-ateste" data-table-id="ateste" id="tab-controle-ateste">Controle para ATESTE</button>
     <button class="tab-button" data-section-id="painel-bi" id="tab-painel-bi">Painel BI</button>
     <button class="tab-button" data-section-id="links-importantes" id="tab-links-importantes">Links Importantes</button>
@@ -36,46 +38,63 @@
 <div id="form-presenca" class="section active">
     <h2>Registro de Presença</h2>
     <form id="formPresenca">
-        <label for="diretoria_presenca">Diretoria do Responsável:</label>
-        <input type="text" id="diretoria_presenca" name="diretoria_presenca" list="diretorias-list" required>
-        <datalist id="diretorias-list"></datalist>
+        <div class="form-section">
+            <label for="diretoria_presenca">Diretoria do Responsável:</label>
+            <input type="text" id="diretoria_presenca" name="diretoria_presenca" list="diretorias-list" required>
+            <datalist id="diretorias-list"></datalist>
+        </div>
+        
+        <div class="form-section">
+            <label for="responsavel_presenca">Responsável pela Turma:</label>
+            <input type="text" id="responsavel_presenca" name="responsavel_presenca" list="responsaveis-list" required>
+            <datalist id="responsaveis-list"></datalist>
+        </div>
 
-        <label for="responsavel_presenca">Responsável pela Turma:</label>
-        <input type="text" id="responsavel_presenca" name="responsavel_presenca" list="responsaveis-list" required>
-        <datalist id="responsaveis-list"></datalist>
-
-        <label for="substituicao_ocorreu">Ocorreu substituição?</label>
-<div id="substituicao-ocorreu-radio-group" class="radio-group">
-    <label><input type="radio" name="substituicao_ocorreu" value="Não" checked> Não</label>
-    <label><input type="radio" name="substituicao_ocorreu" value="Sim"> Sim</label>
-</div>
-
-<div id="substituto-presenca-container" style="display:none;">
-    <label for="nome_substituto_presenca">Nome do substituto:</label>
-    <input type="text" id="nome_substituto_presenca" name="nome_substituto" list="responsaveis-list">
-</div>
-
-        <label for="tema_presenca">Tema:</label>
-        <input type="text" id="tema_presenca" name="tema_presenca" list="temas-list-presenca" required>
-        <datalist id="temas-list-presenca"></datalist>
-
-        <label for="turma_presenca">Turma:</label>
-        <input type="text" id="turma_presenca" name="turma_presenca" list="turmas-list" required>
-        <datalist id="turmas-list"></datalist>
-
-        <label for="participantes">Participantes da Turma:</label>
-        <div id="participantes-container">
+        <div class="form-section">
+            <label for="substituicao_ocorreu">Ocorreu substituição?</label>
+            <div id="substituicao-ocorreu-radio-group" class="radio-group">
+                <label><input type="radio" name="substituicao_ocorreu" value="Não" checked> Não</label>
+                <label><input type="radio" name="substituicao_ocorreu" value="Sim"> Sim</label>
             </div>
+            <div id="substituto-presenca-container" style="display:none;">
+                <label for="nome_substituto_presenca">Nome do substituto:</label>
+                <input type="text" id="nome_substituto_presenca" name="nome_substituto" list="responsaveis-list">
+            </div>
+        </div>
 
-        <label for="data_formacao_presenca">Data da Formação:</label>
-        <input type="date" id="data_formacao_presenca" name="data_formacao_presenca" required>
+        <div class="form-section">
+            <label for="tema_presenca">Tema:</label>
+            <input type="text" id="tema_presenca" name="tema_presenca" list="temas-list-presenca" required>
+            <datalist id="temas-list-presenca"></datalist>
+        </div>
+
+        <div class="form-section">
+            <label for="turma_presenca">Turma:</label>
+            <input type="text" id="turma_presenca" name="turma_presenca" list="turmas-list" required>
+            <datalist id="turmas-list"></datalist>
+        </div>
+
+        <div class="form-section">
+            <label for="participantes">Participantes da Turma:</label>
+            <div id="participantes-container">
+            </div>
+        </div>
         
-        <label for="pauta_presenca">Pauta Formativa:</label>
-        <input type="text" id="pauta_presenca" name="pauta_presenca" list="pautas-formativas-list" required>
-        <datalist id="pautas-formativas-list"></datalist>
+        <div class="form-section">
+            <label for="data_formacao_presenca">Data da Formação:</label>
+            <input type="date" id="data_formacao_presenca" name="data_formacao_presenca" required>
+        </div>
         
-        <label for="observacao_presenca">Observação (opcional):</label>
-        <textarea id="observacao_presenca" name="observacao_presenca"></textarea>
+        <div class="form-section">
+            <label for="pauta_presenca">Pauta Formativa:</label>
+            <input type="text" id="pauta_presenca" name="pauta_presenca" list="pautas-formativas-list" required>
+            <datalist id="pautas-formativas-list"></datalist>
+        </div>
+        
+        <div class="form-section">
+            <label for="observacao_presenca">Observação (opcional):</label>
+            <textarea id="observacao_presenca" name="observacao_presenca"></textarea>
+        </div>
 
         <button type="submit">ENVIAR REGISTRO DE PRESENÇA</button>
     </form>
@@ -87,7 +106,7 @@
         <div class="form-section">
             <h3>Dados do Acompanhante</h3>
             <label for="responsavel_acompanhamento">Informe o seu nome completo (responsável pelo acompanhamento):</label>
-            <input type="text" id="responsavel_acompanhamento" name="responsavel_acompanhamento" list="observadores-list" required>
+            <input type="text" id="responsavel_acompanhamento" name="responsavel_acompanhamento" list="observadores-list" required autocomplete="name">
             <datalist id="observadores-list"></datalist>
         </div>
 
@@ -107,7 +126,7 @@
             <label for="formador_assistido">Nome do Formador, PEC ou PM assistido:</label>
             <input type="text" id="formador_assistido" name="formador_assistido" readonly>
             
-            <div class="radio-group" onchange="toggleSubstituto(this)">
+            <div class="radio-group">
                 <label>
                     <input type="radio" name="formador_substituicao" value="aplica" checked> O Formador Assistido é o responsável pela formação
                 </label>
@@ -215,7 +234,7 @@
         <div class="form-section">
             <h3>Dados do Observador</h3>
             <label for="nome_observador_avaliacao">Nome do Observador:</label>
-            <input type="text" id="nome_observador_avaliacao" name="nome_observador_avaliacao" list="observadores-list" required>
+            <input type="text" id="nome_observador_avaliacao" name="nome_observador_avaliacao" list="observadores-list" required autocomplete="name">
             <datalist id="observadores-list"></datalist>
 
             <label for="funcao_avaliacao">Função:</label>
@@ -326,7 +345,7 @@
         <div class="form-section">
             <h3>Identificação e Referência</h3>
             <label for="cpf_pec_demandas">CPF do PEC Multiplica:</label>
-            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required>
+            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required placeholder="Digite o CPF">
             <datalist id="cpfs-list"></datalist>
 
             <label for="pec_demandas">PEC Multiplica responsável:</label>
@@ -440,6 +459,8 @@
             
             <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
             
+            <input type="text" name="nome_participante" placeholder="Nome do Participante" value="">
+
             <input type="text" name="de_participante" placeholder="DE do Participante" value="">
 
             <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
@@ -650,6 +671,53 @@
     </div>
 </div>
 
+<div id="resultados-ocorrencias" class="section" style="display:none;">
+    <div class="result-header">
+        <h2>Resultados - Ocorrências</h2>
+        <button class="toggle-form-result" data-form-id="form-ocorrencia" data-result-id="resultados-ocorrencias">Exibir Formulário</button>
+    </div>
+    <div class="filters">
+        <h3>Filtros de Busca</h3>
+        <form id="filterFormOcorrencias">
+            <input type="text" name="nome_ocorrencia" placeholder="Nome do relator" value="">
+            <input type="text" name="email_ocorrencia" placeholder="E-mail" value="">
+            <input type="text" name="turma_ocorrencia" placeholder="Turma" value="">
+            <input type="text" name="tema_ocorrencia" placeholder="Tema" value="">
+            <select name="ocorrencia_ainda_ocorre">
+                <option value="">Ocorrência ainda ocorre?</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+            <div class="button-group">
+                <button type="submit">Aplicar Filtros</button>
+                <button type="button" id="clearFiltersOcorrencias">Limpar Filtros</button>
+                <button type="button" id="exportCsvOcorrencias">Exportar para CSV</button>
+            </div>
+        </form>
+    </div>
+    <div class="metrics" id="metrics-ocorrencias">
+        <h3>Métricas</h3>
+        <div class="metrics-grid">
+            <p>Ocorrências Registradas: <span id="ocorrencias-num_ocorrencias">0</span></p>
+            <p>Ocorrências Ativas: <span id="ocorrencias-ocorrencias_ativas">0</span></p>
+        </div>
+    </div>
+    <div id="table-ocorrencias">
+        <h3>Tabela de Resultados</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+        <div class="pagination-container" id="pagination-ocorrencias"></div>
+    </div>
+</div>
+
 <div id="controle-ateste" class="section" style="display:none;">
     <h2>Controle para ATESTE</h2>
     <div class="filters">
@@ -746,7 +814,8 @@
                     <option value="intermediate_access">Intermediate Access (PEC)</option>
                     <option value="super_admin">Super Admin (ADM)</option>
                 </select>
-                
+                <p><small>Para novos usuários, a senha padrão é <b>123</b>. Por favor, instrua-os a alterá-la no primeiro acesso.</small></p>
+
                 <div class="button-group">
                     <button type="submit" id="save-user-button">Adicionar Novo Usuário</button>
                     <button type="button" id="delete-user-button" class="red-button">Excluir</button>
@@ -775,7 +844,7 @@
     <div class="form-section">
         <h3>Atualizar Base de Participantes via Planilha</h3>
         <p>Faça o upload de uma planilha (.xlsx) com a base de participantes. Esta ação <b>irá apagar todos os dados</b> existentes na tabela `participantes_base_editavel` e substituí-los pelo conteúdo da nova planilha.</p>
-        <form id="uploadBaseForm" action="/upload_base" method="POST" enctype="multipart/form-data">
+        <form id="uploadBaseForm" action="/admin/upload_base" method="POST" enctype="multipart/form-data">
             <label for="baseFile">Arquivo .xlsx:</label>
             <input type="file" id="baseFile" name="baseFile" accept=".xlsx" required>
             <button type="submit">Fazer Upload e Atualizar</button>
@@ -795,12 +864,14 @@
                     <option value="form-acompanhamento">Acompanhamento de Encontros</option>
                     <option value="form-avaliacao">Formulário de Avaliação</option>
                     <option value="form-demandas">Registro de Demandas</option>
+                    <option value="form-ocorrencia">Registro de Ocorrência</option>
                 </optgroup>
                 <optgroup label="Resultados">
                     <option value="resultados-presenca">Resultados de Presença</option>
                     <option value="resultados-acompanhamento">Resultados Acompanhamento</option>
                     <option value="resultados-avaliacao">Resultados de Avaliação</option>
                     <option value="resultados-demandas">Resultados de Demandas</option>
+                    <option value="resultados-ocorrencias">Resultados de Ocorrências</option>
                     <option value="controle-ateste">Controle para Ateste</option>
                 </optgroup>
                 <optgroup label="Outros">
@@ -888,6 +959,7 @@
                 <option value="avaliacao">Avaliação</option>
                 <option value="demandas">Demandas</option>
                 <option value="ateste">Ateste</option>
+                <option value="ocorrencias">Ocorrências</option>
                 <option value="usuarios">Usuários</option>
                 <option value="avisos">Avisos</option>
                 <option value="links">Links</option>

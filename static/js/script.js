@@ -74,6 +74,10 @@ document.addEventListener('DOMContentLoaded', function() {
             populateDatalist(allDatalistsData.temas, 'temas-list-ateste');
             populateDatalist(allDatalistsData.responsaveis, 'responsaveis-list-ateste');
             populateDatalist(allDatalistsData.nomes, 'nomes-list-ateste');
+            populateDatalist(allDatalistsData.temas, 'temas-list-ocorrencia');
+            populateDatalist(allDatalistsData.emails, 'emails-list');
+            populateDatalist(allDatalistsData.telefones, 'telefones-list');
+
 
             // Popular datalists específicas
             populateDatalist(pecsAndFormadoresData, 'observadores-list');
@@ -544,8 +548,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // NOVOS CAMPOS (agora editáveis)
     const pmOrientadosInput = document.getElementById('pm_orientados_demandas');
     const cursistasOrientadosInput = document.getElementById('cursistas_orientados_demandas');
-    const formacoesRealizadasInput = document.getElementById('formacoes_realizadas_demandas');
-    const substituicoesRealizadasInput = document.getElementById('substituicoes_realizadas_demandas');
     
     // Novos campos de contagem total (agora lidos do backend)
     const pmOrientadosEsperadoInput = document.getElementById('pm_orientados_esperado_demandas');
@@ -589,25 +591,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
-    window.toggleSchoolSelection = function(radioGroup) {
-        const selectedValue = radioGroup.querySelector('input:checked')?.value;
-        console.log(`DEBUG JS: Visitas às escolas: ${selectedValue}`);
-        if (escolasContainer) {
-            if (selectedValue === 'Sim') {
-                escolasContainer.style.display = 'block';
-                loadSchoolsByDiretoria();
-            } else {
-                escolasContainer.style.display = 'none';
-                if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
-                if (pmOrientadosInput) pmOrientadosInput.value = 0;
-                if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
-                // NOVOS CAMPOS
-                if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
-                if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
-            }
-        }
-    };
+    const visitasEscolasRadios = document.querySelectorAll('input[name="visitas_escolas_demandas"]');
+    if (visitasEscolasRadios) {
+        visitasEscolasRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'Sim') {
+                    escolasContainer.style.display = 'block';
+                    loadSchoolsByDiretoria();
+                } else {
+                    escolasContainer.style.display = 'none';
+                    if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
+                    if (pmOrientadosInput) pmOrientadosInput.value = 0;
+                    if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
+                    if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
+                    if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
+                }
+            });
+        });
+    }
 
     if (diretoriaDemandasInput) {
         diretoriaDemandasInput.addEventListener('change', function() {
@@ -683,6 +684,66 @@ document.addEventListener('DOMContentLoaded', function() {
             if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
         }
     };
+
+    // ====================================================================
+    // Lógica para o Formulário de Registro de Ocorrência (NOVO)
+    // ====================================================================
+
+    const nomeOcorrenciaInput = document.getElementById('nome_ocorrencia');
+    const emailOcorrenciaInput = document.getElementById('email_ocorrencia');
+    const telefoneOcorrenciaInput = document.getElementById('telefone_ocorrencia');
+    const turmaOcorrenciaInput = document.getElementById('turma_ocorrencia');
+    const temaOcorrenciaInput = document.getElementById('tema_ocorrencia');
+    const tipoOcorrenciaSelect = document.getElementById('tipo_ocorrencia');
+    const outraOcorrenciaContainer = document.getElementById('outra_ocorrencia_desc_container');
+    const outraOcorrenciaDescInput = document.getElementById('outra_ocorrencia_desc');
+
+    if (nomeOcorrenciaInput) {
+        nomeOcorrenciaInput.addEventListener('change', async function() {
+            const nome_completo = this.value;
+            try {
+                const response = await fetch(`/get_info_by_nome_or_cpf?search_term=${encodeURIComponent(nome_completo)}`);
+                const data = await response.json();
+                if (data.email) emailOcorrenciaInput.value = data.email;
+                if (data.telefone) telefoneOcorrenciaInput.value = data.telefone;
+            } catch (error) {
+                console.error("ERRO JS: Não foi possível carregar dados do usuário.");
+                emailOcorrenciaInput.value = '';
+                telefoneOcorrenciaInput.value = '';
+            }
+        });
+    }
+
+    if (turmaOcorrenciaInput) {
+        turmaOcorrenciaInput.addEventListener('change', async function() {
+            const turma = this.value;
+            try {
+                const response = await fetch(`/get_tema_by_turma?turma=${encodeURIComponent(turma)}`);
+                const data = await response.json();
+                if (data.length > 0) {
+                    temaOcorrenciaInput.value = data[0];
+                } else {
+                    temaOcorrenciaInput.value = '';
+                }
+            } catch (error) {
+                console.error("ERRO JS: Não foi possível carregar o tema da turma.");
+                temaOcorrenciaInput.value = '';
+            }
+        });
+    }
+
+    if (tipoOcorrenciaSelect) {
+        tipoOcorrenciaSelect.addEventListener('change', function() {
+            if (this.value === 'Outra') {
+                outraOcorrenciaContainer.style.display = 'block';
+                outraOcorrenciaDescInput.required = true;
+            } else {
+                outraOcorrenciaContainer.style.display = 'none';
+                outraOcorrenciaDescInput.required = false;
+                outraOcorrenciaDescInput.value = '';
+            }
+        });
+    }
     
     // ====================================================================
     // Lógica para o modal de edição (ATUALIZADO)
@@ -837,6 +898,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>Data:</strong> ${record.data_formacao}</p>
                 <label for="valor_formacao">Valor da Formação:</label>
                 <input type="number" name="valor_formacao" value="${record.valor_formacao || 0}" step="0.01">
+                <div class="button-group">
+                    <button type="submit" class="modal-save-button">Salvar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
+        `,
+        'ocorrencias': (record) => `
+            <h3>Editar Registro de Ocorrência</h3>
+            <form id="editForm">
+                <input type="hidden" name="id" value="${record.id}">
+                <p><strong>Relator:</strong> ${record.nome_ocorrencia}</p>
+                <p><strong>Turma:</strong> ${record.turma_ocorrencia}</p>
+                <p><strong>Tipo:</strong> ${record.tipo_ocorrencia}</p>
+                <label for="email_ocorrencia">E-mail:</label>
+                <input type="email" name="email_ocorrencia" value="${record.email_ocorrencia || ''}">
+                <label for="telefone_ocorrencia">Telefone:</label>
+                <input type="tel" name="telefone_ocorrencia" value="${record.telefone_ocorrencia || ''}">
+                <label for="descricao_problema">Descrição do Problema:</label>
+                <textarea name="descricao_problema" rows="4">${record.descricao_problema || ''}</textarea>
+                <label>A ocorrência ainda está acontecendo?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" ${record.ocorrencia_ainda_ocorre === 'Sim' ? 'checked' : ''}> Sim</label>
+                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'Não' ? 'checked' : ''}> Não</label>
+                </div>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
@@ -1059,6 +1144,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 'substituicoes_realizadas': 'Substituições Realizadas',
                 'engajamento': 'Ações de Engajamento',
                 'valor_formacao': 'Valor da Formação',
+                'nome_ocorrencia': 'Nome Relator',
+                'email_ocorrencia': 'E-mail',
+                'telefone_ocorrencia': 'Telefone',
+                'turma_ocorrencia': 'Turma',
+                'tema_ocorrencia': 'Tema',
+                'tipo_ocorrencia': 'Tipo',
+                'outra_ocorrencia_desc': 'Outra Descrição',
+                'descricao_problema': 'Descrição do Problema',
+                'ocorrencia_ainda_ocorre': 'Ainda Ocorre?',
+                'nivel_impacto': 'Nível de Impacto',
+                'timestamp': 'Data/Hora Registro',
                 // Colunas para a tabela de participantes
                 'nome': 'Nome',
                 'cpf': 'CPF',
@@ -1079,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const desiredOrder = {
                 'presenca': ['id', 'diretoria_de_ensino_resp', 'responsavel', 'substituicao_ocorreu', 'nome_substituto', 'tema', 'turma', 'data_formacao', 'pauta', 'observacao', 'nome_participante', 'cpf_participante', 'escola_participante', 'de_participante', 'di_participante', 'pei_participante', 'declinou_participante', 'presenca', 'camera'],
+                'ocorrencias': ['id', 'nome_ocorrencia', 'email_ocorrencia', 'telefone_ocorrencia', 'turma_ocorrencia', 'tema_ocorrencia', 'tipo_ocorrencia', 'outra_ocorrencia_desc', 'descricao_problema', 'ocorrencia_ainda_ocorre', 'nivel_impacto', 'timestamp'],
                 'acompanhamento': [
                     'id', 'responsavel_acompanhamento', 'formador_assistido', 'turma', 'tema', 'pauta', 'data_encontro', 'semana',
                     'encontro_realizado', 'dia_semana_encontro', 'horario_encontro', 'esperado_participantes', 'real_participantes',
@@ -1105,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const tableHead = document.querySelector(`#table-${tableId} thead tr`);
             tableHead.innerHTML = '';
             // Adiciona a coluna de Ações se o usuário tiver acesso de edição
-            const isEditableTable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios'].includes(tableId);
+            const isEditableTable = ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios'].includes(tableId);
 
             if (isEditableTable) {
                 const thActions = document.createElement('th');
@@ -1138,6 +1235,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             switch (tableId) {
                                 case 'presenca':
                                     canEdit = docData.cpf_participante === userCpf || docData.responsavel === userName || docData.nome_substituto === userName;
+                                    break;
+                                case 'ocorrencias':
+                                    canEdit = docData.nome_ocorrencia === userName;
                                     break;
                                 case 'acompanhamento':
                                     canEdit = docData.responsavel_acompanhamento === userName;
@@ -1184,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             cellValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cellValue);
                         } else if (Array.isArray(cellValue)) {
                             td.textContent = cellValue.join(', ');
-                        } else if (col.includes('data_')) {
+                        } else if (col.includes('data_') || col === 'timestamp') {
                             const dateObj = new Date(cellValue);
                             const formattedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000).toLocaleDateString('pt-BR');
                             td.textContent = formattedDate;
@@ -1238,6 +1338,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (metricsContainer.querySelector('#acompanhamento-num_camera_aberta')) {
                         metricsContainer.querySelector('#acompanhamento-num_camera_aberta').textContent = data.metrics.num_camera_aberta || 0;
                     }
+                } else if (tableId === 'ocorrencias') {
+                    const numForms = metricsContainer.querySelector(`#ocorrencias-num_ocorrencias`);
+                    if (numForms) numForms.textContent = data.metrics.num_ocorrencias || 0;
+                    const ocorrenciasAtivas = metricsContainer.querySelector(`#ocorrencias-ocorrencias_ativas`);
+                    if (ocorrenciasAtivas) ocorrenciasAtivas.textContent = data.metrics.ocorrencias_ativas || 0;
                 } else if (tableId === 'avaliacao') {
                     const numForms = metricsContainer.querySelector(`#avaliacao-num_formularios`);
                     if (numForms) numForms.textContent = data.metrics.num_formularios || 0;
@@ -1455,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Event Listeners para filtros de resultados (gerais)
-    const filterForms = ['Presenca', 'Avaliacao', 'Demandas', 'Acompanhamento', 'ParticipantesBaseEditavel'];
+    const filterForms = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Acompanhamento', 'ParticipantesBaseEditavel'];
     filterForms.forEach(formName => {
         const tableId = formName.toLowerCase();
         const form = document.getElementById(`filterForm${formName}`);
@@ -1486,7 +1591,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Botões de Limpar Filtros (gerais)
-    const clearFilterButtons = ['Presenca', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
+    const clearFilterButtons = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
     clearFilterButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`clearFilters${tableIdCapitalized}`);
         if (button) {
@@ -1503,7 +1608,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Botões de Exportar para CSV (gerais)
-    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
+    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Ocorrencias', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
     exportCsvButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`exportCsv${tableIdCapitalized}`);
         if (button) {
@@ -1988,8 +2093,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Erro ao excluir link.');
                 }
             }
-        }
-    });
+        });
+    }
 
     if (linkForm) {
         linkForm.addEventListener('submit', async function(event) {
@@ -2225,30 +2330,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     // PM e CM
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
                     window.showSection('form-presenca');
                     break;
                 case 'formador_access':
-                    // FORMADOR
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
-                    window.showSection('form-presenca');
-                    break;
                 case 'efape_access':
-                    // EFAPE
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
-                    window.showSection('form-presenca');
-                    break;
                 case 'intermediate_access':
-                    // PEC
+                    // FORMADOR, EFAPE e PEC (acesso unificado)
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
@@ -2260,6 +2349,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('tab-controle-ateste').style.display = 'inline-block';
                     document.getElementById('tab-painel-bi').style.display = 'inline-block';
                     document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
                     window.showSection('form-presenca');
                     break;
                 case 'super_admin':
@@ -2346,4 +2437,5 @@ document.addEventListener('DOMContentLoaded', function() {
     handleFormSubmit('formAcompanhamento', '/submit_acompanhamento', 'Acompanhamento de encontro salvo com sucesso!');
     handleFormSubmit('formAvaliacao', '/submit_avaliacao', 'Avaliação enviada com sucesso!');
     handleFormSubmit('formDemandas', '/submit_demandas', 'Registro de demanda salvo com sucesso!');
+    handleFormSubmit('formOcorrencia', '/submit_ocorrencia', 'Ocorrência registrada com sucesso!');
 });
