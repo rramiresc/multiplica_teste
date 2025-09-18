@@ -945,9 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <select id="access_level" name="access_level" required>
                     <option value="no_access" ${record.access_level === 'no_access' ? 'selected' : ''}>Sem Acesso</option>
                     <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC)</option>
-                    <option value="formador_access" ${record.access_level === 'formador_access' ? 'selected' : ''}>Formador Access (FORMADOR)</option>
-                    <option value="efape_access" ${record.access_level === 'efape_access' ? 'selected' : ''}>EFAPE Access (EFAPE)</option>
-                    <option value="intermediate_access" ${record.access_level === 'intermediate_access' ? 'selected' : ''}>Intermediate Access (PEC)</option>
+                    <option value="full_access" ${record.access_level === 'full_access' ? 'selected' : ''}>Full Access (PEC/FORMADOR/EFAPE/CAFF)</option>
                     <option value="super_admin" ${record.access_level === 'super_admin' ? 'selected' : ''}>Super Admin (ADM)</option>
                 </select>
                 <div class="button-group">
@@ -2038,6 +2036,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.onclick = function(event) {
         const avisoModal = document.getElementById('aviso-modal');
+        if (event.target == editModal) {
+            window.closeModal();
+        }
         if (event.target == avisoModal) {
             avisoModal.style.display = 'none';
         }
@@ -2107,8 +2108,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Erro ao excluir link.');
                 }
             }
-        }
-    });
+        });
+    }
 
     if (linkForm) {
         linkForm.addEventListener('submit', async function(event) {
@@ -2348,10 +2349,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
                     window.showSection('form-presenca');
                     break;
-                case 'formador_access':
-                case 'efape_access':
-                case 'intermediate_access':
-                    // FORMADOR, EFAPE e PEC (acesso unificado)
+                case 'full_access':
+                    // FORMADOR, PEC, EFAPE e CAFF (acesso unificado)
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';

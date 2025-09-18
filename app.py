@@ -353,25 +353,23 @@ def allowed_file(filename):
 # Criar as tabelas no banco de dados se não existirem
 with app.app_context():
     db.create_all()
-    # Atualizar usuários com nível de acesso em branco
-    usuarios_sem_acesso = Usuario.query.filter(
-        (Usuario.access_level.is_(None)) | (Usuario.access_level == '')
-    ).all()
-    
-    for user in usuarios_sem_acesso:
-        if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
-            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
-            if user_in_data:
-                etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
-                access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
-                
-                highest_access_level = "no_access"
-                if access_levels_found:
-                    highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
-                
-                user.access_level = highest_access_level
-                print(f"Nível de acesso do usuário {user.cpf} atualizado para {highest_access_level}.")
-    
+    # Lógica de atualização automática para usuários existentes
+    if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
+        with db.session.begin():
+            all_users = Usuario.query.all()
+            for user in all_users:
+                user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
+                if user_in_data:
+                    etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
+                    access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
+                    
+                    highest_access_level = "no_access"
+                    if access_levels_found:
+                        highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
+                    
+                    if ACCESS_HIERARCHY.get(highest_access_level, 0) > ACCESS_HIERARCHY.get(user.access_level, 0):
+                        user.access_level = highest_access_level
+                        print(f"Nível de acesso do usuário {user.cpf} atualizado para {highest_access_level} a partir da base.")
     db.session.commit()
 
 # Rotas de Autenticação
