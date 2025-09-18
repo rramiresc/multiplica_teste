@@ -24,7 +24,6 @@
     <button class="tab-button" data-section-id="form-avaliacao" data-table-id="avaliacao" id="tab-form-avaliacao">Formulário de Avaliação</button>
     <button class="tab-button" data-section-id="form-demandas" data-table-id="demandas" id="tab-form-demandas">Registro de Demandas</button>
     <button class="tab-button" data-section-id="form-ocorrencia" data-table-id="ocorrencias" id="tab-form-ocorrencia">Registro de Ocorrência</button>
-    <button class="tab-button" data-section-id="visitas-encontros" data-table-id="visitas" id="tab-visitas-encontros">Visitação de Encontros</button>
     <button class="tab-button" data-section-id="resultados-presenca" data-table-id="presenca" id="tab-resultados-presenca">Resultados de Presença</button>
     <button class="tab-button" data-section-id="resultados-acompanhamento" data-table-id="acompanhamento" id="tab-resultados-acompanhamento">Resultados Acompanhamento</button>
     <button class="tab-button" data-section-id="resultados-avaliacao" data-table-id="avaliacao" id="tab-resultados-avaliacao">Resultados de Avaliação</button>
@@ -456,13 +455,16 @@
         <div class="form-section">
             <h3>Dados do Relator</h3>
             <label for="nome_ocorrencia">Nome completo:</label>
-            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" required autocomplete="name">
+            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" list="nomes-list-avaliacao" required autocomplete="name">
+            <datalist id="nomes-list-avaliacao"></datalist>
 
             <label for="email_ocorrencia">E-mail:</label>
-            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required autocomplete="email">
+            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required autocomplete="email" list="emails-list">
+            <datalist id="emails-list"></datalist>
 
             <label for="telefone_ocorrencia">Telefone (opcional):</label>
-            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" autocomplete="tel">
+            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" autocomplete="tel" list="telefones-list">
+            <datalist id="telefones-list"></datalist>
         </div>
 
         <div class="form-section">
@@ -510,56 +512,6 @@
     </form>
 </div>
 
-<div id="visitas-encontros" class="section" style="display:none;">
-    <h2>Visitação de Encontros</h2>
-    <div class="filters">
-        <h3>Filtros e Ações</h3>
-        <form id="filterFormVisitas">
-            <input type="text" name="responsavel_visitacao" placeholder="Nome do responsável" value="">
-            <input type="text" name="turma" placeholder="Número da Turma" value="">
-            <input type="text" name="tema" placeholder="Tema da Formação" value="">
-            <input type="text" name="dia_semana" placeholder="Dia da Semana" value="">
-            <select name="sem_responsavel">
-                <option value="">Responsável (Todos)</option>
-                <option value="Sim">Sem responsável</option>
-            </select>
-            <div class="button-group">
-                <button type="submit">Aplicar Filtros</button>
-                <button type="button" id="clearFiltersVisitas">Limpar Filtros</button>
-            </div>
-        </form>
-    </div>
-    <div class="metrics" id="metrics-visitas">
-        <h3>Métricas</h3>
-        <div class="metrics-grid">
-            <p>Total de Formações Agendadas: <span id="visitas-total_formacoes">0</span></p>
-            <p>Formações Visitadas: <span id="visitas-formacoes_visitadas">0</span></p>
-            <p>Formações com Problemas: <span id="visitas-formacoes_com_problemas">0</span></p>
-            <p>% de Visitação: <span id="visitas-pct_visitacao">0.00%</span></p>
-        </div>
-    </div>
-    <div id="table-visitas">
-        <h3>Tabela de Visitações</h3>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ações</th>
-                        <th>Responsável Visitação</th>
-                        <th>Encontro Aconteceu?</th>
-                        <th>Turma</th>
-                        <th>Tema</th>
-                        <th>Data Formação</th>
-                        <th>Horário</th>
-                        <th>URL</th>
-                    </tr>
-                </thead>
-                <tbody id="visitas-table-body"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
 <div id="resultados-presenca" class="section" style="display:none;">
     <div class="result-header">
         <h2>Resultados - Presença</h2>
@@ -572,6 +524,8 @@
             
             <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
             
+            <input type="text" name="nome_participante" placeholder="Nome do Participante" value="">
+
             <input type="text" name="de_participante" placeholder="DE do Participante" value="">
 
             <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
@@ -790,10 +744,10 @@
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormOcorrencias">
-            <input type="text" name="nome" placeholder="Nome do relator" value="">
-            <input type="text" name="email" placeholder="E-mail" value="">
-            <input type="text" name="turma" placeholder="Turma" value="">
-            <input type="text" name="tema" placeholder="Tema" value="">
+            <input type="text" name="nome_ocorrencia" placeholder="Nome do relator" value="">
+            <input type="text" name="email_ocorrencia" placeholder="E-mail" value="">
+            <input type="text" name="turma_ocorrencia" placeholder="Turma" value="">
+            <input type="text" name="tema_ocorrencia" placeholder="Tema" value="">
             <select name="ocorrencia_ainda_ocorre">
                 <option value="">Ocorrência ainda ocorre?</option>
                 <option value="Sim">Sim</option>
@@ -981,7 +935,6 @@
                     <option value="form-ocorrencia">Registro de Ocorrência</option>
                 </optgroup>
                 <optgroup label="Resultados">
-                    <option value="visitas-encontros">Visitação de Encontros</option>
                     <option value="resultados-presenca">Resultados de Presença</option>
                     <option value="resultados-acompanhamento">Resultados Acompanhamento</option>
                     <option value="resultados-avaliacao">Resultados de Avaliação</option>
@@ -1075,7 +1028,6 @@
                 <option value="demandas">Demandas</option>
                 <option value="ateste">Ateste</option>
                 <option value="ocorrencias">Ocorrências</option>
-                <option value="visitas">Visitas</option>
                 <option value="usuarios">Usuários</option>
                 <option value="avisos">Avisos</option>
                 <option value="links">Links</option>

@@ -222,6 +222,8 @@ input[type="number"],
 input[type="date"],
 input[type="url"],
 input[type="week"],
+input[type="email"],
+input[type="tel"],
 select,
 textarea {
     width: calc(100% - 22px); 
@@ -239,6 +241,8 @@ input[type="number"]:focus,
 input[type="date"]:focus,
 input[type="url"]:focus,
 input[type="week"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
 select:focus,
 textarea:focus {
     border-color: #4CAF50;
@@ -688,12 +692,6 @@ table tbody tr:hover {
     text-decoration: underline;
 }
 
-.link-info p {
-    margin: 0;
-    color: #555;
-    line-height: 1.4;
-}
-
 .link-image-container {
     flex-shrink: 0;
     width: 25%;
@@ -894,6 +892,8 @@ table tbody tr:hover {
     input[type="date"],
     input[type="url"],
     input[type="week"],
+    input[type="email"],
+    input[type="tel"],
     select,
     textarea {
         padding: 10px;
