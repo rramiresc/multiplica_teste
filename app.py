@@ -36,7 +36,6 @@ if not DATABASE_URL:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Verifica se o sslmode já está presente na URL para evitar duplicação
 if "sslmode" not in DATABASE_URL:
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL + "?sslmode=require"
 else:
@@ -61,20 +60,16 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 if not os.path.exists(app.config['DOWNLOAD_FOLDER']):
     os.makedirs(app.config['DOWNLOAD_FOLDER'])
 
-# Adicionar o novo diretório de arquivos estáticos
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-# Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
 LINKS_DF = None
 EXPORT_TOKENS = {}
 
-# Definir o fuso horário de São Paulo
 SAO_PAULO_TIMEZONE = pytz.timezone('America/Sao_Paulo')
 
-# Definição dos níveis de acesso (CORRIGIDO: CM tem acesso básico)
 ACCESS_LEVELS = {
     'PM': 'basic_access',
     'PEC': 'full_access',
@@ -95,7 +90,6 @@ ACCESS_HIERARCHY = {
 ADMIN_CPF = "32302739825"
 PASSWORD_FOR_ADMIN = "123"
 
-# Funções de conversão e formatação de data e hora
 def now_sp():
     return datetime.now(SAO_PAULO_TIMEZONE)
 
@@ -114,11 +108,39 @@ def format_time(t):
         return t.astimezone(SAO_PAULO_TIMEZONE).strftime('%H:%M')
     return dt
 
-# Criptografar senha
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-# Modelo do Banco de Dados
+def login_required(access_level_required):
+    def wrapper(fn):
+        @functools.wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if 'user_cpf' not in session:
+                return redirect(url_for('login'))
+            
+            user_access_level = session.get('access_level', 'no_access')
+            
+            if ACCESS_HIERARCHY.get(user_access_level, 0) < ACCESS_HIERARCHY.get(access_level_required, 0):
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente.'}), 403
+                return redirect(url_for('login', error="Acesso negado. Nível de permissão insuficiente."))
+            
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
+    
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+@app.after_request
+def add_cache_headers(response):
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+# Modelos do Banco de Dados
 class Acompanhamento(db.Model):
     __tablename__ = 'acompanhamento'
     id = db.Column(db.Integer, primary_key=True)
@@ -261,11 +283,11 @@ class HiddenElement(db.Model):
     element_id = db.Column(db.String, unique=True, nullable=False)
     is_hidden = db.Column(db.Boolean, default=False)
 
-# Novo modelo para os registros de visitação
+# Ajuste no modelo da tabela 'visitas' para refletir a imagem
 class Visita(db.Model):
     __tablename__ = 'visitas'
     id = db.Column(db.Integer, primary_key=True)
-    url_formacao = db.Column(db.String, unique=True)
+    url = db.Column(db.String, unique=True)  # Nome da coluna ajustado para 'url'
     responsavel_visita = db.Column(db.String)
     cpf_responsavel_visita = db.Column(db.String)
     encontro_aconteceu = db.Column(db.String)
@@ -288,9 +310,7 @@ MODEL_MAP = {
 # Lista de tabelas que podem ser editadas pelo modal
 EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'visitas']
 
-# Função para carregar a base de participantes
 def load_participants_base():
-    """Carrega a base de dados de participantes a partir de um arquivo Excel e a armazena em memória."""
     global PARTICIPANTES_DF
     file_path = 'participantes_base_editavel.xlsx'
     try:
@@ -323,7 +343,7 @@ def load_links_base():
 
         LINKS_DF = pd.read_excel(file_path)
         LINKS_DF.columns = LINKS_DF.columns.str.lower().str.strip().str.replace(' ', '_').str.replace('á', 'a').str.replace('ã', 'a').str.replace('ç', 'c').str.replace('ê', 'e').str.replace('ô', 'o')
-        LINKS_DF.rename(columns={'nome_turma': 'turma', 'url': 'url_formacao'}, inplace=True)
+        LINKS_DF.rename(columns={'nome_turma': 'turma'}, inplace=True) # removido 'url_formacao' aqui
         if 'dia_do_mes' in LINKS_DF.columns:
              LINKS_DF['dia_do_mes'] = LINKS_DF['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
         else:
@@ -333,18 +353,16 @@ def load_links_base():
         return True
     except FileNotFoundError as e:
         print(f"AVISO: {e}")
-        LINKS_DF = pd.DataFrame(columns=['turma', 'tema', 'data_aula', 'mes', 'dia_do_mes', 'dia_da_semana', 'horario_da_formacao', 'url_formacao', 'tenent', 'segmento', 'nome_responsavel', 'cpf_responsavel', 'e-mail'])
+        LINKS_DF = pd.DataFrame(columns=['turma', 'tema', 'data_aula', 'mes', 'dia_do_mes', 'dia_da_semana', 'horario_da_formacao', 'url', 'tenent', 'segmento', 'nome_responsavel', 'cpf_responsavel', 'e-mail'])
         return False
     except Exception as e:
         print(f"ERRO: Não foi possível carregar a base de links de visitação. {e}")
-        LINKS_DF = pd.DataFrame(columns=['turma', 'tema', 'data_aula', 'mes', 'dia_do_mes', 'dia_da_semana', 'horario_da_formacao', 'url_formacao', 'tenent', 'segmento', 'nome_responsavel', 'cpf_responsavel', 'e-mail'])
+        LINKS_DF = pd.DataFrame(columns=['turma', 'tema', 'data_aula', 'mes', 'dia_do_mes', 'dia_da_semana', 'horario_da_formacao', 'url', 'tenent', 'segmento', 'nome_responsavel', 'cpf_responsavel', 'e-mail'])
         return False
 
-# Carregar as bases de dados na inicialização
 load_participants_base()
 load_links_base()
 
-# Funções auxiliares para manipulação de datas (semana de domingo a sábado)
 def get_sunday_of_week(year, week_num):
     first_day_of_year = datetime(year, 1, 1).date()
     if first_day_of_year.weekday() <= 3:
@@ -361,42 +379,9 @@ def get_saturday_of_week(year, week_num):
     saturday_of_our_week = sunday_of_our_week + timedelta(days=6)
     return saturday_of_our_week
 
-# Decorador para verificar autenticação e nível de acesso
-def login_required(access_level_required):
-    def wrapper(fn):
-        @functools.wraps(fn)
-        def decorated_view(*args, **kwargs):
-            if 'user_cpf' not in session:
-                return redirect(url_for('login'))
-            
-            user_access_level = session.get('access_level', 'no_access')
-            
-            if ACCESS_HIERARCHY.get(user_access_level, 0) < ACCESS_HIERARCHY.get(access_level_required, 0):
-                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente.'}), 403
-                return redirect(url_for('login', error="Acesso negado. Nível de permissão insuficiente."))
-            
-            return fn(*args, **kwargs)
-        return decorated_view
-    return wrapper
-    
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
-# Função para adicionar cabeçalhos de controle de cache
-@app.after_request
-def add_cache_headers(response):
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
-
-# Criar as tabelas no banco de dados se não existirem
 with app.app_context():
     db.create_all()
 
-# Rotas de Autenticação
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_cpf' in session:
@@ -408,11 +393,9 @@ def login():
         cpf = request.form.get('cpf').strip()
         password = request.form.get('password').strip()
 
-        # Lógica especial para o Super Admin inicial
         if cpf == ADMIN_CPF and password == PASSWORD_FOR_ADMIN:
             user_in_db = Usuario.query.filter_by(cpf=cpf).first()
             if not user_in_db:
-                # Criar o super admin na primeira vez com a senha simbólica
                 new_user = Usuario(
                     cpf=cpf,
                     password_hash=hash_password(password),
@@ -427,7 +410,6 @@ def login():
 
         user = Usuario.query.filter_by(cpf=cpf).first()
 
-        # Adicionar verificação e atualização de nível de acesso
         user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
         highest_access_level = "no_access"
         if user_in_data:
@@ -438,7 +420,6 @@ def login():
                 highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
         
         if user:
-            # Atualiza o nível de acesso do usuário com base na planilha
             if ACCESS_HIERARCHY.get(highest_access_level, 0) > ACCESS_HIERARCHY.get(user.access_level, 0):
                 user.access_level = highest_access_level
                 db.session.commit()
@@ -515,7 +496,6 @@ def register():
 
         hashed_password = hash_password(password)
 
-        # Determinar nível de acesso a partir da base de participantes
         user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == cpf].to_dict('records')
         highest_access_level = "no_access"
         if user_in_data:
@@ -551,7 +531,6 @@ def get_access_level():
 def health_check():
     return '', 200
 
-# Rota para obter as informações do usuário logado
 @app.route('/get_user_info')
 @login_required("basic_access")
 def get_user_info():
@@ -602,7 +581,6 @@ def get_all_datalists():
         all_participants = PARTICIPANTES_DF
         all_links = LINKS_DF
         
-        # Correção: Converta para listas antes de retornar o JSON
         data['turmas'] = sorted(list(all_participants['turma'].dropna().unique()))
         data['diretorias'] = sorted(list(all_participants['diretoria_de_ensino'].dropna().unique()))
         if "FORMADOR EFAPE" not in data['diretorias']:
@@ -625,12 +603,10 @@ def get_all_datalists():
         data['temas'] = sorted(list(all_participants['tema'].dropna().unique()))
         data['cpfs'] = sorted(list(all_participants['cpf'].dropna().unique()))
         
-        # Datlists para a nova página de visitação
         data['visitas_temas'] = sorted(list(all_links['tema'].dropna().unique()))
         data['visitas_turmas'] = sorted(list(all_links['turma'].dropna().unique()))
         data['visitas_dias_semana'] = sorted(list(all_links['dia_da_semana'].dropna().unique()))
         
-        # AQUI FOI CORRIGIDO: Conversão para string e remoção de nulos
         if 'dia_do_mes' in all_links.columns:
              data['visitas_dias_mes'] = sorted([d for d in all_links['dia_do_mes'].dropna().unique() if d])
         else:
@@ -827,7 +803,6 @@ def submit_acompanhamento():
 
         data_encontro_dt = datetime.strptime(data_encontro_str, '%Y-%m-%d').date()
 
-        # Checagem de duplicidade
         existing_record = Acompanhamento.query.filter_by(
             responsavel_acompanhamento=responsavel_acompanhamento,
             turma=turma,
@@ -997,7 +972,6 @@ def submit_avaliacao():
 
         data_acompanhamento_dt = datetime.strptime(data_acompanhamento_str, '%Y-%m-%d').date()
 
-        # Checagem de duplicidade
         existing_record = Avaliacao.query.filter_by(
             observador=observador,
             cpf_observado=cpf_observado,
@@ -1048,7 +1022,6 @@ def submit_demandas():
         if not pec_cpf or not semana:
             return jsonify({'success': False, 'message': 'Dados obrigatórios faltando para o registro de demandas.'}), 400
 
-        # Checagem de duplicidade
         existing_record = Demanda.query.filter_by(
             cpf_pec=pec_cpf,
             semana=semana
@@ -1059,7 +1032,6 @@ def submit_demandas():
         
         alinhamento_geral = 'Não se aplica'
 
-        # Garante que os valores numéricos são tratados como 0 se não existirem
         pm_orientados_val = int(data.get('pm_orientados') or 0)
         cursistas_orientados_val = int(data.get('cursistas_orientados') or 0)
 
@@ -1097,18 +1069,18 @@ def submit_demandas():
 def submit_visita():
     try:
         data = request.json
-        url_formacao = data.get('url_formacao')
+        url = data.get('url_formacao') # Corrigido para 'url'
         
-        if not url_formacao:
+        if not url:
             return jsonify({'success': False, 'message': 'URL da formação é obrigatória.'}), 400
 
         user_cpf = session.get('user_cpf')
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
         user_name = user_info_df['nome'].iloc[0] if not user_info_df.empty else 'Usuário Desconhecido'
 
-        visita = Visita.query.filter_by(url_formacao=url_formacao).first()
+        visita = Visita.query.filter_by(url=url).first() # Corrigido para 'url'
         
-        is_reserve_action = 'encontro_aconteceu' not in data
+        is_reserve_action = 'encontro_aconteceu' not in data or data.get('encontro_aconteceu') == ''
 
         if visita:
             if visita.cpf_responsavel_visita and visita.cpf_responsavel_visita != user_cpf and session.get('access_level') != 'super_admin':
@@ -1130,7 +1102,7 @@ def submit_visita():
 
         else:
             new_visita = Visita(
-                url_formacao=url_formacao,
+                url=url, # Corrigido para 'url'
                 responsavel_visita=user_name,
                 cpf_responsavel_visita=user_cpf,
                 encontro_aconteceu=data.get('encontro_aconteceu') if not is_reserve_action else None,
@@ -1152,10 +1124,10 @@ def submit_visita():
 @login_required('full_access')
 def delete_visita_by_url():
     data = request.json
-    url_formacao = data.get('url_formacao')
+    url = data.get('url_formacao') # Corrigido para 'url'
     user_cpf = session.get('user_cpf')
     
-    visita = Visita.query.filter_by(url_formacao=url_formacao).first()
+    visita = Visita.query.filter_by(url=url).first() # Corrigido para 'url'
 
     if not visita:
         return jsonify({'success': False, 'message': 'Registro de visitação não encontrado.'}), 404
@@ -1171,7 +1143,6 @@ def delete_visita_by_url():
 
     if visita.cpf_responsavel_visita == user_cpf:
         try:
-            # Reseta o registro em vez de excluí-lo
             visita.responsavel_visita = None
             visita.cpf_responsavel_visita = None
             visita.encontro_aconteceu = None
@@ -1241,7 +1212,7 @@ def get_results(table_name):
         per_page = 20
         page = request.args.get('page', 1, type=int)
 
-        # === CORREÇÃO: Lógica para a tabela de Visitas ===
+        # Corrigida a lógica para a tabela de Visitas
         if table_name == 'visitas':
             if LINKS_DF is None:
                 return jsonify({'error': 'Base de links de visitação não carregada.'}), 500
@@ -1253,17 +1224,15 @@ def get_results(table_name):
                 visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
                 visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
             else:
-                visitas_df = pd.DataFrame()
+                visitas_df = pd.DataFrame(columns=[c.name for c in Visita.__table__.columns])
             
-            # Garante que a coluna 'url_formacao' está presente em ambos os dataframes antes do merge
-            if 'url_formacao' not in visitas_df.columns:
-                 visitas_df['url_formacao'] = None
-            if 'url_formacao' not in df_links.columns:
-                 df_links['url_formacao'] = None
+            if 'url' not in visitas_df.columns:
+                 visitas_df['url'] = None
+            if 'url' not in df_links.columns:
+                 df_links['url'] = None
 
-            df_merged = pd.merge(df_links, visitas_df, on='url_formacao', how='left')
+            df_merged = pd.merge(df_links, visitas_df, on='url', how='left')
             
-            # Garante que as colunas do banco de dados existem antes de acessá-las
             db_cols = [c.name for c in Visita.__table__.columns]
             for col in db_cols:
                 if col not in df_merged.columns:
@@ -1323,7 +1292,7 @@ def get_results(table_name):
                 'metrics': metrics
             })
 
-        # === CORREÇÃO: Lógica para as outras tabelas (não-visitas) ===
+        # Lógica para as outras tabelas
         query = Model.query
         
         user_info_df = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf]
@@ -1577,7 +1546,7 @@ def generate_and_save_reports(user_cpf):
                         'usuarios': ['id', 'cpf', 'access_level'],
                         'avisos': ['id', 'titulo', 'conteudo', 'imagem_url'],
                         'links': ['id', 'titulo', 'descricao', 'url', 'imagem_url'],
-                        'visitas': ['id', 'url_formacao', 'responsavel_visita', 'cpf_responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'data_registro']
+                        'visitas': ['id', 'url', 'responsavel_visita', 'cpf_responsavel_visita', 'encontro_aconteceu', 'motivo_nao_aconteceu', 'observacao', 'data_registro'] # Ajustado para 'url'
                     }
                     
                     if table_name in column_order:
@@ -1749,7 +1718,6 @@ def get_export_token(table_name):
     """
     token = hashlib.sha256(os.urandom(24)).hexdigest()
     filters = request.args.to_dict()
-    # Adiciona o token e os filtros à memória para validação posterior
     EXPORT_TOKENS[token] = {
         'table': table_name,
         'filters': filters,
@@ -1758,7 +1726,6 @@ def get_export_token(table_name):
         'access_level': session.get('access_level', 'no_access')
     }
 
-    # A URL que o Excel vai chamar para obter os dados em formato JSON
     export_url = url_for('get_export_data_token', table_name=table_name, token=token, _external=True)
     if filters:
         export_url += '&' + '&'.join([f'{key}={value}' for key, value in filters.items()])
@@ -1788,15 +1755,13 @@ def get_export_data_token(table_name):
         return jsonify({'error': 'Token inválido ou expirado.'}), 403
 
     token_data = EXPORT_TOKENS.get(token)
-    if not token_data or (now_sp() - token_data['timestamp']).seconds > 300: # Token expira em 5 minutos
+    if not token_data or (now_sp() - token_data['timestamp']).seconds > 300:
         if token in EXPORT_TOKENS:
             del EXPORT_TOKENS[token]
         return jsonify({'error': 'Token expirado.'}), 403
 
-    # Extrai os filtros do token e os aplica à requisição
     filters = token_data['filters']
     
-    # Simula o contexto de usuário para a lógica de filtro de dados
     user_access_level = token_data.get('access_level', 'no_access')
     user_cpf = token_data.get('user_cpf', None)
 
@@ -1814,7 +1779,6 @@ def get_export_data_token(table_name):
              if table_name not in ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'visitas']:
                 return jsonify({'error': 'Acesso negado.'}), 403
 
-        # Lógica de exportação completa para a base de participantes
         if table_name == 'participantes_base_editavel':
             if PARTICIPANTES_DF is None or PARTICIPANTES_DF.empty:
                 return jsonify({'error': 'A base de participantes está vazia.'}), 404
@@ -1874,7 +1838,8 @@ def get_export_data_token(table_name):
             visitas_df = pd.DataFrame([v.__dict__ for v in visitas_db])
             visitas_df.drop(columns=['_sa_instance_state'], inplace=True, errors='ignore')
 
-            df = pd.merge(LINKS_DF.copy(), visitas_df, on='url_formacao', how='left')
+            # Corrigido: mergeando com a coluna 'url'
+            df = pd.merge(LINKS_DF.copy(), visitas_df, on='url', how='left')
             df.replace({np.nan: None}, inplace=True)
             if 'dia_do_mes' in df.columns:
                  df['dia_do_mes'] = df['dia_do_mes'].astype(str).str.replace(r'\.0$', '', regex=True)
@@ -2145,7 +2110,7 @@ def edit_record(table_name):
     Model = MODEL_MAP[table_name]
     
     if table_name == 'visitas':
-        record = Model.query.filter_by(url_formacao=record_id).first()
+        record = Model.query.filter_by(url=record_id).first()
     else:
         record = Model.query.get(record_id)
 
@@ -2209,7 +2174,7 @@ def get_record(table_name, record_id):
     if table_name == 'usuarios':
         record = Model.query.filter_by(cpf=record_id).first()
     elif table_name == 'visitas':
-        record = Model.query.filter_by(url_formacao=record_id).first()
+        record = Model.query.filter_by(url=record_id).first() # Corrigido para 'url'
         if not record:
              return jsonify({'error': 'Registro não encontrado.'}), 404
     else:
