@@ -44,9 +44,8 @@ app.config['DOWNLOAD_FOLDER'] = 'downloads'
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
-if not os.path.exists(os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER'])):
-    os.makedirs(os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER']))
-
+if not os.path.exists(app.config['DOWNLOAD_FOLDER']):
+    os.makedirs(app.config['DOWNLOAD_FOLDER'])
 
 # Armazenamento em memória da base de participantes
 PARTICIPANTES_DF = None
@@ -61,7 +60,7 @@ ACCESS_LEVELS = {
     'FORMADOR': 'formador_access',
     'EFAPE': 'efape_access',
     'ADM': 'super_admin',
-    'PC': 'basic_access',
+    'PC': 'no_access',
     'CM': 'basic_access'
 }
 
@@ -203,21 +202,6 @@ class Demanda(db.Model):
     engajamento = db.Column(db.String)
     observacao = db.Column(db.String)
 
-class Ocorrencia(db.Model):
-    __tablename__ = 'ocorrencias'
-    id = db.Column(db.Integer, primary_key=True)
-    nome_ocorrencia = db.Column(db.String)
-    email_ocorrencia = db.Column(db.String)
-    telefone_ocorrencia = db.Column(db.String)
-    turma_ocorrencia = db.Column(db.String)
-    tema_ocorrencia = db.Column(db.String)
-    tipo_ocorrencia = db.Column(db.String)
-    outra_ocorrencia_desc = db.Column(db.String)
-    descricao_problema = db.Column(db.Text)
-    ocorrencia_ainda_ocorre = db.Column(db.String)
-    nivel_impacto = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, default=now_sp)
-
 class Ateste(db.Model):
     __tablename__ = 'ateste'
     id = db.Column(db.Integer, primary_key=True)
@@ -265,14 +249,13 @@ MODEL_MAP = {
     'acompanhamento': Acompanhamento,
     'avaliacao': Avaliacao,
     'demandas': Demanda,
-    'ocorrencias': Ocorrencia,
     'ateste': Ateste,
     'usuarios': Usuario,
     'avisos': Aviso,
     'links': Link,
 }
 # Lista de tabelas que podem ser editadas pelo modal
-EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'ocorrencias']
+EDITABLE_TABLES = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste']
 
 # Função para carregar a base de participantes
 def load_participants_base():
@@ -289,24 +272,17 @@ def load_participants_base():
         PARTICIPANTES_DF.columns = PARTICIPANTES_DF.columns.str.lower().str.strip().str.replace(' ', '_')
         PARTICIPANTES_DF.rename(columns={'nome_completo': 'nome'}, inplace=True)
         if 'cpf' in PARTICIPANTES_DF.columns:
-            PARTICIPANTES_DF['cpf'] = PARTICIPANTES_DF['cpf'].astype(str).str.replace(r'\.0$', '', regex=True).str.replace(r'\D', '', regex=True)
+            PARTICIPANTES_DF['cpf'] = PARTICIPANTES_DF['cpf'].astype(str).str.replace(r'\.0$', '', regex=True)
         PARTICIPANTES_DF.replace({np.nan: None}, inplace=True)
-        
-        # Correção para os nomes das colunas de email e telefone
-        if 'e-mail' in PARTICIPANTES_DF.columns:
-            PARTICIPANTES_DF.rename(columns={'e-mail': 'email'}, inplace=True)
-        if 'telefone_(opcional)' in PARTICIPANTES_DF.columns:
-            PARTICIPANTES_DF.rename(columns={'telefone_(opcional)': 'telefone'}, inplace=True)
-            
         print("Base de participantes carregada com sucesso!")
         return True
     except FileNotFoundError as e:
         print(f"AVISO: {e}")
-        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou', 'email', 'telefone'])
+        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'])
         return False
     except Exception as e:
         print(f"ERRO: Não foi possível carregar a base de participantes. {e}")
-        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou', 'email', 'telefone'])
+        PARTICIPANTES_DF = pd.DataFrame(columns=['nome', 'cpf', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'])
         return False
 
 # Carregar a base de dados na inicialização
@@ -355,26 +331,6 @@ def allowed_file(filename):
 # Criar as tabelas no banco de dados se não existirem
 with app.app_context():
     db.create_all()
-    # Atualizar usuários com nível de acesso em branco
-    usuarios_sem_acesso = Usuario.query.filter(
-        (Usuario.access_level.is_(None)) | (Usuario.access_level == '')
-    ).all()
-    
-    for user in usuarios_sem_acesso:
-        if PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
-            user_in_data = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user.cpf].to_dict('records')
-            if user_in_data:
-                etapa_list = [d.get('etapa') for d in user_in_data if d.get('etapa')]
-                access_levels_found = [ACCESS_LEVELS.get(etapa) for etapa in etapa_list if ACCESS_LEVELS.get(etapa)]
-                
-                highest_access_level = "no_access"
-                if access_levels_found:
-                    highest_access_level = max(access_levels_found, key=lambda x: ACCESS_HIERARCHY.get(x, -1))
-                
-                user.access_level = highest_access_level
-                print(f"Nível de acesso do usuário {user.cpf} atualizado para {highest_access_level}.")
-    
-    db.session.commit()
 
 # Rotas de Autenticação
 @app.route('/login', methods=['GET', 'POST'])
@@ -559,11 +515,8 @@ def get_user_info():
         user_info = user_info[0]
         return jsonify({
             'nome': user_info.get('nome', 'N/A'),
-            'email': user_info.get('email', 'N/A') if 'email' in user_info else 'N/A',
-            'telefone': user_info.get('telefone', 'N/A') if 'telefone' in user_info else 'N/A',
             'cpf': user_info.get('cpf', 'N/A'),
             'diretoria_de_ensino': user_info.get('diretoria_de_ensino', 'N/A'),
-            'escola': user_info.get('escola', 'N/A'),
             'etapa': user_info.get('etapa', 'N/A'),
             'access_level': session.get('access_level'),
             'responsavel': user_info.get('responsavel', 'N/A')
@@ -613,10 +566,6 @@ def get_all_datalists():
         data['pautas_formativas'] = pautas_numericas + pautas_desdobramento
         data['temas'] = sorted(list(all_participants['tema'].dropna().unique()))
         data['cpfs'] = sorted(list(all_participants['cpf'].dropna().unique()))
-        
-        # CORREÇÃO: Adicionando verificação de existência das colunas
-        data['emails'] = sorted(list(all_participants['email'].dropna().unique())) if 'email' in all_participants.columns else []
-        data['telefones'] = sorted(list(all_participants['telefone'].dropna().unique())) if 'telefone' in all_participants.columns else []
 
         return jsonify(data)
     except Exception as e:
@@ -729,7 +678,7 @@ def get_counts_by_schools():
     return jsonify({'pm_count': 0, 'pc_count': 0, 'pm_total': 0, 'pc_total': 0})
 
 @app.route('/get_info_by_nome_or_cpf')
-@login_required("basic_access")
+@login_required("intermediate_access")
 def get_info_by_nome_or_cpf():
     search_term = request.args.get('search_term')
     global PARTICIPANTES_DF
@@ -748,8 +697,6 @@ def get_info_by_nome_or_cpf():
             response_data = {
                 'cpf': user_data.get('cpf', 'N/A'),
                 'nome': user_data.get('nome', 'N/A'),
-                'email': user_data.get('email', 'N/A') if 'email' in user_data else 'N/A',
-                'telefone': user_data.get('telefone', 'N/A') if 'telefone' in user_data else 'N/A',
                 'diretoria_de_ensino': user_data.get('diretoria_de_ensino', 'N/A'),
                 'escola': user_data.get('escola', 'N/A'),
                 'temas': sorted(list(temas)),
@@ -757,23 +704,6 @@ def get_info_by_nome_or_cpf():
             }
             return jsonify(response_data)
     return jsonify({})
-
-@app.route('/get_user_info_by_name')
-@login_required("basic_access")
-def get_user_info_by_name():
-    nome = request.args.get('nome')
-    global PARTICIPANTES_DF
-    if nome and PARTICIPANTES_DF is not None and not PARTICIPANTES_DF.empty:
-        filtered_df = PARTICIPANTES_DF[
-            (PARTICIPANTES_DF['nome'].str.lower() == nome.lower())
-        ]
-        if not filtered_df.empty:
-            user_data = filtered_df.iloc[0].to_dict()
-            return jsonify({
-                'email': user_data.get('email', 'N/A') if 'email' in user_data else 'N/A',
-                'telefone': user_data.get('telefone', 'N/A') if 'telefone' in user_data else 'N/A'
-            })
-    return jsonify({'email': '', 'telefone': ''})
 
 @app.route('/get_participantes_by_turma')
 @login_required("basic_access")
@@ -791,7 +721,7 @@ def get_participantes_by_turma():
     return jsonify([])
 
 @app.route('/get_formador_assistido')
-@login_required("intermediate_access")
+@login_required("efape_access")
 def get_formador_assistido():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -802,7 +732,7 @@ def get_formador_assistido():
     return jsonify([])
 
 @app.route('/get_tema_by_turma')
-@login_required("basic_access")
+@login_required("efape_access")
 def get_tema_by_turma():
     turma = request.args.get('turma')
     global PARTICIPANTES_DF
@@ -813,7 +743,7 @@ def get_tema_by_turma():
     return jsonify([])
 
 @app.route('/submit_acompanhamento', methods=['POST'])
-@login_required("intermediate_access")
+@login_required("efape_access")
 def submit_acompanhamento():
     try:
         data = request.json
@@ -1091,35 +1021,6 @@ def submit_demandas():
         app.logger.error(f"Erro em /submit_demandas: {e}")
         return jsonify({'success': False, 'message': f'Erro ao salvar registro de demanda: {e}'}), 500
 
-@app.route('/submit_ocorrencia', methods=['POST'])
-@login_required("basic_access")
-def submit_ocorrencia():
-    try:
-        data = request.json
-        if not data.get('nome_ocorrencia') or not data.get('turma_ocorrencia') or not data.get('descricao_problema'):
-            return jsonify({'success': False, 'message': 'Dados obrigatórios faltando para o registro de ocorrência.'}), 400
-        
-        new_ocorrencia = Ocorrencia(
-            nome_ocorrencia=data.get('nome_ocorrencia'),
-            email_ocorrencia=data.get('email_ocorrencia'),
-            telefone_ocorrencia=data.get('telefone_ocorrencia'),
-            turma_ocorrencia=data.get('turma_ocorrencia'),
-            tema_ocorrencia=data.get('tema_ocorrencia'),
-            tipo_ocorrencia=data.get('tipo_ocorrencia'),
-            outra_ocorrencia_desc=data.get('outra_ocorrencia_desc'),
-            descricao_problema=data.get('descricao_problema'),
-            ocorrencia_ainda_ocorre=data.get('ocorrencia_ainda_ocorre'),
-            nivel_impacto=data.get('nivel_impacto'),
-            timestamp=now_sp()
-        )
-        db.session.add(new_ocorrencia)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Ocorrência registrada com sucesso!'})
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Erro em /submit_ocorrencia: {e}")
-        return jsonify({'success': False, 'message': f'Erro ao registrar ocorrência: {e}'}), 500
-
 @app.route('/get_results/<table_name>')
 @login_required("basic_access")
 def get_results(table_name):
@@ -1128,22 +1029,21 @@ def get_results(table_name):
         
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
-        
-        # --- LÓGICA CORRIGIDA DE PERMISSÕES ---
-        # Define os relatórios permitidos para cada nível de acesso
-        allowed_tables_map = {
-            'basic_access': ['presenca', 'ocorrencias'],
-            'formador_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste'],
-            'efape_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste', 'participantes_base_editavel'],
-            'intermediate_access': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
-            'super_admin': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios', 'links', 'avisos']
-        }
-        
-        if table_name not in allowed_tables_map.get(user_access_level, []):
-            return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
 
-        # --- FIM DA LÓGICA CORRIGIDA DE PERMISSÕES ---
-
+        # === LÓGICA DE CONTROLE DE ACESSO A NÍVEL DE ROTA ===
+        if user_access_level == 'basic_access':
+            if table_name != 'presenca':
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        elif user_access_level == 'formador_access':
+             if table_name not in ['presenca', 'acompanhamento', 'ateste']:
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        elif user_access_level == 'efape_access':
+             if table_name not in ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel']:
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        elif user_access_level == 'intermediate_access':
+             if table_name in ['usuarios', 'avisos', 'links']:
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        
         # === INÍCIO DA LÓGICA DE FILTRAGEM DO CONTEÚDO ===
         
         # LÓGICA ESPECÍFICA PARA A BASE DE PARTICIPANTES (sem query SQL)
@@ -1197,7 +1097,14 @@ def get_results(table_name):
                 Presenca.responsavel == user_name,
                 Presenca.nome_substituto == user_name
             ))
+        elif user_access_level == 'formador_access' and table_name in ['presenca', 'acompanhamento', 'ateste']:
+            # Os Formadores podem ver TUDO para as tabelas que tem acesso. O filtro de nome é removido aqui.
+            pass
+        elif user_access_level == 'efape_access' and table_name in ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel']:
+            # Os EFAPEs podem ver TUDO para as tabelas que tem acesso. O filtro de nome é removido aqui.
+            pass
         elif user_access_level == 'intermediate_access' and table_name in ['presenca', 'avaliacao', 'demandas']:
+            # Os PECs podem ver TUDO de sua diretoria, e o filtro é mantido.
             if user_de:
                 if table_name == 'presenca':
                     query = query.filter_by(diretoria_de_ensino_resp=user_de)
@@ -1283,15 +1190,6 @@ def get_results(table_name):
                 'num_participantes_esperados': int(metrics_query.esperado_participantes_total) if metrics_query.esperado_participantes_total else 0,
                 'num_participantes_reais': int(metrics_query.real_participantes_total) if metrics_query.real_participantes_total else 0,
                 'num_camera_aberta': int(metrics_query.camera_aberta_total) if metrics_query.camera_aberta_total else 0,
-            }
-        
-        elif table_name == 'ocorrencias':
-            total_ocorrencias = filtered_query.count()
-            ocorrencias_ativas = filtered_query.filter_by(ocorrencia_ainda_ocorre='Sim').count()
-            
-            metrics = {
-                'num_ocorrencias': total_ocorrencias,
-                'ocorrencias_ativas': ocorrencias_ativas
             }
 
         elif table_name == 'avaliacao':
@@ -1407,7 +1305,7 @@ def generate_and_save_reports(user_cpf):
     """
     with app.app_context():
         try:
-            tables = ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos']
+            tables = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'usuarios', 'links', 'avisos']
             zip_filename = f'todos_relatorios_{now_sp().strftime("%Y%m%d%H%M%S")}.zip'
             zip_path = os.path.join(app.config['DOWNLOAD_FOLDER'], zip_filename)
 
@@ -1437,7 +1335,6 @@ def generate_and_save_reports(user_cpf):
 
                     column_order = {
                         'presenca': ['id', 'diretoria_de_ensino_resp', 'responsavel', 'substituicao_ocorreu', 'nome_substituto', 'tema', 'turma', 'pauta', 'data_formacao', 'nome_participante', 'cpf_participante', 'escola_participante', 'de_participante', 'di_participante', 'pei_participante', 'declinou_participante', 'presenca', 'camera', 'observacao'],
-                        'ocorrencias': ['id', 'nome_ocorrencia', 'email_ocorrencia', 'telefone_ocorrencia', 'turma_ocorrencia', 'tema_ocorrencia', 'tipo_ocorrencia', 'outra_ocorrencia_desc', 'descricao_problema', 'ocorrencia_ainda_ocorre', 'nivel_impacto', 'timestamp'],
                         'acompanhamento': ['id', 'responsavel_acompanhamento', 'formador_assistido', 'turma', 'tema', 'pauta', 'data_encontro', 'semana', 'encontro_realizado', 'dia_semana_encontro', 'horario_encontro', 'esperado_participantes', 'real_participantes', 'camera_aberta_participantes', 'motivo_nao_ocorrencia', 'observacao'],
                         'avaliacao': ['id', 'observador', 'funcao', 'data_acompanhamento', 'data_feedback', 'observado', 'cpf_observado', 'diretoria_de_ensino', 'escola', 'tema_observado', 'codigo_turma', 'pauta_formativa', 'link_gravacao', 'nota_final', 'feedback_estruturado', 'observacoes_gerais', 'q1_1', 'q1_2', 'q1_3', 'q2_1', 'q2_2', 'q2_3', 'q3_1', 'q3_2', 'q3_3', 'q4_1', 'q4_2', 'q4_3', 'q5_1', 'q5_2', 'q5_3'],
                         'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'alinhamento_geral', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'pm_orientados_esperado', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento'],
@@ -1608,19 +1505,20 @@ def export_csv(table_name):
         global PARTICIPANTES_DF
         user_access_level = session.get('access_level', 'none')
         user_cpf = session.get('user_cpf')
-        
-        # --- LÓGICA CORRIGIDA DE PERMISSÕES PARA EXPORTAÇÃO ---
-        allowed_tables_map = {
-            'basic_access': ['presenca', 'ocorrencias'],
-            'formador_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste'],
-            'efape_access': ['presenca', 'ocorrencias', 'acompanhamento', 'ateste', 'participantes_base_editavel'],
-            'intermediate_access': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste'],
-            'super_admin': ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios']
-        }
-        
-        if table_name not in allowed_tables_map.get(user_access_level, []):
-            return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
-        # --- FIM DA LÓGICA CORRIGIDA DE PERMISSÕES ---
+
+        # === LÓGICA DE CONTROLE DE ACESSO A NÍVEL DE ROTA PARA EXPORTAÇÃO ===
+        if user_access_level == 'basic_access':
+            if table_name != 'presenca':
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        elif user_access_level == 'formador_access':
+             if table_name not in ['presenca', 'acompanhamento', 'ateste']:
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        elif user_access_level == 'efape_access':
+             if table_name not in ['presenca', 'acompanhamento', 'ateste', 'participantes_base_editavel']:
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
+        elif user_access_level == 'intermediate_access':
+             if table_name in ['usuarios', 'avisos', 'links']:
+                return jsonify({'error': 'Acesso negado. Nível de permissão insuficiente para este relatório.'}), 403
                 
         if table_name == 'participantes_base_editavel':
             if PARTICIPANTES_DF is None or PARTICIPANTES_DF.empty:
@@ -1910,11 +1808,6 @@ def edit_record(table_name):
             is_owner = record.cpf_pec == user_cpf
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
-        elif table_name == 'ocorrencias':
-            # Permite que qualquer usuário que preencheu a ocorrência a edite
-            is_owner = record.nome_ocorrencia == user_name
-        elif table_name == 'usuarios':
-            is_owner = record.cpf == user_cpf
 
         if not is_owner:
              return jsonify({'success': False, 'message': 'Acesso negado. Você só pode editar seus próprios registros.'}), 403
@@ -1966,8 +1859,6 @@ def get_record(table_name, record_id):
             is_owner = record.cpf_pec == user_cpf
         elif table_name == 'ateste':
             is_owner = record.cpf == user_cpf
-        elif table_name == 'ocorrencias':
-            is_owner = record.nome_ocorrencia == user_name
         elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf
         
