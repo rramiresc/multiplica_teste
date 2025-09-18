@@ -32,11 +32,9 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set.")
 
-# Força o uso de SSL/TLS com o PostgreSQL, que é o padrão no Render
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Verifica se o sslmode já está presente na URL para evitar duplicação
 if "sslmode" not in DATABASE_URL:
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL + "?sslmode=require"
 else:
