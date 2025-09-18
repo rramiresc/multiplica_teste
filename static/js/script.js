@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
             populateDatalist(allDatalistsData.temas, 'temas-list-ateste');
             populateDatalist(allDatalistsData.responsaveis, 'responsaveis-list-ateste');
             populateDatalist(allDatalistsData.nomes, 'nomes-list-ateste');
-            populateDatalist(allDatalistsData.temas, 'temas-list-ocorrencia');
             populateDatalist(allDatalistsData.emails, 'emails-list');
             populateDatalist(allDatalistsData.telefones, 'telefones-list');
 
