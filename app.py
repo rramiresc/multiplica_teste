@@ -61,7 +61,7 @@ ACCESS_LEVELS = {
     'FORMADOR': 'full_access',
     'EFAPE': 'full_access',
     'ADM': 'super_admin',
-    'PC': 'basic_access',
+    'PC': 'no_access',
     'CM': 'basic_access',
     'CAFF': 'full_access' # Adicionando CAFF
 }
@@ -645,7 +645,7 @@ def get_responsaveis_for_presenca():
         return jsonify([])
     except Exception as e:
         app.logger.error(f"Erro ao carregar lista de responsáveis de presença: {e}")
-        return jsonify([]), 500
+        return jsonify([])
 
 @app.route('/get_temas_by_responsavel')
 @login_required("basic_access")
