@@ -160,7 +160,7 @@
             <label>Câmera do formador estava aberta?</label>
             <div class="radio-group">
                 <label><input type="radio" name="formador_camera" value="Sim" required> Sim</label>
-                <label><input type="radio" name="formador_camera" value="Não"> Não</label>
+                <label><input type="radio" name="formador_camera" value="NÃO"> Não</label>
             </div>
 
             <label>O Formador estava com o fundo de tela do Multiplica?</label>
@@ -450,8 +450,7 @@
 
 <div id="form-ocorrencia" class="section" style="display:none;">
     <h2>Registro de Ocorrência</h2>
-    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.
-    </p>
+    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.</p>
     <form id="formOcorrencia">
         <div class="form-section">
             <h3>Dados do Relator</h3>
@@ -855,8 +854,8 @@
     <h2>Ferramentas de Administração</h2>
 
     <div class="form-section">
-        <h3>Gerenciar Usuários (Simplificado)</h3>
-        <p>Pesquise por um CPF para ver o status do usuário. Se o usuário existir, você pode editar o nível de acesso. Se não existir, você pode adicioná-lo ao sistema.</p>
+        <h3>Gerenciar Usuário e Participante</h3>
+        <p>Pesquise por um CPF para editar o nível de acesso de um usuário existente ou adicionar um novo. Os dados do participante na base de dados (planilha) são somente para visualização e não podem ser alterados aqui.</p>
         <form id="manageUserForm">
             <div class="user-search-container">
                 <label for="search-cpf">Pesquisar ou Adicionar CPF:</label>
@@ -877,13 +876,12 @@
                 <label for="user-access-level">Nível de Acesso:</label>
                 <select id="user-access-level" name="access_level" required>
                     <option value="no_access">Sem Acesso</option>
-                    <option value="basic_access">Basic Access (PM/PC/CM)</option>
-                    <option value="formador_access">Formador Access (FORMADOR)</option>
-                    <option value="efape_access">EFAPE Access (EFAPE)</option>
-                    <option value="intermediate_access">Intermediate Access (PEC)</option>
+                    <option value="basic_access">Basic Access (PM/CM)</option>
+                    <option value="full_access">Full Access (PEC/Formador/EFAPE/CAFF)</option>
                     <option value="super_admin">Super Admin (ADM)</option>
                 </select>
-                
+                <p><small>Para novos usuários, a senha padrão é <b>123</b>. Por favor, instrua-os a alterá-la no primeiro acesso.</small></p>
+
                 <div class="button-group">
                     <button type="submit" id="save-user-button">Adicionar Novo Usuário</button>
                     <button type="button" id="delete-user-button" class="red-button">Excluir</button>

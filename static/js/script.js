@@ -946,10 +946,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label for="access_level">Nível de Acesso:</label>
                 <select id="access_level" name="access_level" required>
                     <option value="no_access" ${record.access_level === 'no_access' ? 'selected' : ''}>Sem Acesso</option>
-                    <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC/CM)</option>
-                    <option value="formador_access" ${record.access_level === 'formador_access' ? 'selected' : ''}>Formador Access (FORMADOR)</option>
-                    <option value="efape_access" ${record.access_level === 'efape_access' ? 'selected' : ''}>EFAPE Access (EFAPE)</option>
-                    <option value="intermediate_access" ${record.access_level === 'intermediate_access' ? 'selected' : ''}>Intermediate Access (PEC)</option>
+                    <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/CM)</option>
+                    <option value="full_access" ${record.access_level === 'full_access' ? 'selected' : ''}>Full Access (PEC/Formador/EFAPE/CAFF)</option>
                     <option value="super_admin" ${record.access_level === 'super_admin' ? 'selected' : ''}>Super Admin (ADM)</option>
                 </select>
                 <div class="button-group">
@@ -1008,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const formData = new FormData(editForm);
                     const data = Object.fromEntries(formData.entries());
-                    const endpoint = `/edit_record/${tableId}`; // ROTA ATUALIZADA
+                    const endpoint = `/edit_record/${tableId}`;
                     
                     try {
                         const res = await fetch(endpoint, {
@@ -1064,10 +1062,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(`/get_results/${tableId}?${queryParams.toString()}`);
             if (!response.ok) {
                 const errorText = await response.text();
-                // Se for erro de acesso negado, exibe mensagem específica
                 if (response.status === 403) {
                     resultsTableBody.innerHTML = `<tr><td colspan="100%">Acesso negado para este relatório.</td></tr>`;
-                    if (metricsContainer) metricsContainer.innerHTML = ''; // Limpa métricas também
+                    if (metricsContainer) metricsContainer.innerHTML = '';
                     console.error(`ERRO JS: Acesso negado para relatório '${tableId}'.`);
                     return;
                 }
@@ -1081,11 +1078,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalItemsCount = data.total_items;
             const perPage = data.per_page;
 
-            // Armazena o estado da paginação
             currentPage[tableId] = page;
             totalItems[tableId] = totalItemsCount;
             
-            // NOVO: Busca informações do usuário logado para controle de acesso
             const userResponse = await fetch('/get_user_info');
             const userData = await userResponse.json();
             const userAccessLevel = userData.access_level;
@@ -1191,7 +1186,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     'encontro_realizado', 'dia_semana_encontro', 'horario_encontro', 'esperado_participantes', 'real_participantes',
                     'camera_aberta_participantes', 'motivo_nao_ocorrencia', 'observacao'
                 ],
-                // Ajuste na ordem das colunas para demandas, removendo 'alinhamento_geral'
                 'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'pm_orientados_esperado', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento', 'observacao'],
                 'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao'],
                 'participantes_base_editavel': ['cpf', 'nome', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'],
@@ -1211,7 +1205,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tableHead = document.querySelector(`#table-${tableId} thead tr`);
             tableHead.innerHTML = '';
-            // Adiciona a coluna de Ações se o usuário tiver acesso de edição
             const isEditableTable = ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios'].includes(tableId);
 
             if (isEditableTable) {
@@ -1241,7 +1234,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (userAccessLevel === 'super_admin') {
                             canEdit = true;
                         } else {
-                            // Lógica de verificação de propriedade para cada tabela
                             switch (tableId) {
                                 case 'presenca':
                                     canEdit = docData.cpf_participante === userCpf || docData.responsavel === userName || docData.nome_substituto === userName;
@@ -1364,7 +1356,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const numEscolasVisitadasUnicas = metricsContainer.querySelector(`#demandas-num_escolas_visitadas_unicas`);
                     if (numEscolasVisitadasUnicas) numEscolasVisitadasUnicas.textContent = data.metrics.num_escolas_visitadas_unicas || 0;
 
-                    // CORRIGIDO: Métricas para o novo formato X/Y
                     const totalPmsOrientados = metricsContainer.querySelector(`#demandas-total_pms_orientados`);
                     const totalPmsEsperados = metricsContainer.querySelector(`#demandas-total_pms_esperados`);
                     if (totalPmsOrientados && totalPmsEsperados) {
@@ -1407,17 +1398,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(this);
             const data = {};
 
-            // Convertendo FormData para objeto JavaScript
             for (let [key, value] of formData.entries()) {
                 data[key] = value;
             }
             
-            // Lógica específica para o formulário de Presença
             if (formId === 'formPresenca') {
                 const participantesData = {};
                 this.querySelectorAll('.participante-item').forEach(item => {
                     const cpf = item.querySelector('input[name^="cpf_"]').value;
-                    if (cpf) { // Adiciona verificação para garantir que o CPF existe
+                    if (cpf) {
                         participantesData[cpf] = {
                             nome: item.querySelector(`input[name="participante_${cpf}"]`).value,
                             cpf: cpf,
@@ -1433,9 +1422,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 data.participantes = participantesData;
 
-                // Captura o nome do responsável se o campo não estiver desabilitado
-                // Se estiver desabilitado, significa que é o próprio usuário
-                // CORREÇÃO: Removido o preenchimento automático
                 if (data.substituicao_ocorreu === 'Não') {
                     delete data.nome_substituto;
                 }
@@ -1455,12 +1441,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (formId === 'formDemandas') {
-                // CORREÇÃO: A lógica de coleta de dados foi ajustada
-                // Agora os valores são coletados diretamente, sem duplicação de variáveis.
                 data.pm_orientados = document.getElementById('pm_orientados_demandas').value;
                 data.cursistas_orientados = document.getElementById('cursistas_orientados_demandas').value;
 
-                // Tratamento para escolas visitadas (múltipla seleção)
                 const selectedValue = this.querySelector('input[name="visitas_escolas_demandas"]:checked')?.value;
                 if (selectedValue === 'Sim') {
                     const selectedSchools = Array.from(document.querySelectorAll('#escolas-checkbox-container input[type="checkbox"]:checked')).map(checkbox => checkbox.value);
@@ -1469,28 +1452,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.escolas_visitadas = [];
                 }
                 
-                // Tratamento para ações de engajamento (checkboxes)
                 const engagementCheckboxes = this.querySelectorAll('input[name="engajamento_demandas"]:checked');
                 data.engajamento = Array.from(engagementCheckboxes).map(cb => cb.value);
 
-                // Tratamento para "Outra" ação de engajamento
                 const outraAcaoInput = this.querySelector('input[name="outra_acao_demandas"]');
                 if (outraAcaoInput && data.engajamento.includes('Outra')) {
-                    // Remover 'Outra' e adicionar o valor do campo de texto
                     data.engajamento = data.engajamento.filter(item => item !== 'Outra');
                     if (outraAcaoInput.value.trim() !== '') {
                         data.engajamento.push(`Outra: ${outraAcaoInput.value.trim()}`);
                     }
                 }
             }
+            
             if (formId === 'formOcorrencia') {
                 const tipoOcorrencia = data['tipo_ocorrencia'];
                 if (tipoOcorrencia !== 'Outra') {
                     delete data['outra_ocorrencia_desc'];
                 }
             }
-
-            try { // Início do bloco try para a requisição fetch
+            
+            try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
@@ -1499,7 +1480,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify(data)
                 });
 
-                // VERIFICAÇÃO DO TIPO DE CONTEÚDO DA RESPOSTA (CORREÇÃO)
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
                     const result = await response.json();
@@ -1521,10 +1501,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (result.success) {
                         alert(successMessage);
                         form.reset();
-                        // Lógica para limpar campos específicos ou carregar datalists novamente
+
                         if (formId === 'formDemandas') {
                             if (escolasContainer) escolasContainer.style.display = 'none';
-                            // CORREÇÃO: Limpando os campos após o envio, sem sobrescrevê-los
                             if (pmOrientadosInput) pmOrientadosInput.value = '';
                             if (cursistasOrientadosInput) cursistasOrientadosInput.value = '';
                             if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = '';
@@ -1540,27 +1519,25 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.getElementById('encontro-realizado-nao').style.display = 'none';
                         }
     
-                        loadAllDatalistsOptimized(); // Recarrega todas as datalists após o envio
+                        loadAllDatalistsOptimized();
                         if (formId === 'formPresenca' && participantesContainer) {
-                            participantesContainer.innerHTML = ''; // Limpa a lista de participantes
+                            participantesContainer.innerHTML = '';
                         }
                         if (formId === 'formAvaliacao') {
                             if (temasObservadoDatalist) temasObservadoDatalist.innerHTML = '';
                             if (turmasObservadoDatalist) turmasObservadoDatalist.innerHTML = '';
                         }
     
-                        // Atualiza a seção ativa após o envio bem-sucedido
                         const activeTabButton = document.querySelector('.tab-button.active');
                         if (activeTabButton && activeTabButton.dataset.sectionId) {
                             const sectionId = activeTabButton.dataset.sectionId;
-                            const tableId = activeTabButton.dataset.tableId; // Pode ser undefined
+                            const tableId = activeTabButton.dataset.tableId;
                             window.showSection(sectionId, tableId);
                         }
                     } else {
                         alert('Erro: ' + (result.message || 'Ocorreu um erro desconhecido.'));
                     }
                 } else {
-                    // Respostas não-JSON (redirecionamentos, por exemplo)
                     if (response.ok) {
                         alert(successMessage);
                         window.location.reload();
@@ -1568,14 +1545,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert('Erro ao enviar o formulário. O servidor respondeu com um status de erro.');
                     }
                 }
-            } catch (error) { // Catch geral para erros de rede ou processamento da resposta
+            } catch (error) {
                 console.error('ERRO JS: Erro ao enviar o formulário ou processar a resposta:', error);
                 alert('Ocorreu um erro inesperado ao enviar o formulário. Por favor, tente novamente.');
             }
         });
     }
 
-    // Event Listeners para filtros de resultados (gerais)
     const filterForms = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Acompanhamento', 'ParticipantesBaseEditavel'];
     filterForms.forEach(formName => {
         const tableId = formName.toLowerCase();
@@ -1583,19 +1559,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (form) {
             form.addEventListener('submit', function(event) {
                 event.preventDefault();
-                // Salvar filtros no estado global
                 const formData = new FormData(this);
                 currentFilters[tableId] = Object.fromEntries(formData.entries());
-                // Iniciar busca com a primeira página
                 fetchResults(tableId, 1);
             });
         }
 
-        // Inicializa o estado dos filtros para cada tabela
         currentFilters[tableId] = {};
     });
 
-    // NOVO: Event Listeners para filtros da página de Ateste
     const filterFormAteste = document.getElementById('filterFormAteste');
     if (filterFormAteste) {
         filterFormAteste.addEventListener('submit', function(event) {
@@ -1606,8 +1578,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Botões de Limpar Filtros (gerais)
-    const clearFilterButtons = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Ocorrencias
+    const clearFilterButtons = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel'];
     clearFilterButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`clearFilters${tableIdCapitalized}`);
         if (button) {
@@ -1623,8 +1594,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Botões de Exportar para CSV (gerais)
-    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Ocorrencias', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Ocorrencias
+    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Ocorrencias', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel'];
     exportCsvButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`exportCsv${tableIdCapitalized}`);
         if (button) {
@@ -1638,7 +1608,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = `/export_csv/${tableId}?${queryParams.toString()}`;
         console.log(`DEBUG JS: Exportando dados da tabela '${tableId}' da URL: ${url}`);
 
-        // Usar um link invisível para disparar o download
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', '');
@@ -1647,7 +1616,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.removeChild(link);
     }
     
-    // NOVO: Função para exclusão de registros
     window.handleDeleteRecord = async function(recordId, table, turma = null, data_formacao = null, pauta = null) {
         let confirmed = false;
         let deleteRelated = false;
@@ -1669,7 +1637,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
         if (confirmed) {
             try {
-                const response = await fetch('/admin/delete_entry', { // ROTA ATUALIZADA
+                const response = await fetch('/admin/delete_entry', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1693,9 +1661,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ====================================================================
-    // Lógica para os novos botões de ferramentas administrativas (ATUALIZADO)
-    // ====================================================================
     const manageUserForm = document.getElementById('manageUserForm');
     const searchCpfInput = document.getElementById('search-cpf');
     const searchButton = document.getElementById('search-button');
@@ -1708,7 +1673,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const uploadBaseForm = document.getElementById('uploadBaseForm');
     const uploadStatus = document.getElementById('uploadStatus');
 
-    // Funções auxiliares para o formulário de gerenciamento de usuário
     const resetUserForm = () => {
         searchCpfInput.value = '';
         userDetailsForm.style.display = 'none';
@@ -1729,7 +1693,6 @@ document.addEventListener('DOMContentLoaded', function() {
         userDetailsForm.style.display = 'block';
     };
     
-    // Lógica ajustada para a busca de usuário
     if (searchButton) {
         searchButton.addEventListener('click', async () => {
             const cpf = searchCpfInput.value.trim();
@@ -1841,7 +1804,6 @@ document.addEventListener('DOMContentLoaded', function() {
         newUserButton.addEventListener('click', resetUserForm);
     }
     
-    // Antiga lógica para exclusão de entrada individual
     const deleteEntryForm = document.getElementById('deleteEntryForm');
     if (deleteEntryForm) {
         deleteEntryForm.addEventListener('submit', async (event) => {
@@ -1860,7 +1822,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert(result.message);
                     if (result.success) {
                         deleteEntryForm.reset();
-                        // Recarregar a tabela se ela estiver visível
                         const currentTableId = document.querySelector('.tab-button.active')?.dataset.tableId;
                         if (currentTableId === table) {
                             fetchResults(table, currentPage[table] || 1);
@@ -1874,7 +1835,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // NOVO: Lógica para o formulário de upload de planilha
     if (uploadBaseForm) {
         uploadBaseForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -1922,8 +1882,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // NOVO: Lógica para o formulário de gerenciamento de visibilidade
-    const visibilityForm = document.getElementById('visibilityForm');
     if (visibilityForm) {
         visibilityForm.addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -1939,7 +1897,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 alert(result.message);
                 if (result.success) {
-                    location.reload(); // Recarrega a página para aplicar as mudanças
+                    location.reload();
                 }
             } catch (error) {
                 console.error('ERRO JS: Erro ao alterar a visibilidade:', error);
@@ -1951,7 +1909,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const avisoForm = document.getElementById('avisoForm');
     if (avisoForm) {
-        // Carrega o aviso existente ao carregar a página admin
         fetchAvisoDataForAdmin();
 
         avisoForm.addEventListener('submit', async function(event) {
@@ -1970,7 +1927,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 alert(result.message);
                 if (result.success) {
-                    // Após salvar, recarrega os dados no formulário e no pop-up
                     fetchAvisoDataForAdmin();
                     fetchAviso();
                 }
@@ -1981,7 +1937,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Corrigido: Adicionada verificação para evitar o erro de card fantasma.
     async function fetchAvisoDataForAdmin() {
         try {
             const response = await fetch('/get_aviso');
@@ -2007,7 +1962,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 
-    // NOVO: Lógica revisada para mostrar o pop-up de aviso apenas se houver conteúdo
     async function fetchAviso() {
         const avisoModal = document.getElementById('aviso-modal');
         try {
@@ -2023,7 +1977,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     imagemElement.style.display = 'none';
                 }
-                // Exibe o modal apenas se houver aviso
                 avisoModal.style.display = 'block';
             } else {
                 avisoModal.style.display = 'none';
@@ -2227,7 +2180,6 @@ document.addEventListener('DOMContentLoaded', function() {
             downloadStatus.textContent = 'A geração do relatório foi iniciada. Aguarde, o download começará em breve.';
 
             try {
-                // Rota corrigida para iniciar o processo assíncrono
                 const response = await fetch('/download_all_reports_async');
                 const result = await response.json();
 
@@ -2240,10 +2192,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (statusResult.status === 'ready') {
                                 clearInterval(checkStatusInterval);
                                 downloadStatus.textContent = 'Relatório pronto! O download irá começar...';
-                                // Dispara o download do arquivo
                                 window.location.href = `/download_file/${statusResult.filename}`;
                                 
-                                // Resetar o estado do botão após um pequeno atraso
                                 setTimeout(() => {
                                     downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
                                     downloadAllReportsButton.disabled = false;
@@ -2260,7 +2210,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             downloadAllReportsButton.textContent = 'Baixar Todos os Relatórios';
                             downloadAllReportsButton.disabled = false;
                         }
-                    }, 5000); // Verifica a cada 5 segundos
+                    }, 5000);
 
                 } else {
                     alert('Erro ao iniciar a geração dos relatórios: ' + result.message);
@@ -2328,13 +2278,11 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAccessLevel = data.access_level;
             console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
 
-            // Carrega a visibilidade dos elementos antes de exibir a interface
             const visibilityResponse = await fetch('/get_visibility');
             const visibilityData = await visibilityResponse.json();
             const hiddenElements = visibilityData.hidden_elements || {};
             console.log('DEBUG JS: Elementos ocultos:', hiddenElements);
 
-            // Oculta todas as seções e botões por padrão
             document.querySelectorAll('.section').forEach(section => {
                 section.style.display = 'none';
             });
@@ -2343,41 +2291,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             document.getElementById('aviso-modal').style.display = 'none';
 
-            // Lógica para exibir abas com base no nível de acesso
             switch (currentAccessLevel) {
                 case 'basic_access':
-                    // PM e CM
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
                     document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
-                    window.showSection('form-presenca');
-                    break;
-                case 'formador_access':
-                case 'efape_access':
-                case 'intermediate_access':
-                    // FORMADOR, EFAPE e PEC
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
-                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
-                    
-                    if (currentAccessLevel === 'intermediate_access') {
-                        document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
-                        document.getElementById('tab-form-demandas').style.display = 'inline-block';
-                        document.getElementById('tab-resultados-avaliacao').style.display = 'inline-block';
-                        document.getElementById('tab-resultados-demandas').style.display = 'inline-block';
-                        document.getElementById('tab-painel-bi').style.display = 'inline-block';
-                    }
-                    
                     window.showSection('form-presenca');
                     break;
                 case 'full_access':
-                    // NOVO NÍVEL: CAFF e outros que precisarem de acesso completo
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
@@ -2394,7 +2316,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.showSection('form-presenca');
                     break;
                 case 'super_admin':
-                    // ADM
                     document.querySelectorAll('.tab-button').forEach(button => {
                         button.style.display = 'inline-block';
                     });
@@ -2407,10 +2328,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
             }
 
-            // Lógica para esconder elementos se o admin marcou como oculto
             document.querySelectorAll('.tab-button').forEach(button => {
                 const elementId = button.dataset.sectionId || button.id;
-                // Apenas oculta se não for super_admin E o elemento estiver marcado como oculto
                 if (currentAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
                     button.style.display = 'none';
                     const sectionId = button.dataset.sectionId;
@@ -2430,7 +2349,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.showSection(sectionId, tableId);
             }
             
-            // Lógicas específicas de carregamento para o admin
             if (currentAccessLevel === 'super_admin') {
                 loadLinksAdmin();
                 fetchAvisoDataForAdmin();
