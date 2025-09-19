@@ -10,17 +10,17 @@ document.addEventListener('DOMContentLoaded', function() {
         'q1_2': '1.2 - Conduz a formação em ambiente adequado, utilizando o background do Programa Multiplica SP, bem como condições apropriadas de iluminação, comportamento e execução.',
         'q1_3': '1.3 - Estimula os demais participantes a seguirem as regras de etiqueta, enfatizando a importância dessa prática para a qualidade das formações.',
         'q2_1': '2.1 - Inicia a formação no horário determinado.',
-        '2.2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
+        'q2_2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
         'q2_3': '2.3 - Encerra a formação no horário estipulado.',
         'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
         'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
         'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
         'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
-        '4.2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
-        '4.3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
+        'q4_2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
+        'q4_3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
         'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
-        '5.2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
-        '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
+        'q5_2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
+        'q5_3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
     };
 
     // Variáveis de estado para paginação
@@ -592,7 +592,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
     window.toggleSchoolSelection = function(radioGroup) {
         const selectedValue = radioGroup.querySelector('input:checked')?.value;
         console.log(`DEBUG JS: Visitas às escolas: ${selectedValue}`);
@@ -605,13 +604,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
                 if (pmOrientadosInput) pmOrientadosInput.value = 0;
                 if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
-                // NOVOS CAMPOS
                 if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
                 if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
             }
         }
     };
-
+    
     if (document.querySelector('input[name="visitas_escolas_demandas"]')) {
         document.querySelectorAll('input[name="visitas_escolas_demandas"]').forEach(radio => {
             radio.addEventListener('change', function() {
@@ -696,6 +694,66 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     // ====================================================================
+    // Lógica para o Formulário de Registro de Ocorrência (NOVO)
+    // ====================================================================
+
+    const nomeOcorrenciaInput = document.getElementById('nome_ocorrencia');
+    const emailOcorrenciaInput = document.getElementById('email_ocorrencia');
+    const telefoneOcorrenciaInput = document.getElementById('telefone_ocorrencia');
+    const turmaOcorrenciaInput = document.getElementById('turma_ocorrencia');
+    const temaOcorrenciaInput = document.getElementById('tema_ocorrencia');
+    const tipoOcorrenciaSelect = document.getElementById('tipo_ocorrencia');
+    const outraOcorrenciaContainer = document.getElementById('outra_ocorrencia_desc_container');
+    const outraOcorrenciaDescInput = document.getElementById('outra_ocorrencia_desc');
+
+    if (nomeOcorrenciaInput) {
+        nomeOcorrenciaInput.addEventListener('change', async function() {
+            const nome_completo = this.value;
+            try {
+                const response = await fetch(`/get_user_info_by_name?nome=${encodeURIComponent(nome_completo)}`);
+                const data = await response.json();
+                if (data.email) emailOcorrenciaInput.value = data.email;
+                if (data.telefone) telefoneOcorrenciaInput.value = data.telefone;
+            } catch (error) {
+                console.error("ERRO JS: Não foi possível carregar dados do usuário.");
+                emailOcorrenciaInput.value = '';
+                telefoneOcorrenciaInput.value = '';
+            }
+        });
+    }
+
+    if (turmaOcorrenciaInput) {
+        turmaOcorrenciaInput.addEventListener('change', async function() {
+            const turma = this.value;
+            try {
+                const response = await fetch(`/get_tema_by_turma?turma=${encodeURIComponent(turma)}`);
+                const data = await response.json();
+                if (data.length > 0) {
+                    temaOcorrenciaInput.value = data[0];
+                } else {
+                    temaOcorrenciaInput.value = '';
+                }
+            } catch (error) {
+                console.error("ERRO JS: Não foi possível carregar o tema da turma.");
+                temaOcorrenciaInput.value = '';
+            }
+        });
+    }
+
+    if (tipoOcorrenciaSelect) {
+        tipoOcorrenciaSelect.addEventListener('change', function() {
+            if (this.value === 'Outra') {
+                outraOcorrenciaContainer.style.display = 'block';
+                outraOcorrenciaDescInput.required = true;
+            } else {
+                outraOcorrenciaContainer.style.display = 'none';
+                outraOcorrenciaDescInput.required = false;
+                outraOcorrenciaDescInput.value = '';
+            }
+        });
+    }
+    
+    // ====================================================================
     // Lógica para o modal de edição (ATUALIZADO)
     // ====================================================================
     const editModal = document.getElementById('editModal');
@@ -728,22 +786,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="hidden" name="id" value="${record.id}">
                 <p><strong>Participante:</strong> ${record.nome_participante}</p>
                 <p><strong>Responsável:</strong> ${record.responsavel}</p>
+                
                 <label for="pauta_edit">Pauta Formativa:</label>
                 <input type="text" id="pauta_edit" name="pauta" value="${record.pauta || ''}">
+                
                 <label for="data_formacao_edit">Data da Formação:</label>
                 <input type="date" id="data_formacao_edit" name="data_formacao" value="${record.data_formacao || ''}">
+                
                 <label for="turma_edit">Turma:</label>
                 <input type="text" id="turma_edit" name="turma" value="${record.turma || ''}">
+
                 <label>Presença:</label>
                 <div class="radio-group">
                     <label><input type="radio" name="presenca" value="SIM" ${record.presenca === 'SIM' ? 'checked' : ''}> SIM</label>
                     <label><input type="radio" name="presenca" value="NÃO" ${record.presenca === 'NÃO' ? 'checked' : ''}> NÃO</label>
                 </div>
+                
                 <label>Câmera:</label>
                 <div class="radio-group">
                     <label><input type="radio" name="camera" value="SIM" ${record.camera === 'SIM' ? 'checked' : ''}> SIM</label>
                     <label><input type="radio" name="camera" value="NÃO" ${record.camera === 'NÃO' ? 'checked' : ''}> NÃO</label>
                 </div>
+                
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
@@ -850,30 +914,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>Data:</strong> ${record.data_formacao}</p>
                 <label for="valor_formacao">Valor da Formação:</label>
                 <input type="number" name="valor_formacao" value="${record.valor_formacao || 0}" step="0.01">
-                <div class="button-group">
-                    <button type="submit" class="modal-save-button">Salvar</button>
-                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
-                </div>
-            </form>
-        `,
-        'ocorrencias': (record) => `
-            <h3>Editar Registro de Ocorrência</h3>
-            <form id="editForm">
-                <input type="hidden" name="id" value="${record.id}">
-                <p><strong>Relator:</strong> ${record.nome_ocorrencia}</p>
-                <p><strong>Turma:</strong> ${record.turma_ocorrencia}</p>
-                <p><strong>Tipo:</strong> ${record.tipo_ocorrencia}</p>
-                <label for="email_ocorrencia">E-mail:</label>
-                <input type="email" name="email_ocorrencia" value="${record.email_ocorrencia || ''}">
-                <label for="telefone_ocorrencia">Telefone:</label>
-                <input type="tel" name="telefone_ocorrencia" value="${record.telefone_ocorrencia || ''}">
-                <label for="descricao_problema">Descrição do Problema:</label>
-                <textarea name="descricao_problema" rows="4">${record.descricao_problema || ''}</textarea>
-                <label>A ocorrência ainda está acontecendo?</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" ${record.ocorrencia_ainda_ocorre === 'Sim' ? 'checked' : ''}> Sim</label>
-                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'NÃO' ? 'checked' : ''}> Não</label>
-                </div>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
@@ -1091,6 +1131,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 'substituicoes_realizadas': 'Substituições Realizadas',
                 'engajamento': 'Ações de Engajamento',
                 'valor_formacao': 'Valor da Formação',
+                'nome_ocorrencia': 'Nome Relator',
+                'email_ocorrencia': 'E-mail',
+                'telefone_ocorrencia': 'Telefone',
+                'turma_ocorrencia': 'Turma',
+                'tema_ocorrencia': 'Tema',
+                'tipo_ocorrencia': 'Tipo',
+                'outra_ocorrencia_desc': 'Outra Descrição',
+                'descricao_problema': 'Descrição do Problema',
+                'ocorrencia_ainda_ocorre': 'Ainda Ocorre?',
+                'nivel_impacto': 'Nível de Impacto',
+                'timestamp': 'Data/Hora Registro',
                 // Colunas para a tabela de participantes
                 'nome': 'Nome',
                 'cpf': 'CPF',
@@ -1111,11 +1162,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const desiredOrder = {
                 'presenca': ['id', 'diretoria_de_ensino_resp', 'responsavel', 'substituicao_ocorreu', 'nome_substituto', 'tema', 'turma', 'data_formacao', 'pauta', 'observacao', 'nome_participante', 'cpf_participante', 'escola_participante', 'de_participante', 'di_participante', 'pei_participante', 'declinou_participante', 'presenca', 'camera'],
+                'ocorrencias': ['id', 'nome_ocorrencia', 'email_ocorrencia', 'telefone_ocorrencia', 'turma_ocorrencia', 'tema_ocorrencia', 'tipo_ocorrencia', 'outra_ocorrencia_desc', 'descricao_problema', 'ocorrencia_ainda_ocorre', 'nivel_impacto', 'timestamp'],
                 'acompanhamento': [
                     'id', 'responsavel_acompanhamento', 'formador_assistido', 'turma', 'tema', 'pauta', 'data_encontro', 'semana',
                     'encontro_realizado', 'dia_semana_encontro', 'horario_encontro', 'esperado_participantes', 'real_participantes',
                     'camera_aberta_participantes', 'motivo_nao_ocorrencia', 'observacao'
                 ],
+                // Ajuste na ordem das colunas para demandas, removendo 'alinhamento_geral'
                 'demandas': ['id', 'pec', 'cpf_pec', 'semana', 'caff', 'diretoria_de_ensino', 'formacoes_realizadas', 'alinhamento_semanal', 'visitas_escolas', 'escolas_visitadas', 'pm_orientados', 'cursistas_orientados', 'pm_orientados_esperado', 'cursistas_orientados_esperado', 'rubricas_preenchidas', 'feedbacks_realizados', 'substituicoes_realizadas', 'engajamento', 'observacao'],
                 'ateste': ['id', 'responsavel_base', 'nome_quem_preencheu', 'tema', 'turma', 'data_formacao', 'diretoria_de_ensino', 'escola', 'cpf', 'valor_formacao'],
                 'participantes_base_editavel': ['cpf', 'nome', 'escola', 'diretoria_de_ensino', 'tema', 'responsavel', 'turma', 'etapa', 'di', 'pei', 'declinou'],
@@ -1135,10 +1188,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tableHead = document.querySelector(`#table-${tableId} thead tr`);
             tableHead.innerHTML = '';
-            const isEditableTable = ['presenca', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios'].includes(tableId);
+            const isEditableTable = ['presenca', 'ocorrencias', 'acompanhamento', 'avaliacao', 'demandas', 'ateste', 'participantes_base_editavel', 'usuarios'].includes(tableId);
 
             if (isEditableTable) {
                 const thActions = document.createElement('th');
+                thActions.textContent = 'Ações';
+                tableHead.appendChild(thActions);
             }
 
             orderedColumns.forEach(colName => {
@@ -1164,7 +1219,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             switch (tableId) {
                                 case 'presenca':
-                                    canEdit = docData.responsavel === userName || docData.nome_substituto === userName;
+                                    canEdit = docData.cpf_participante === userCpf || docData.responsavel === userName || docData.nome_substituto === userName;
+                                    break;
+                                case 'ocorrencias':
+                                    canEdit = docData.nome_ocorrencia === userName;
                                     break;
                                 case 'acompanhamento':
                                     canEdit = docData.responsavel_acompanhamento === userName;
@@ -1211,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             cellValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cellValue);
                         } else if (Array.isArray(cellValue)) {
                             td.textContent = cellValue.join(', ');
-                        } else if (col.includes('data_')) {
+                        } else if (col.includes('data_') || col === 'timestamp') {
                             const dateObj = new Date(cellValue);
                             const formattedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000).toLocaleDateString('pt-BR');
                             td.textContent = formattedDate;
@@ -1265,6 +1323,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (metricsContainer.querySelector('#acompanhamento-num_camera_aberta')) {
                         metricsContainer.querySelector('#acompanhamento-num_camera_aberta').textContent = data.metrics.num_camera_aberta || 0;
                     }
+                } else if (tableId === 'ocorrencias') {
+                    const numForms = metricsContainer.querySelector(`#ocorrencias-num_ocorrencias`);
+                    if (numForms) numForms.textContent = data.metrics.num_ocorrencias || 0;
+                    const ocorrenciasAtivas = metricsContainer.querySelector(`#ocorrencias-ocorrencias_ativas`);
+                    if (ocorrenciasAtivas) ocorrenciasAtivas.textContent = data.metrics.ocorrencias_ativas || 0;
                 } else if (tableId === 'avaliacao') {
                     const numForms = metricsContainer.querySelector(`#avaliacao-num_formularios`);
                     if (numForms) numForms.textContent = data.metrics.num_formularios || 0;
@@ -1276,7 +1339,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     const numEscolasVisitadasUnicas = metricsContainer.querySelector(`#demandas-num_escolas_visitadas_unicas`);
                     if (numEscolasVisitadasUnicas) numEscolasVisitadasUnicas.textContent = data.metrics.num_escolas_visitadas_unicas || 0;
 
-                    // CORRIGIDO: Métricas para o novo formato X/Y
                     const totalPmsOrientados = metricsContainer.querySelector(`#demandas-total_pms_orientados`);
                     const totalPmsEsperados = metricsContainer.querySelector(`#demandas-total_pms_esperados`);
                     if (totalPmsOrientados && totalPmsEsperados) {
@@ -1996,8 +2058,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Erro ao excluir link.');
                 }
             }
-        }
-    });
+        });
+    }
 
     if (linkForm) {
         linkForm.addEventListener('submit', async function(event) {
@@ -2195,7 +2257,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ====================================================================
-    // Lógica de Autenticação e Exibição Condicional (CORRIGIDO)
+    // Lógica de Autenticação e Exibição Condicional (ATUALIZADO)
     // ====================================================================
     let currentAccessLevel = 'none';
 
@@ -2212,11 +2274,13 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAccessLevel = data.access_level;
             console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
 
+            // Carrega a visibilidade dos elementos antes de exibir a interface
             const visibilityResponse = await fetch('/get_visibility');
             const visibilityData = await visibilityResponse.json();
             const hiddenElements = visibilityData.hidden_elements || {};
             console.log('DEBUG JS: Elementos ocultos:', hiddenElements);
 
+            // Oculta todas as seções e botões por padrão
             document.querySelectorAll('.section').forEach(section => {
                 section.style.display = 'none';
             });
@@ -2225,13 +2289,18 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             document.getElementById('aviso-modal').style.display = 'none';
 
+            // Lógica para exibir abas com base no nível de acesso
             switch (currentAccessLevel) {
                 case 'basic_access':
+                    // PM e CM
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
                     window.showSection('form-presenca');
                     break;
                 case 'full_access':
+                    // PEC, FORMADOR, EFAPE, CAFF
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
@@ -2248,6 +2317,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.showSection('form-presenca');
                     break;
                 case 'super_admin':
+                    // ADM
                     document.querySelectorAll('.tab-button').forEach(button => {
                         button.style.display = 'inline-block';
                     });
@@ -2260,8 +2330,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
             }
 
+            // Lógica para esconder elementos se o admin marcou como oculto
             document.querySelectorAll('.tab-button').forEach(button => {
                 const elementId = button.dataset.sectionId || button.id;
+                // Apenas oculta se não for super_admin E o elemento estiver marcado como oculto
                 if (currentAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
                     button.style.display = 'none';
                     const sectionId = button.dataset.sectionId;
@@ -2281,6 +2353,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.showSection(sectionId, tableId);
             }
             
+            // Lógicas específicas de carregamento para o admin
             if (currentAccessLevel === 'super_admin') {
                 loadLinksAdmin();
                 fetchAvisoDataForAdmin();
