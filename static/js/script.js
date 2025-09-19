@@ -13,14 +13,14 @@ document.addEventListener('DOMContentLoaded', function() {
         'q2_2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
         'q2_3': '2.3 - Encerra a formação no horário estipulado.',
         'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
-        '3.2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
-        '3.3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
-        '4.1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
-        '4.2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
-        '4.3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
-        '5.1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
-        '5.2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
-        '5.3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
+        'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
+        'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
+        'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
+        'q4_2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
+        'q4_3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
+        'q5_1': '5.1 - Demonstra domínio do conteúdo proposto na Pauta, por meio de explicações embasadas nas referências.',
+        'q5_2': '5.2 - Promove e estimula exemplos práticos para que conexões com a realidade escolar sejam estabelecidas.',
+        'q5_3': '5.3 - Assegura que a formação aconteça numa sequência lógica e progressiva, promovendo a qualidade das etapas do Percurso Formativo.'
     };
 
     // Variáveis de estado para paginação
@@ -547,6 +547,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // NOVOS CAMPOS (agora editáveis)
     const pmOrientadosInput = document.getElementById('pm_orientados_demandas');
     const cursistasOrientadosInput = document.getElementById('cursistas_orientados_demandas');
+    const formacoesRealizadasInput = document.getElementById('formacoes_realizadas_demandas');
+    const substituicoesRealizadasInput = document.getElementById('substituicoes_realizadas_demandas');
     
     // Novos campos de contagem total (agora lidos do backend)
     const pmOrientadosEsperadoInput = document.getElementById('pm_orientados_esperado_demandas');
@@ -710,7 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nomeOcorrenciaInput.addEventListener('change', async function() {
             const nome_completo = this.value;
             try {
-                const response = await fetch(`/get_info_by_nome_or_cpf?search_term=${encodeURIComponent(nome_completo)}`);
+                const response = await fetch(`/get_user_info_by_name?nome=${encodeURIComponent(nome_completo)}`);
                 const data = await response.json();
                 if (data.email) emailOcorrenciaInput.value = data.email;
                 if (data.telefone) telefoneOcorrenciaInput.value = data.telefone;
@@ -944,8 +946,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label for="access_level">Nível de Acesso:</label>
                 <select id="access_level" name="access_level" required>
                     <option value="no_access" ${record.access_level === 'no_access' ? 'selected' : ''}>Sem Acesso</option>
-                    <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC)</option>
-                    <option value="full_access" ${record.access_level === 'full_access' ? 'selected' : ''}>Full Access (PEC/FORMADOR/EFAPE/CAFF)</option>
+                    <option value="basic_access" ${record.access_level === 'basic_access' ? 'selected' : ''}>Basic Access (PM/PC/CM)</option>
+                    <option value="formador_access" ${record.access_level === 'formador_access' ? 'selected' : ''}>Formador Access (FORMADOR)</option>
+                    <option value="efape_access" ${record.access_level === 'efape_access' ? 'selected' : ''}>EFAPE Access (EFAPE)</option>
+                    <option value="intermediate_access" ${record.access_level === 'intermediate_access' ? 'selected' : ''}>Intermediate Access (PEC)</option>
                     <option value="super_admin" ${record.access_level === 'super_admin' ? 'selected' : ''}>Super Admin (ADM)</option>
                 </select>
                 <div class="button-group">
@@ -1479,13 +1483,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
+            
+            // Lógica específica para o novo formulário de ocorrência
             if (formId === 'formOcorrencia') {
                 const tipoOcorrencia = data['tipo_ocorrencia'];
                 if (tipoOcorrencia !== 'Outra') {
                     delete data['outra_ocorrencia_desc'];
                 }
             }
-
+            
             try { // Início do bloco try para a requisição fetch
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -1620,7 +1626,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Botões de Exportar para CSV (gerais)
-    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Ocorrencias', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
+    const exportCsvButtons = ['Avaliacao', 'Presenca', 'Ocorrencias', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Ocorrencias
     exportCsvButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`exportCsv${tableIdCapitalized}`);
         if (button) {
@@ -2108,8 +2114,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Erro ao excluir link.');
                 }
             }
-        });
-    }
+        }
+    });
 
     if (linkForm) {
         linkForm.addEventListener('submit', async function(event) {
@@ -2349,8 +2355,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
                     window.showSection('form-presenca');
                     break;
-                case 'full_access':
-                    // FORMADOR, PEC, EFAPE e CAFF (acesso unificado)
+                case 'formador_access':
+                    // FORMADOR
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'efape_access':
+                    // EFAPE
+                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
+                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
+                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
+                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
+                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    window.showSection('form-presenca');
+                    break;
+                case 'intermediate_access':
+                    // PEC
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';

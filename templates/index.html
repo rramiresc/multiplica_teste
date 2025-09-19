@@ -346,7 +346,7 @@
         <div class="form-section">
             <h3>Identificação e Referência</h3>
             <label for="cpf_pec_demandas">CPF do PEC Multiplica:</label>
-            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required placeholder="Digite o CPF">
+            <input type="text" id="cpf_pec_demandas" name="cpf_pec_demandas" list="cpfs-list" required>
             <datalist id="cpfs-list"></datalist>
 
             <label for="pec_demandas">PEC Multiplica responsável:</label>
@@ -450,8 +450,7 @@
 
 <div id="form-ocorrencia" class="section" style="display:none;">
     <h2>Registro de Ocorrência</h2>
-    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.
-    </p>
+    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.</p>
     <form id="formOcorrencia">
         <div class="form-section">
             <h3>Dados do Relator</h3>
@@ -528,8 +527,6 @@
             
             <input type="text" name="responsavel" placeholder="Nome do Responsável" value="">
             
-            <input type="text" name="nome_participante" placeholder="Nome do Participante" value="">
-
             <input type="text" name="de_participante" placeholder="DE do Participante" value="">
 
             <input type="text" name="escola_participante" placeholder="Escola do Participante" value="">
@@ -789,9 +786,6 @@
 
 <div id="controle-ateste" class="section" style="display:none;">
     <h2>Controle para ATESTE</h2>
-    <div class="result-header">
-        <button class="toggle-form-result" data-form-id="form-acompanhamento" data-result-id="controle-ateste">Exibir Formulário</button>
-    </div>
     <div class="filters">
         <h3>Filtros de Busca</h3>
         <form id="filterFormAteste">
@@ -859,8 +853,8 @@
     <h2>Ferramentas de Administração</h2>
 
     <div class="form-section">
-        <h3>Gerenciar Usuário e Participante</h3>
-        <p>Pesquise por um CPF para editar o nível de acesso de um usuário existente ou adicionar um novo. Os dados do participante na base de dados (planilha) são somente para visualização e não podem ser alterados aqui.</p>
+        <h3>Gerenciar Usuários (Simplificado)</h3>
+        <p>Pesquise por um CPF para ver o status do usuário. Se o usuário existir, você pode editar o nível de acesso. Se não existir, você pode adicioná-lo ao sistema.</p>
         <form id="manageUserForm">
             <div class="user-search-container">
                 <label for="search-cpf">Pesquisar ou Adicionar CPF:</label>
@@ -882,11 +876,12 @@
                 <select id="user-access-level" name="access_level" required>
                     <option value="no_access">Sem Acesso</option>
                     <option value="basic_access">Basic Access (PM/PC/CM)</option>
-                    <option value="full_access">Full Access (PEC/FORMADOR/EFAPE/CAFF)</option>
+                    <option value="formador_access">Formador Access (FORMADOR)</option>
+                    <option value="efape_access">EFAPE Access (EFAPE)</option>
+                    <option value="intermediate_access">Intermediate Access (PEC)</option>
                     <option value="super_admin">Super Admin (ADM)</option>
                 </select>
-                <p><small>Para novos usuários, a senha padrão é <b>123</b>. Por favor, instrua-os a alterá-la no primeiro acesso.</small></p>
-
+                
                 <div class="button-group">
                     <button type="submit" id="save-user-button">Adicionar Novo Usuário</button>
                     <button type="button" id="delete-user-button" class="red-button">Excluir</button>
@@ -915,7 +910,7 @@
     <div class="form-section">
         <h3>Atualizar Base de Participantes via Planilha</h3>
         <p>Faça o upload de uma planilha (.xlsx) com a base de participantes. Esta ação <b>irá apagar todos os dados</b> existentes na tabela `participantes_base_editavel` e substituí-los pelo conteúdo da nova planilha.</p>
-        <form id="uploadBaseForm" action="/admin/upload_base" method="POST" enctype="multipart/form-data">
+        <form id="uploadBaseForm" action="/upload_base" method="POST" enctype="multipart/form-data">
             <label for="baseFile">Arquivo .xlsx:</label>
             <input type="file" id="baseFile" name="baseFile" accept=".xlsx" required>
             <button type="submit">Fazer Upload e Atualizar</button>
@@ -1038,7 +1033,7 @@
             </select>
             
             <label for="delete-id">ID do Registro:</label>
-            <input type="text" id="delete-id" name="id" required>
+            <input type="number" id="delete-id" name="id" required>
             
             <button type="submit" class="red-button">Excluir Registro</button>
         </form>
