@@ -1225,9 +1225,6 @@ def get_results(table_name):
             total_presencas = metrics_query.total_presencas or 0
             total_cameras = metrics_query.total_cameras or 0
             
-            pct_presenca = (total_presencas / total_participantes_presenca) * 100 if total_participantes_presenca > 0 else 0
-            pct_camera = (total_cameras / total_participantes_presenca) * 100 if total_participantes_presenca > 0 else 0
-            
             num_formularios = db.session.query(func.count(distinct(
                 tuple_(Presenca.responsavel, Presenca.turma, Presenca.tema, Presenca.data_formacao)
             ))).filter(Presenca.id.in_(subquery_for_metrics)).scalar()
@@ -1236,8 +1233,8 @@ def get_results(table_name):
                 'num_formularios': num_formularios,
                 'presentes': total_presencas,
                 'esperados': total_participantes_presenca,
-                'pct_presenca': f'{pct_presenca:.2f}%',
-                'pct_camera': f'{pct_camera:.2f}%'
+                'pct_presenca': f'{(total_presencas / total_participantes_presenca) * 100:.2f}%' if total_participantes_presenca > 0 else "0.00%",
+                'pct_camera': f'{(total_cameras / total_participantes_presenca) * 100:.2f}%' if total_participantes_presenca > 0 else "0.00%"
             }
         
         elif table_name == 'acompanhamento':
@@ -1896,7 +1893,7 @@ def edit_record(table_name):
         user_name = user_info[0].get('nome') if user_info else None
 
         if table_name == 'presenca':
-            is_owner = record.responsavel == user_name or record.nome_substituto == user_name
+            is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
         elif table_name == 'acompanhamento':
             is_owner = record.responsavel_acompanhamento == user_name
         elif table_name == 'avaliacao':
@@ -1909,33 +1906,50 @@ def edit_record(table_name):
             is_owner = record.nome_ocorrencia == user_name
         elif table_name == 'usuarios':
             is_owner = record.cpf == user_cpf
-
+        
         if not is_owner:
              return jsonify({'success': False, 'message': 'Acesso negado. Você só pode editar seus próprios registros.'}), 403
 
     try:
-        for key, value in data.items():
-            if hasattr(record, key):
-                if key == 'data_formacao':
-                    setattr(record, key, datetime.strptime(value, '%Y-%m-%d').date())
-                elif key == 'pauta' and table_name == 'presenca':
-                    old_responsavel = record.responsavel
-                    old_turma = record.turma
-                    old_tema = record.tema
-                    old_data = record.data_formacao
-                    
-                    record.pauta = value
-                    
-                    if old_responsavel and old_turma and old_tema and old_data:
-                        Ateste.query.filter_by(
-                            nome_quem_preencheu=old_responsavel,
-                            turma=old_turma,
-                            tema=old_tema,
-                            data_formacao=old_data
-                        ).update({'pauta': value}, synchronize_session=False)
+        if table_name == 'presenca':
+            # Guarda os valores antigos para a atualização do ateste
+            old_responsavel = record.responsavel
+            old_turma = record.turma
+            old_tema = record.tema
+            old_data = record.data_formacao
+            
+            new_pauta = data.get('pauta')
+            new_data_str = data.get('data_formacao')
+            new_data_dt = datetime.strptime(new_data_str, '%Y-%m-%d').date() if new_data_str else None
+            
+            # Atualiza o registro de presença
+            if new_pauta: record.pauta = new_pauta
+            if new_data_dt: record.data_formacao = new_data_dt
+            
+            # Atualiza os outros campos da requisição
+            for key, value in data.items():
+                 if hasattr(record, key):
+                     setattr(record, key, value)
+            
+            # Tenta atualizar o registro na tabela ateste
+            ateste_record = Ateste.query.filter_by(
+                nome_quem_preencheu=old_responsavel,
+                turma=old_turma,
+                tema=old_tema,
+                data_formacao=old_data
+            ).first()
 
-                else:
-                    setattr(record, key, value)
+            if ateste_record:
+                if new_pauta: ateste_record.pauta = new_pauta
+                if new_data_dt: ateste_record.data_formacao = new_data_dt
+                
+        else:
+            for key, value in data.items():
+                if hasattr(record, key):
+                    if key in ['data_formacao', 'data_encontro', 'data_acompanhamento', 'data_feedback']:
+                        setattr(record, key, datetime.strptime(value, '%Y-%m-%d').date())
+                    else:
+                        setattr(record, key, value)
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Registro atualizado com sucesso!'})

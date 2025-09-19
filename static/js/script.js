@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'q2_2': '2.2 - Gerencia o tempo assegurando a realização das atividades propostas na pauta, priorizando a qualidade das trocas e a participação.',
         'q2_3': '2.3 - Encerra a formação no horário estipulado.',
         'q3_1': '3.1 - Utiliza estratégias e técnicas que favoreçam a participação de todos.',
-        'q3_2': '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
-        'q3_3': '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
+        '3.2 - Estimulados pelo formador, os participantes contribuem de alguma forma com a formação e demonstram compromisso com as atividades.',
+        '3.3 - Gerencia o tempo de forma eficiente, para a participação dos cursistas e dos formadores.',
         'q4_1': '4.1 - Utiliza vocabulário acessível e de fácil compreensão pelos participantes.',
         'q4_2': '4.2 - Faz perguntas disparadoras, coerentes com o conteúdo disposto na Pauta, a fim de melhor conduzir as discussões.',
         'q4_3': '4.3 - As discussões se mantêm produtivas e alinhadas ao objetivo da Pauta, evitando digressões.',
@@ -1012,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const formData = new FormData(editForm);
                     const data = Object.fromEntries(formData.entries());
-                    const endpoint = `/edit_record/${tableId}`;
+                    const endpoint = `/edit_record/${currentTableId}`;
                     
                     try {
                         const res = await fetch(endpoint, {
@@ -1024,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert(result.message);
                         if (result.success) {
                             window.closeModal();
-                            fetchResults(tableId, currentPage[tableId] || 1);
+                            fetchResults(currentTableId, currentPage[currentTableId] || 1);
                         }
                     } catch (error) {
                         console.error('ERRO JS: Erro ao salvar edição:', error);
