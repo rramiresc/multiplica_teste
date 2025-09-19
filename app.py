@@ -292,7 +292,7 @@ def load_participants_base():
             PARTICIPANTES_DF.rename(columns={'e-mail': 'email'}, inplace=True)
         if 'telefone_(opcional)' in PARTICIPANTES_DF.columns:
             PARTICIPANTES_DF.rename(columns={'telefone_(opcional)': 'telefone'}, inplace=True)
-            
+        
         print("Base de participantes carregada com sucesso!")
         return True
     except FileNotFoundError as e:
@@ -1176,6 +1176,11 @@ def get_results(table_name):
             if table_name == 'ocorrencias':
                 query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
 
+        # Na nova lógica, o 'full_access' remove a restrição de visualização
+        # O filtro de dados por usuário só é aplicado para a visualização inicial
+        # e não para todos os relatórios
+        # A lógica de filtro abaixo é mantida para garantir a segurança dos dados
+        # de edição e exclusão.
         if user_access_level == 'full_access':
             if table_name == 'presenca':
                 query = query.filter(or_(
@@ -1645,22 +1650,9 @@ def export_csv(table_name):
             if table_name == 'ocorrencias':
                 query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
         elif user_access_level == 'full_access':
-            if table_name == 'presenca':
-                query = query.filter(or_(
-                    Presenca.responsavel == user_name,
-                    Presenca.nome_substituto == user_name,
-                    Presenca.diretoria_de_ensino_resp == user_de
-                ))
-            if table_name == 'ocorrencias':
-                query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
-            if table_name == 'acompanhamento':
-                query = query.filter_by(responsavel_acompanhamento=user_name)
-            if table_name == 'avaliacao':
-                query = query.filter_by(observador=user_name)
-            if table_name == 'demandas':
-                query = query.filter_by(cpf_pec=user_cpf)
-            if table_name == 'ateste':
-                query = query.filter_by(cpf=user_cpf)
+            # Visualização total para full_access, sem filtros por nome/DE
+            pass
+        
 
 
         filters = request.args.to_dict()
