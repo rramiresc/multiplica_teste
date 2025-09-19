@@ -930,7 +930,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label>A ocorrência ainda está acontecendo?</label>
                 <div class="radio-group">
                     <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" ${record.ocorrencia_ainda_ocorre === 'Sim' ? 'checked' : ''}> Sim</label>
-                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'Não' ? 'checked' : ''}> Não</label>
+                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'NÃO' ? 'checked' : ''}> Não</label>
                 </div>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
