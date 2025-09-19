@@ -1483,15 +1483,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-            
-            // Lógica específica para o novo formulário de ocorrência
             if (formId === 'formOcorrencia') {
                 const tipoOcorrencia = data['tipo_ocorrencia'];
                 if (tipoOcorrencia !== 'Outra') {
                     delete data['outra_ocorrencia_desc'];
                 }
             }
-            
+
             try { // Início do bloco try para a requisição fetch
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -1609,7 +1607,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Botões de Limpar Filtros (gerais)
-    const clearFilterButtons = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Acompanhamento e ParticipantesBaseEditavel
+    const clearFilterButtons = ['Presenca', 'Ocorrencias', 'Avaliacao', 'Demandas', 'Ateste', 'Acompanhamento', 'ParticipantesBaseEditavel']; // Adicionado Ocorrencias
     clearFilterButtons.forEach(tableIdCapitalized => {
         const button = document.getElementById(`clearFilters${tableIdCapitalized}`);
         if (button) {
@@ -2313,7 +2311,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ====================================================================
-    // Lógica de Autenticação e Exibição Condicional (ATUALIZADO)
+    // Lógica de Autenticação e Exibição Condicional (CORRIGIDO)
     // ====================================================================
     let currentAccessLevel = 'none';
 
@@ -2356,19 +2354,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.showSection('form-presenca');
                     break;
                 case 'formador_access':
-                    // FORMADOR
-                    document.getElementById('tab-form-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-acompanhamento').style.display = 'inline-block';
-                    document.getElementById('tab-controle-ateste').style.display = 'inline-block';
-                    document.getElementById('tab-links-importantes').style.display = 'inline-block';
-                    document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
-                    document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
-                    window.showSection('form-presenca');
-                    break;
                 case 'efape_access':
-                    // EFAPE
+                case 'intermediate_access':
+                    // FORMADOR, EFAPE e PEC
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
@@ -2377,10 +2365,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('tab-links-importantes').style.display = 'inline-block';
                     document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
                     document.getElementById('tab-resultados-ocorrencias').style.display = 'inline-block';
+                    
+                    if (currentAccessLevel === 'intermediate_access') {
+                        document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
+                        document.getElementById('tab-form-demandas').style.display = 'inline-block';
+                        document.getElementById('tab-resultados-avaliacao').style.display = 'inline-block';
+                        document.getElementById('tab-resultados-demandas').style.display = 'inline-block';
+                        document.getElementById('tab-painel-bi').style.display = 'inline-block';
+                    }
+                    
                     window.showSection('form-presenca');
                     break;
-                case 'intermediate_access':
-                    // PEC
+                case 'full_access':
+                    // NOVO NÍVEL: CAFF e outros que precisarem de acesso completo
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
