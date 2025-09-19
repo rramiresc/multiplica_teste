@@ -1626,9 +1626,10 @@ def export_csv(table_name):
                 ))
             if table_name == 'ocorrencias':
                 query = query.filter(Ocorrencia.nome_ocorrencia == user_name)
-        # Removendo filtros de visualização para full_access
-        # A lógica de filtro por usuário é mantida apenas para edição e exclusão
-        # na rota `edit_record` e `delete_entry`.
+        elif user_access_level == 'full_access':
+            pass
+        
+
 
         filters = request.args.to_dict()
         for key, value in filters.items():
@@ -1810,6 +1811,34 @@ def delete_entry():
     Model = MODEL_MAP[table_name]
 
     try:
+        record_to_delete = Model.query.get(record_id)
+        if not record_to_delete:
+            return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
+            
+        user_access_level = session.get('access_level')
+        user_cpf = session.get('user_cpf')
+
+        if user_access_level != 'super_admin':
+            is_owner = False
+            user_info = PARTICIPANTES_DF[PARTICIPANTES_DF['cpf'] == user_cpf].to_dict('records')
+            user_name = user_info[0].get('nome') if user_info else None
+            
+            if table_name == 'presenca':
+                is_owner = record_to_delete.responsavel == user_name or record_to_delete.nome_substituto == user_name
+            elif table_name == 'acompanhamento':
+                is_owner = record_to_delete.responsavel_acompanhamento == user_name
+            elif table_name == 'avaliacao':
+                is_owner = record_to_delete.observador == user_name
+            elif table_name == 'demandas':
+                is_owner = record_to_delete.cpf_pec == user_cpf
+            elif table_name == 'ateste':
+                is_owner = record_to_delete.cpf == user_cpf
+            elif table_name == 'ocorrencias':
+                is_owner = record_to_delete.nome_ocorrencia == user_name
+
+            if not is_owner:
+                 return jsonify({'success': False, 'message': 'Acesso negado. Você só pode excluir seus próprios registros.'}), 403
+
         if delete_related and table_name == 'presenca':
             presenca_record = Presenca.query.get(record_id)
             if not presenca_record:
@@ -1833,10 +1862,6 @@ def delete_entry():
             return jsonify({'success': True, 'message': 'Todos os registros da formação foram excluídos com sucesso!'})
         
         else:
-            record_to_delete = Model.query.get(record_id)
-            if not record_to_delete:
-                return jsonify({'success': False, 'message': 'Registro não encontrado.'}), 404
-            
             db.session.delete(record_to_delete)
             db.session.commit()
             return jsonify({'success': True, 'message': 'Registro excluído com sucesso!'})
@@ -1871,7 +1896,7 @@ def edit_record(table_name):
         user_name = user_info[0].get('nome') if user_info else None
 
         if table_name == 'presenca':
-            is_owner = record.cpf_participante == user_cpf or record.responsavel == user_name or record.nome_substituto == user_name
+            is_owner = record.responsavel == user_name or record.nome_substituto == user_name
         elif table_name == 'acompanhamento':
             is_owner = record.responsavel_acompanhamento == user_name
         elif table_name == 'avaliacao':
@@ -1891,8 +1916,27 @@ def edit_record(table_name):
     try:
         for key, value in data.items():
             if hasattr(record, key):
-                setattr(record, key, value)
-        
+                if key == 'data_formacao':
+                    setattr(record, key, datetime.strptime(value, '%Y-%m-%d').date())
+                elif key == 'pauta' and table_name == 'presenca':
+                    old_responsavel = record.responsavel
+                    old_turma = record.turma
+                    old_tema = record.tema
+                    old_data = record.data_formacao
+                    
+                    record.pauta = value
+                    
+                    if old_responsavel and old_turma and old_tema and old_data:
+                        Ateste.query.filter_by(
+                            nome_quem_preencheu=old_responsavel,
+                            turma=old_turma,
+                            tema=old_tema,
+                            data_formacao=old_data
+                        ).update({'pauta': value}, synchronize_session=False)
+
+                else:
+                    setattr(record, key, value)
+
         db.session.commit()
         return jsonify({'success': True, 'message': 'Registro atualizado com sucesso!'})
     except Exception as e:

@@ -448,73 +448,6 @@
     </form>
 </div>
 
-<div id="form-ocorrencia" class="section" style="display:none;">
-    <h2>Registro de Ocorrência</h2>
-    <p>Utilize este formulário para relatar problemas técnicos ou pedagógicos relacionados às formações.</p>
-    <form id="formOcorrencia">
-        <div class="form-section">
-            <h3>Dados do Relator</h3>
-            <label for="nome_ocorrencia">Nome completo:</label>
-            <input type="text" id="nome_ocorrencia" name="nome_ocorrencia" list="nomes-list-avaliacao" required autocomplete="name">
-            <datalist id="nomes-list-avaliacao"></datalist>
-
-            <label for="email_ocorrencia">E-mail:</label>
-            <input type="email" id="email_ocorrencia" name="email_ocorrencia" required autocomplete="email" list="emails-list">
-            <datalist id="emails-list"></datalist>
-
-            <label for="telefone_ocorrencia">Telefone (opcional):</label>
-            <input type="tel" id="telefone_ocorrencia" name="telefone_ocorrencia" autocomplete="tel" list="telefones-list">
-            <datalist id="telefones-list"></datalist>
-        </div>
-
-        <div class="form-section">
-            <h3>Detalhes da Ocorrência</h3>
-            <label for="turma_ocorrencia">Turma Afetada:</label>
-            <input type="text" id="turma_ocorrencia" name="turma_ocorrencia" list="turmas-list" required>
-            
-            <label for="tema_ocorrencia">Tema da Formação:</label>
-            <input type="text" id="tema_ocorrencia" name="tema_ocorrencia" list="temas-list-presenca" required>
-
-            <label for="tipo_ocorrencia">Tipo de Ocorrência:</label>
-            <select id="tipo_ocorrencia" name="tipo_ocorrencia" required>
-                <option value="">Selecione o tipo</option>
-                <option value="Link do Teams não corresponde a pauta">Link do Teams não corresponde a pauta</option>
-                <option value="Botão de compartilhamento desativado">Botão de compartilhamento desativado</option>
-                <option value="Lista de presença incompleta">Lista de presença incompleta</option>
-                <option value="Problema com link de acesso">Problema com link de acesso</option>
-                <option value="Dificuldade de visualização/áudio">Dificuldade de visualização/áudio</option>
-                <option value="Conteúdo da pauta divergente">Conteúdo da pauta divergente</option>
-                <option value="Problema com a gravação">Problema com a gravação</option>
-                <option value="Desvio de conduta">Desvio de conduta</option>
-                <option value="Outra">Outra</option>
-            </select>
-            
-            <div id="outra_ocorrencia_desc_container" style="display:none;">
-                <label for="outra_ocorrencia_desc">Descreva a ocorrência:</label>
-                <textarea id="outra_ocorrencia_desc" name="outra_ocorrencia_desc"></textarea>
-            </div>
-
-            <label for="descricao_problema">Descreva o problema com detalhes:</label>
-            <textarea id="descricao_problema" name="descricao_problema" rows="5" required></textarea>
-
-            <label for="ocorrencia_ainda_ocorre">A ocorrência ainda está acontecendo?</label>
-            <div class="radio-group">
-                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" required> Sim</label>
-                <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não"> Não</label>
-            </div>
-            
-            <label for="nivel_impacto">Nível de Impacto:</label>
-            <div class="radio-group">
-                <label><input type="radio" name="nivel_impacto" value="Baixo" required> Baixo</label>
-                <label><input type="radio" name="nivel_impacto" value="Médio"> Médio</label>
-                <label><input type="radio" name="nivel_impacto" value="Alto"> Alto</label>
-            </div>
-        </div>
-
-        <button type="submit">Enviar Ocorrência</button>
-    </form>
-</div>
-
 <div id="resultados-presenca" class="section" style="display:none;">
     <div class="result-header">
         <h2>Resultados - Presença</h2>
@@ -905,7 +838,6 @@
                     <tbody></tbody>
                 </table>
             </div>
-            <div class="pagination-container" id="pagination-usuarios"></div>
         </div>
     </div>
     
@@ -932,14 +864,12 @@
                     <option value="form-acompanhamento">Acompanhamento de Encontros</option>
                     <option value="form-avaliacao">Formulário de Avaliação</option>
                     <option value="form-demandas">Registro de Demandas</option>
-                    <option value="form-ocorrencia">Registro de Ocorrência</option>
                 </optgroup>
                 <optgroup label="Resultados">
                     <option value="resultados-presenca">Resultados de Presença</option>
                     <option value="resultados-acompanhamento">Resultados Acompanhamento</option>
                     <option value="resultados-avaliacao">Resultados de Avaliação</option>
                     <option value="resultados-demandas">Resultados de Demandas</option>
-                    <option value="resultados-ocorrencias">Resultados de Ocorrências</option>
                     <option value="controle-ateste">Controle para Ateste</option>
                 </optgroup>
                 <optgroup label="Outros">
