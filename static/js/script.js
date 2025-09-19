@@ -604,6 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (escolasCheckboxContainer) escolasCheckboxContainer.innerHTML = '';
                 if (pmOrientadosInput) pmOrientadosInput.value = 0;
                 if (cursistasOrientadosInput) cursistasOrientadosInput.value = 0;
+                // NOVOS CAMPOS
                 if (pmOrientadosEsperadoInput) pmOrientadosEsperadoInput.value = 0;
                 if (cursistasOrientadosEsperadoInput) cursistasOrientadosEsperadoInput.value = 0;
             }
@@ -786,15 +787,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="hidden" name="id" value="${record.id}">
                 <p><strong>Participante:</strong> ${record.nome_participante}</p>
                 <p><strong>Responsável:</strong> ${record.responsavel}</p>
+                <p><strong>Turma:</strong> ${record.turma}</p>
+                <p><strong>Data:</strong> ${record.data_formacao}</p>
                 
-                <label for="pauta_edit">Pauta Formativa:</label>
-                <input type="text" id="pauta_edit" name="pauta" value="${record.pauta || ''}">
+                <label>Pauta Formativa:</label>
+                <input type="text" name="pauta" value="${record.pauta || ''}">
                 
-                <label for="data_formacao_edit">Data da Formação:</label>
-                <input type="date" id="data_formacao_edit" name="data_formacao" value="${record.data_formacao || ''}">
-                
-                <label for="turma_edit">Turma:</label>
-                <input type="text" id="turma_edit" name="turma" value="${record.turma || ''}">
+                <label>Data da Formação:</label>
+                <input type="date" name="data_formacao" value="${record.data_formacao || ''}">
 
                 <label>Presença:</label>
                 <div class="radio-group">
@@ -914,6 +914,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>Data:</strong> ${record.data_formacao}</p>
                 <label for="valor_formacao">Valor da Formação:</label>
                 <input type="number" name="valor_formacao" value="${record.valor_formacao || 0}" step="0.01">
+                <div class="button-group">
+                    <button type="submit" class="modal-save-button">Salvar</button>
+                    <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
+        `,
+        'ocorrencias': (record) => `
+            <h3>Editar Registro de Ocorrência</h3>
+            <form id="editForm">
+                <input type="hidden" name="id" value="${record.id}">
+                <p><strong>Relator:</strong> ${record.nome_ocorrencia}</p>
+                <p><strong>Turma:</strong> ${record.turma_ocorrencia}</p>
+                <p><strong>Tipo:</strong> ${record.tipo_ocorrencia}</p>
+                <label for="email_ocorrencia">E-mail:</label>
+                <input type="email" name="email_ocorrencia" value="${record.email_ocorrencia || ''}">
+                <label for="telefone_ocorrencia">Telefone:</label>
+                <input type="tel" name="telefone_ocorrencia" value="${record.telefone_ocorrencia || ''}">
+                <label for="descricao_problema">Descrição do Problema:</label>
+                <textarea name="descricao_problema" rows="4">${record.descricao_problema || ''}</textarea>
+                <label>A ocorrência ainda está acontecendo?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Sim" ${record.ocorrencia_ainda_ocorre === 'Sim' ? 'checked' : ''}> Sim</label>
+                    <label><input type="radio" name="ocorrencia_ainda_ocorre" value="Não" ${record.ocorrencia_ainda_ocorre === 'NÃO' ? 'checked' : ''}> Não</label>
+                </div>
                 <div class="button-group">
                     <button type="submit" class="modal-save-button">Salvar</button>
                     <button type="button" class="modal-close-button close-button" onclick="closeModal()">Cancelar</button>
@@ -2058,8 +2082,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Erro ao excluir link.');
                 }
             }
-        });
-    }
+        }
+    });
 
     if (linkForm) {
         linkForm.addEventListener('submit', async function(event) {
@@ -2257,7 +2281,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // ====================================================================
-    // Lógica de Autenticação e Exibição Condicional (ATUALIZADO)
+    // Lógica de Autenticação e Exibição Condicional (CORRIGIDO)
     // ====================================================================
     let currentAccessLevel = 'none';
 
@@ -2274,13 +2298,11 @@ document.addEventListener('DOMContentLoaded', function() {
             currentAccessLevel = data.access_level;
             console.log("DEBUG JS: Nível de acesso do usuário:", currentAccessLevel);
 
-            // Carrega a visibilidade dos elementos antes de exibir a interface
             const visibilityResponse = await fetch('/get_visibility');
             const visibilityData = await visibilityResponse.json();
             const hiddenElements = visibilityData.hidden_elements || {};
             console.log('DEBUG JS: Elementos ocultos:', hiddenElements);
 
-            // Oculta todas as seções e botões por padrão
             document.querySelectorAll('.section').forEach(section => {
                 section.style.display = 'none';
             });
@@ -2289,10 +2311,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             document.getElementById('aviso-modal').style.display = 'none';
 
-            // Lógica para exibir abas com base no nível de acesso
             switch (currentAccessLevel) {
                 case 'basic_access':
-                    // PM e CM
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-resultados-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-ocorrencia').style.display = 'inline-block';
@@ -2300,7 +2320,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.showSection('form-presenca');
                     break;
                 case 'full_access':
-                    // PEC, FORMADOR, EFAPE, CAFF
                     document.getElementById('tab-form-presenca').style.display = 'inline-block';
                     document.getElementById('tab-form-acompanhamento').style.display = 'inline-block';
                     document.getElementById('tab-form-avaliacao').style.display = 'inline-block';
@@ -2317,7 +2336,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.showSection('form-presenca');
                     break;
                 case 'super_admin':
-                    // ADM
                     document.querySelectorAll('.tab-button').forEach(button => {
                         button.style.display = 'inline-block';
                     });
@@ -2330,10 +2348,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
             }
 
-            // Lógica para esconder elementos se o admin marcou como oculto
             document.querySelectorAll('.tab-button').forEach(button => {
                 const elementId = button.dataset.sectionId || button.id;
-                // Apenas oculta se não for super_admin E o elemento estiver marcado como oculto
                 if (currentAccessLevel !== 'super_admin' && hiddenElements[elementId]) {
                     button.style.display = 'none';
                     const sectionId = button.dataset.sectionId;
@@ -2353,7 +2369,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.showSection(sectionId, tableId);
             }
             
-            // Lógicas específicas de carregamento para o admin
             if (currentAccessLevel === 'super_admin') {
                 loadLinksAdmin();
                 fetchAvisoDataForAdmin();
